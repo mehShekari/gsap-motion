@@ -39,7 +39,7 @@ plugins/gsap-motion/
 │   └── scripts/                        audit-gsap, audit-svg, and their tests
 └── evals/                              behaviour tests for `claude plugin eval`
 examples/next-app/                      a Next.js app that compiles the templates
-packages/cli/                           the gsap-motion npm package: `npx gsap-motion`
+packages/cli/                           the npm package: `npx @mehshekari/gsap-motion`
 scripts/                                repository tooling: test runner, freshness check
 tests/                                  checks that the manifests and versions agree
 ```
@@ -145,7 +145,7 @@ For maintainers:
    **Release to npm** workflow then publishes the package, with provenance.
 
 Marketplace users receive an update only when `plugin.json`'s version changes;
-npm users with `npx gsap-motion@latest`.
+npm users with `npx @mehshekari/gsap-motion@latest`.
 
 ## Pull requests
 

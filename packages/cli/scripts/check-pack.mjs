@@ -22,7 +22,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const { name, version } = JSON.parse(
+const { name, version, bin } = JSON.parse(
   readFileSync(join(PACKAGE_ROOT, "package.json"), "utf8"),
 );
 
@@ -76,11 +76,12 @@ try {
   /**
    * `--package=<tarball> <bin>`, not `npx <tarball>`. A bare tarball path is
    * silently not executed on Windows — exit 0, no output — while this form is
-   * exactly what `npx gsap-motion` resolves to from the registry: the package
-   * named gsap-motion, running its bin named gsap-motion.
+   * exactly what `npx @mehshekari/gsap-motion` resolves to from the registry:
+   * the scoped package, running its one bin, which is named gsap-motion.
    */
+  const command = Object.keys(bin)[0];
   const npx = (args, cwd) =>
-    run(`npx --yes --package="${tarball}" ${name} ${args}`, cwd);
+    run(`npx --yes --package="${tarball}" ${command} ${args}`, cwd);
 
   const empty = join(work, "empty");
   mkdirSync(empty);

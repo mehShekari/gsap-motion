@@ -9,7 +9,7 @@ animation you already have for leaks, jank and accessibility failures.
 
 [![CI](https://github.com/mehShekari/gsap-motion/actions/workflows/ci.yml/badge.svg)](https://github.com/mehShekari/gsap-motion/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/mehShekari/gsap-motion)](https://github.com/mehShekari/gsap-motion/releases)
-[![npm](https://img.shields.io/npm/v/gsap-motion.svg)](https://www.npmjs.com/package/gsap-motion)
+[![npm](https://img.shields.io/npm/v/@mehshekari/gsap-motion.svg)](https://www.npmjs.com/package/@mehshekari/gsap-motion)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![GSAP 3.13+](https://img.shields.io/badge/GSAP-3.13%2B-88ce02.svg)](https://gsap.com)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-spec%20valid-6b4fbb.svg)](https://agentskills.io/specification)
@@ -76,14 +76,15 @@ To update, run `/plugin marketplace update mehshekari`.
 ### With npx
 
 ```bash
-npx gsap-motion add                      # this project: .claude/skills/
-npx gsap-motion add --global             # every project: ~/.claude/skills/
-npx gsap-motion add --dir <skills-dir>   # another agent's skills directory
+npx @mehshekari/gsap-motion add                      # this project: .claude/skills/
+npx @mehshekari/gsap-motion add --global             # every project: ~/.claude/skills/
+npx @mehshekari/gsap-motion add --dir <skills-dir>   # another agent's skills directory
 ```
 
-Run it again after a release to update, and `npx gsap-motion doctor` to see what
-is installed and whether your project's GSAP is recent enough. The cross-agent
-installer [`skills`](https://github.com/vercel-labs/skills) finds this skill too:
+Run it again after a release to update, and
+`npx @mehshekari/gsap-motion doctor` to see what is installed and whether your
+project's GSAP is recent enough. The cross-agent installer
+[`skills`](https://github.com/vercel-labs/skills) finds this skill too:
 `npx skills add mehShekari/gsap-motion`.
 
 ### Any Agent Skills client
@@ -249,9 +250,9 @@ Run it from your project root. Paths resolve from where you run it, wherever the
 skill is installed.
 
 ```bash
-npx gsap-motion audit                          # scans ./src
-npx gsap-motion audit app components --quiet   # errors only
-npx gsap-motion audit src --json               # for scripts and CI
+npx @mehshekari/gsap-motion audit                          # scans ./src
+npx @mehshekari/gsap-motion audit app components --quiet   # errors only
+npx @mehshekari/gsap-motion audit src --json               # for scripts and CI
 ```
 
 It needs no install, and exits `1` when there is an error-level finding, so it
@@ -259,8 +260,12 @@ can gate a build. Pin the version, so a new rule cannot fail your build without
 warning:
 
 ```json
-"lint": "eslint && npx gsap-motion@2.1.0 audit src --quiet"
+"lint": "eslint && npx @mehshekari/gsap-motion@2.1.0 audit src --quiet"
 ```
+
+Or install it with `npm install --save-dev --save-exact @mehshekari/gsap-motion`;
+the command it adds is `gsap-motion`, so the script becomes
+`eslint && gsap-motion audit src --quiet`.
 
 With the skill installed, the same scripts are in its folder:
 `node <skill-dir>/scripts/audit-gsap.mjs`.
@@ -300,9 +305,9 @@ finding is simply wrong, that is a bug —
 ### Checking an SVG
 
 ```bash
-npx gsap-motion audit-svg logo.svg
-npx gsap-motion audit-svg --morph from.svg to.svg
-npx gsap-motion audit-svg --hues logo.svg    # also flag hard-coded hues
+npx @mehshekari/gsap-motion audit-svg logo.svg
+npx @mehshekari/gsap-motion audit-svg --morph from.svg to.svg
+npx @mehshekari/gsap-motion audit-svg --hues logo.svg    # also flag hard-coded hues
 ```
 
 ## Configuration
@@ -418,7 +423,7 @@ something, and why — it never quietly substitutes.
 
 **Does anything leave my machine?** The skill is text, and its scripts only read
 the files you point them at: no network, no dependencies, and they never run your
-code. `npx gsap-motion` downloads the package from npm; it has no dependencies and
+code. `npx @mehshekari/gsap-motion` downloads the package from npm; it has no dependencies and
 no install scripts, and each release is published with provenance. See
 [SECURITY.md](SECURITY.md).
 

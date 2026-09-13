@@ -1,13 +1,13 @@
-# gsap-motion
+# @mehshekari/gsap-motion
 
 Install the **gsap-creative-animation** Agent Skill — a senior motion engineer
 for GSAP — and run its audits for silent animation failures, with `npx`.
 
 ```bash
-npx gsap-motion add            # this project: .claude/skills/
-npx gsap-motion add --global   # every project: ~/.claude/skills/
-npx gsap-motion audit src      # find silent GSAP failures; exits 1 on an error
-npx gsap-motion doctor         # what is installed, and is your GSAP recent enough
+npx @mehshekari/gsap-motion add            # this project: .claude/skills/
+npx @mehshekari/gsap-motion add --global   # every project: ~/.claude/skills/
+npx @mehshekari/gsap-motion audit src      # find silent GSAP failures; exits 1 on an error
+npx @mehshekari/gsap-motion doctor         # what is installed, and is your GSAP recent enough
 ```
 
 No dependencies, no install scripts, Node.js 18 or later.
@@ -28,7 +28,14 @@ The audit needs no install. Pin the version, so a new rule cannot fail your
 build without warning:
 
 ```json
-"lint": "eslint && npx gsap-motion@2.1.0 audit src --quiet"
+"lint": "eslint && npx @mehshekari/gsap-motion@2.1.0 audit src --quiet"
+```
+
+Or install it with `npm install --save-dev --save-exact @mehshekari/gsap-motion`.
+The command it adds is `gsap-motion`:
+
+```json
+"lint": "eslint && gsap-motion audit src --quiet"
 ```
 
 ## Claude Code plugin

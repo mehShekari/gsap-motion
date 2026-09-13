@@ -84,9 +84,22 @@ describe("plugin", () => {
 describe("npm package", () => {
   const pkg = json("packages/cli/package.json");
 
-  test("is gsap-motion, at the plugin's version", () => {
-    assert.equal(pkg.name, "gsap-motion");
+  test("is @mehshekari/gsap-motion, at the plugin's version", () => {
+    // The unscoped name was refused by npm as too close to `gsapmotion`.
+    assert.equal(pkg.name, "@mehshekari/gsap-motion");
     assert.equal(pkg.version, plugin.version);
+    assert.equal(pkg.publishConfig?.access, "public", "a scoped package is private by default");
+  });
+
+  test("installs one command, named for the plugin", () => {
+    assert.deepEqual(Object.keys(pkg.bin), [plugin.name]);
+  });
+
+  test("the docs run it by its package name", () => {
+    // `npx gsap-motion` would fetch whatever owns that name, not this package.
+    for (const doc of ["README.md", "packages/cli/README.md", "CONTRIBUTING.md"]) {
+      assert.doesNotMatch(read(doc), /npx gsap-motion\b/, doc);
+    }
   });
 
   test("points at this repository", () => {

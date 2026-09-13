@@ -26,9 +26,9 @@ production website.
 ### Added
 
 - Packaged as the `gsap-motion` Claude Code plugin, with a marketplace.
-- The `gsap-motion` npm package: `npx gsap-motion add`, `remove`, `audit`,
-  `audit-svg` and `doctor`, with no dependencies and no install scripts, and a
-  release workflow that publishes it with provenance.
+- The `@mehshekari/gsap-motion` npm package: `npx @mehshekari/gsap-motion add`,
+  `remove`, `audit`, `audit-svg` and `doctor`, with no dependencies and no
+  install scripts, and a release workflow that publishes it with provenance.
 - `reference/frameworks.md`: the animation lifecycle in vanilla JavaScript, Vue
   and Nuxt, Svelte and Astro.
 - 70 tests for the skill: each audit rule shown to fire and to stay quiet, both

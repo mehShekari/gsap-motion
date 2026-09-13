@@ -3,11 +3,13 @@
 /**
  * gsap-motion — the gsap-creative-animation skill, from npm.
  *
- *   npx gsap-motion add [--global | --dir <skills-dir>] [--force]
- *   npx gsap-motion remove [--global | --dir <skills-dir>]
- *   npx gsap-motion audit [path...] [--quiet] [--json]
- *   npx gsap-motion audit-svg <file.svg...> [--morph] [--hues]
- *   npx gsap-motion doctor
+ *   npx @mehshekari/gsap-motion add [--global | --dir <skills-dir>] [--force]
+ *   npx @mehshekari/gsap-motion remove [--global | --dir <skills-dir>]
+ *   npx @mehshekari/gsap-motion audit [path...] [--quiet] [--json]
+ *   npx @mehshekari/gsap-motion audit-svg <file.svg...> [--morph] [--hues]
+ *   npx @mehshekari/gsap-motion doctor
+ *
+ * Installed as a dependency, the same commands run as `gsap-motion <command>`.
  *
  * No dependencies and no install scripts. `npx` runs whatever it downloads, so
  * this file and the skill it carries are the whole of what runs.
@@ -53,7 +55,7 @@ const red = paint(31);
 const HELP = `${bold("gsap-motion")} ${pkg.version} — the ${SKILL_NAME} skill, from npm
 
 Usage
-  npx gsap-motion <command> [options]
+  npx ${pkg.name} <command> [options]
 
 Commands
   add                   Install or update the skill for this project (.claude/skills)
@@ -203,8 +205,8 @@ function doctor() {
   );
 
   for (const [scope, root, command] of [
-    ["this project", process.cwd(), "npx gsap-motion add"],
-    ["your user", homedir(), "npx gsap-motion add --global"],
+    ["this project", process.cwd(), `npx ${pkg.name} add`],
+    ["your user", homedir(), `npx ${pkg.name} add --global`],
   ]) {
     const location = join(root, ".claude", "skills", SKILL_NAME);
     const installed = skillInfo(location);
@@ -266,7 +268,7 @@ function doctor() {
 const [command, ...args] = process.argv.slice(2);
 
 if (!SKILL_DIR && !["--version", "-v", "version", "--help", "-h", "help", undefined].includes(command)) {
-  fail("The bundled skill is missing from this installation. Reinstall gsap-motion.");
+  fail(`The bundled skill is missing from this installation. Reinstall ${pkg.name}.`);
 }
 
 switch (command) {
