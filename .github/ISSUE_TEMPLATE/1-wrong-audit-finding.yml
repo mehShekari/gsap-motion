@@ -1,0 +1,43 @@
+name: Wrong audit finding
+description: audit-gsap or audit-svg reported something that is fine, or missed a real problem.
+labels: ["audit", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A finding that is wrong in either direction is a bug in the rule, not something to work around. The smallest reproduction gets fixed fastest.
+  - type: dropdown
+    id: direction
+    attributes:
+      label: What went wrong?
+      options:
+        - It reported a problem that is not there (false positive)
+        - It missed a problem that is there (false negative)
+    validations:
+      required: true
+  - type: input
+    id: rule
+    attributes:
+      label: Rule id
+      description: The id in square brackets in the output, such as orphan-tween. Leave blank for a miss.
+      placeholder: orphan-tween
+  - type: textarea
+    id: code
+    attributes:
+      label: Smallest code that reproduces it
+      description: Trim it until removing anything else makes the problem go away.
+      render: tsx
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Audit output
+      render: text
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: skill 2.1.0 · gsap 3.15.0 · Node 24
+    validations:
+      required: true

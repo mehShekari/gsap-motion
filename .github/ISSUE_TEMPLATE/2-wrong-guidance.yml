@@ -1,0 +1,43 @@
+name: Wrong or outdated guidance
+description: The agent, following this skill, produced animation code or advice that is wrong, outdated or harmful.
+labels: ["guidance", "bug"]
+body:
+  - type: textarea
+    id: prompt
+    attributes:
+      label: What you asked
+      description: The prompt, as you typed it.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: produced
+    attributes:
+      label: What it produced
+      render: tsx
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is wrong with it
+      description: Link GSAP's documentation, a release note, or a reproduction if you can.
+    validations:
+      required: true
+  - type: dropdown
+    id: client
+    attributes:
+      label: Client
+      options:
+        - Claude Code
+        - Claude.ai or the API
+        - Another Agent Skills client
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: skill 2.1.0 · gsap 3.15.0 · @gsap/react 2.1.2 · model if known
+    validations:
+      required: true

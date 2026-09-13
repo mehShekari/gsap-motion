@@ -1,0 +1,65 @@
+name: Evals
+
+# Runs the behaviour suite against a no-plugin baseline. Every run is a real
+# model call billed to the ANTHROPIC_API_KEY secret, so this workflow never runs
+# on its own — a maintainer starts it, with a cost ceiling.
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Runs per case, per arm
+        required: true
+        default: "3"
+      max_cost_usd:
+        description: Cost ceiling in US dollars, at list price
+        required: true
+        default: "15"
+      case:
+        description: Case glob, such as trigger-* (leave blank for every case)
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --global @anthropic-ai/claude-code
+
+      # Inputs reach the shell through env, never interpolated into the script.
+      - name: Run the suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RUNS: ${{ inputs.runs }}
+          MAX_COST_USD: ${{ inputs.max_cost_usd }}
+          CASE: ${{ inputs.case }}
+        run: |
+          args=(
+            plugins/gsap-motion
+            --trust-plugin
+            --json results.json
+            --threshold 0.8
+            --runs "$RUNS"
+            --model claude-sonnet-5
+            --judge-model claude-haiku-4-5
+            --no-publish
+            --max-cost-usd "$MAX_COST_USD"
+          )
+          if [ -n "$CASE" ]; then args+=(--case "$CASE"); fi
+          claude plugin eval "${args[@]}"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: |
+            results.json
+            plugins/gsap-motion/evals/results/

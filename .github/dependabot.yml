@@ -1,0 +1,16 @@
+version: 2
+
+updates:
+  # Only the example app has dependencies. The skill and its scripts have none.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      example-app:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

@@ -1,0 +1,14 @@
+{
+  "name": "mehshekari",
+  "owner": {
+    "name": "mehran.shekari",
+    "url": "https://github.com/mehShekari"
+  },
+  "plugins": [
+    {
+      "name": "gsap-motion",
+      "source": "./plugins/gsap-motion",
+      "description": "A senior motion engineer for GSAP: designs and builds production animation, and audits existing animation for leaks, jank and accessibility."
+    }
+  ]
+}

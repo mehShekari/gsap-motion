@@ -1,0 +1,8 @@
+# Line endings are LF everywhere, whatever the contributor's platform. The
+# skill's tests read these files, and CRLF would change what they measure.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.webp binary

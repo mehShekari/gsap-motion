@@ -1,0 +1,19 @@
+{
+  "name": "gsap-creative-animation-repo",
+  "private": true,
+  "description": "Development tooling for the gsap-motion Claude Code plugin. Nothing in this repository is published to npm.",
+  "license": "MIT",
+  "workspaces": [
+    "examples/*"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node scripts/test.mjs",
+    "freshness": "node scripts/check-freshness.mjs",
+    "audit:example": "node plugins/gsap-motion/skills/gsap-creative-animation/scripts/audit-gsap.mjs examples/next-app/app plugins/gsap-motion/skills/gsap-creative-animation/template",
+    "example:dev": "npm run dev --workspace examples/next-app",
+    "example:build": "npm run build --workspace examples/next-app"
+  }
+}

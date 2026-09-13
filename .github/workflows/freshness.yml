@@ -1,0 +1,22 @@
+name: GSAP freshness
+
+# A new GSAP release is the moment a "verified against" claim might have gone
+# stale. This turns red when that happens, so it cannot be missed.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/check-freshness.mjs --strict

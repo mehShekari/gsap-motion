@@ -1,0 +1,34 @@
+name: Feature or new guidance
+description: A technique, command, preset or audit rule the skill should cover.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What were you trying to build or catch, and what got in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - Guidance (a reference, preset or example)
+        - A new command
+        - An audit rule
+        - Tooling or documentation
+    validations:
+      required: true
+  - type: checkboxes
+    id: silent
+    attributes:
+      label: For an audit rule
+      options:
+        - label: It catches a failure that is silent — no error and no obvious symptom. (Rules never judge taste.)

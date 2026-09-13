@@ -1,0 +1,33 @@
+name: Skill did not load, or loaded when it should not
+description: A prompt that should have used the skill did not — or one that had nothing to do with GSAP did.
+labels: ["trigger"]
+body:
+  - type: dropdown
+    id: direction
+    attributes:
+      label: What happened?
+      options:
+        - It should have loaded and did not
+        - It loaded and should not have
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: The prompt, exactly as typed
+      description: Wording is the whole question here, so please do not paraphrase. Any language is welcome.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: What you expected
+      placeholder: the scroll command / no skill at all
+  - type: input
+    id: client
+    attributes:
+      label: Client and version
+      placeholder: Claude Code 2.x · skill 2.1.0
+    validations:
+      required: true

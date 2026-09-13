@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Written by every `claude plugin eval` run.
+plugins/*/evals/results/
+results.json
+
+.DS_Store
+Thumbs.db
