@@ -278,12 +278,14 @@ With the skill installed, the same scripts are in its folder:
 | `state-per-event` | error | React state set in a high-frequency handler — a re-render per frame |
 | `shared-plugin-id` | error | A hardcoded `#id` in MotionPath or MorphSVG config, which two instances of a component will share |
 | `unregistered-plugin` | error | A plugin imported and never registered, whose properties are silently ignored |
+| `never-completes` | error | An `onComplete` that can never run: on a timeline holding a `repeat: -1` child, or on a tween or timeline that repeats forever |
 | `dev-tool-shipped` | error | `GSDevTools` or `MotionPathHelper` imported statically, or unconditional `markers: true` |
 | `dangling-listener` | warn | An event listener that is never removed, including inline handlers that cannot be |
 | `layout-property` | warn | Animating `width`, `height`, `top`, `left`, margins or padding, which forces layout every frame |
 | `trigger-per-item` | warn | A ScrollTrigger created per item in a loop |
 | `eased-loop` | warn | An infinite repeat with an ease, which makes its own seam visible |
 | `eased-scrub` | warn | Easing inside a scrubbed ScrollTrigger, which fights the scrollbar |
+| `late-transform-origin` | warn | A `fromTo` whose origin is only in its to-vars while its from-vars scale, rotate or skew, which leaves an SVG element offset |
 | `missing-reduced-motion` | warn | An animating file with no `prefers-reduced-motion` branch |
 | `barrel-import` | warn | Importing from `gsap/all`, which pulls in every plugin |
 

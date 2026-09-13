@@ -86,7 +86,8 @@ tl.from("[data-mark]", { ... })          // plays once
 `repeat: -1` on the timeline replays the entrance too. And a timeline containing
 an infinitely repeating child **never completes**, so its `onComplete` never
 fires — if something downstream waits on that, give the timeline a finite beat
-of its own to end on, or drive the handover from elsewhere.
+of its own to end on, or drive the handover from elsewhere. `audit-gsap`
+reports it as `never-completes`.
 
 ## Paused timelines as state
 

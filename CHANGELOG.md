@@ -6,6 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `never-completes`, an error-level audit rule: an `onComplete` that can never
+  run, on a timeline holding a `repeat: -1` child or on a tween or timeline that
+  repeats forever. The guidance had described this failure since 2.1.0, and a
+  site intro still shipped with it, waiting for its ceiling on every visit. A
+  new error-level rule makes the next release a major version.
+- `late-transform-origin`, a warn-level audit rule: a `fromTo` whose transform
+  origin is only in its to-vars while its from-vars scale, rotate or skew. On an
+  SVG element `smoothOrigin` then leaves it offset, silently. It warns rather
+  than errors because the audit cannot tell an SVG target from an HTML one.
+- `reference/svg.md` explains when an SVG transform origin has to be set, with
+  the offsets measured in gsap 3.15; `reference/core-gsap.md` points to it.
+- Eval: `outcome-curtain-css-exit`, whether an intro curtain gets an exit that
+  needs no JavaScript and leaves hit-testing.
+- Eval: `outcome-svg-origin-in-from`, whether a `fromTo` that scales an SVG
+  element puts its transform origin in the from-vars. With the origin only in
+  the to-vars, `smoothOrigin` leaves the element offset by the origin's distance
+  from its own top-left corner × (1 − starting scale) — a whole radius for a
+  circle grown from nothing — silently. Verified in gsap 3.15.0 in Chrome; HTML
+  elements are unaffected.
+
 ### Changed
 
 - When a simpler technique does what the user asked for, the skill writes only
@@ -17,6 +39,17 @@ All notable changes to this project are documented here. The format follows
   skill asks what should move instead of inventing an animation.
 - Evals: `outcome-marquee-loop` also checks for `useGSAP` and an RTL decision,
   and `outcome-asks-for-target` gives a real page with no target named.
+
+### Fixed
+
+- The loader and cinematic guidance said rendering the page underneath keeps a
+  visitor whose JavaScript fails from a permanent curtain. It does not: a
+  server-rendered curtain is exactly what that visitor gets.
+  `preset/cinematic.md` now gives the curtain a CSS exit, verified in Chrome to
+  win over GSAP's inline styles.
+- `reference/svg.md` still referred to the colour rule of the project the skill
+  was developed in. The portability test missed it because the phrase wrapped
+  across a line; it now collapses whitespace before matching.
 
 ## [2.1.0] - 2026-09-13
 

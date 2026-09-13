@@ -116,10 +116,13 @@ return () => window.clearTimeout(ceiling);
 
 A timeline containing an infinitely repeating child **never completes**, so its
 `onComplete` never fires. Give the timeline a finite beat of its own to end on,
-or drive the handover from elsewhere.
+or drive the handover from elsewhere. `audit-gsap` reports it as
+`never-completes`.
 
-Render the real page underneath the whole time, so a visitor whose JavaScript
-fails gets the site rather than a permanent curtain.
+Render the real page underneath the whole time. That alone does not save a
+visitor whose JavaScript never runs: a server-rendered curtain is then all they
+get, and the ceiling is JavaScript too. Give the curtain a CSS exit as well —
+see [cinematic.md](cinematic.md#without-javascript).
 
 ## Exit
 

@@ -69,6 +69,11 @@ rather than fighting over `transform`:
   transformOrigin: "50% 100%" }
 ```
 
+**On SVG, the origin comes with the first transform.** One that arrives after
+the element is already scaled, rotated or skewed — in a `fromTo`'s to-vars —
+leaves it offset, silently. Put it in the from-vars; see
+[svg.md](svg.md#transform-origin).
+
 `xPercent`/`yPercent` are percentages of the element's own size, which is what
 centres something without knowing its dimensions.
 
@@ -116,9 +121,6 @@ gsap.utils.toArray("[data-card]");            // NodeList → real array
 gsap.utils.selector(ref);                     // scoped selector function
 gsap.utils.shuffle(items);
 ```
-
-`mapRange` and `wrap` are the two that most often replace ten lines of
-hand-rolled maths in a scroll or marquee.
 
 ## `quickTo` and `quickSetter`
 
@@ -228,6 +230,3 @@ question — see [motion-design.md](motion-design.md).
 CustomEase.create("brand", "M0,0 C0.16,1 0.3,1 1,1");
 gsap.to(el, { y: 0, ease: "brand" });
 ```
-
-`CustomWiggle` and `CustomBounce` register named eases the same way, for shake
-and impact without hand-built keyframes.

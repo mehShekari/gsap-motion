@@ -160,8 +160,9 @@ Both scripts catch failures that are **silent**. Run them from the project
 root; `<skill-dir>` is where this skill is installed.
 
 ```bash
-# Leaks, per-event tweens, layout properties, eased loops, shared plugin ids,
-# unregistered plugins, dev tooling left in. Exit 1 on an error.
+# Leaks, per-event tweens, layout properties, eased loops, an onComplete that
+# never fires, shared plugin ids, unregistered plugins, dev tooling left in.
+# Exit 1 on an error.
 node <skill-dir>/scripts/audit-gsap.mjs [path...]     # default: src
 node <skill-dir>/scripts/audit-gsap.mjs src --quiet   # errors only
 node <skill-dir>/scripts/audit-gsap.mjs src --json    # machine-readable

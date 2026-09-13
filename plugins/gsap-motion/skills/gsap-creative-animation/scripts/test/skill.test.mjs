@@ -204,7 +204,13 @@ test("nothing from the project the skill was developed in leaks into it", () => 
     const path = rel(file);
     if (path.startsWith("scripts/test/")) continue;
     if (!/\.(?:md|mjs|ts|tsx)$/.test(path)) continue;
-    const text = readFileSync(file, "utf8");
+    /**
+     * Whitespace collapsed first, because prose wraps: "this" at the end of
+     * one line and "repo" at the start of the next is the same leak, and it
+     * sat in reference/svg.md unreported while the check read lines as they
+     * were wrapped.
+     */
+    const text = readFileSync(file, "utf8").replace(/\s+/g, " ");
     for (const marker of PROJECT_MARKERS) {
       if (marker.test(text)) leaks.push(`${path}: ${marker}`);
     }

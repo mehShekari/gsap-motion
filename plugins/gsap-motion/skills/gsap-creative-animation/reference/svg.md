@@ -168,6 +168,38 @@ rendered. `ease: "none"` on anything looping.
 To author a path by eye, use `MotionPathHelper` in development only and bake the
 `d` it gives you. It is an editor — never ship it.
 
+## Transform origin
+
+Set `transformOrigin` — or `svgOrigin` — no later than the first scale, rotation
+or skew. When the origin of an SVG element that is already transformed changes,
+GSAP adds a translate that holds the element where it is (`smoothOrigin`), and
+that translate stays after the tween.
+
+A `fromTo` renders its from-vars first, so this is the shape that breaks:
+
+```ts
+// ✗ ends a whole radius up and left of where it should be
+gsap.fromTo(dot, { scale: 0 }, { scale: 1, transformOrigin: "50% 50%" });
+
+// ✓
+gsap.fromTo(dot, { scale: 0, transformOrigin: "50% 50%" }, { scale: 1 });
+```
+
+Measured in gsap 3.15 in Chrome, with the origin only in the to-vars:
+
+| From-vars | The element ends |
+|---|---|
+| `scale: 0` | offset by the origin's distance from its own top-left corner |
+| `scale: 0.94` | offset by that distance × 0.06 — a few pixels, easy to miss |
+| `rotation: 90`, `skewX: 20` | offset too |
+| `x: 20`, `scale: 1` | where it should — a translation or an identity start is safe |
+
+A `gsap.set(el, { scale: 0 })` followed by a `to` that brings the origin does the
+same. HTML elements are unaffected, and a mask or clip path makes no difference.
+Any one of these fixes it: the origin in the from-vars, a `gsap.set` of the
+origin before the tween, or `smoothOrigin: false`. `audit-gsap` reports the
+`fromTo` shape as `late-transform-origin`.
+
 ## Masks and clip paths
 
 Often better than either plugin, and cheaper. A mask reveal is a transform on a
@@ -184,8 +216,8 @@ rect inside a `<mask>`:
 gsap.from("[data-wipe]", { scaleX: 0, transformOrigin: "0% 50%", duration: 0.8 });
 ```
 
-Greyscale in a mask is an alpha stop, not a colour — the one literal this
-repo's colour rule allows.
+Greyscale in a mask is an alpha stop, not a colour — the one literal a
+token-only colour rule has no reason to refuse.
 
 ## Choosing
 

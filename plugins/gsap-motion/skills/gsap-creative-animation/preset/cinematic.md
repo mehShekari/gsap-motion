@@ -108,7 +108,39 @@ return () => window.clearTimeout(ceiling);
 
 Keep the total under ~3s. Play it once per session, not once per route — an
 intro on every navigation is an obstacle. Render the page underneath the whole
-time so a JavaScript failure cannot trap the visitor behind a curtain.
+time, so the curtain only ever covers.
+
+## Without JavaScript
+
+Rendering the page underneath is necessary, and not enough. A curtain rendered
+on the server — which a client component is, too — is in the HTML, so a visitor
+whose JavaScript never runs gets the curtain and nothing able to remove it: a
+blocked script, a chunk that fails to load after a deploy, a hydration error.
+The ceiling above is JavaScript as well.
+
+Give the curtain an exit that needs no script — a CSS animation that hides it a
+little after the JavaScript ceiling:
+
+```css
+@keyframes curtain-exit {
+  to { opacity: 0; visibility: hidden; }
+}
+
+[data-curtain] {
+  animation: curtain-exit 0.3s ease-out 5s forwards;
+}
+```
+
+- **It outranks GSAP.** Animations beat inline styles in the cascade, so once it
+  has run, an `autoAlpha` tween cannot bring the curtain back — verified in
+  Chrome. On the normal path the curtain is gone long before the delay ends.
+- **The delay counts from the HTML, not from hydration.** Set it beyond the
+  JavaScript ceiling plus a slow hydration. At worst, a page that took that
+  long to become interactive plays its intro under an invisible curtain.
+- **`visibility: hidden` is the part that matters.** It removes the curtain from
+  hit-testing, so the page is clickable, not just visible.
+- A `<noscript>` style only covers JavaScript that is switched off, not
+  JavaScript that loaded and failed. Use the animation.
 
 ## Reduced motion
 

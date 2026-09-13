@@ -119,10 +119,15 @@ tl.addLabel("hold")
 ```
 
 Get this wrong and nothing visibly breaks: the ceiling still lifts the curtain,
-just late, on every visit. That is exactly why it is worth checking.
+just late, on every visit. That is exactly why it is worth checking, and why
+`audit-gsap` reports it as an error, `never-completes`.
 
-**The page renders underneath the whole time.** The curtain only covers. A
-JavaScript failure leaves the visitor on the site, not behind a curtain.
+**The page renders underneath, and the curtain has a CSS exit.** The curtain
+only covers. But it is in the server-rendered HTML, so a visitor whose
+JavaScript never runs would get the curtain and nothing able to remove it — the
+ceiling is JavaScript too. A CSS animation that hides it a little after the
+ceiling is the exit that needs no script; see
+[cinematic.md](../preset/cinematic.md#without-javascript).
 
 **Session gating in the layout effect, behind storage's real failures.**
 Storage cannot be read during render without the server and client

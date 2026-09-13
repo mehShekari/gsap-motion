@@ -459,6 +459,126 @@ export function scene(section, button) {
   });
 });
 
+describe("never-completes", () => {
+  test("fires on an endless child added after a label, through the timeline's variable", () => {
+    fires(
+      "never-completes",
+      `${REACT}
+export function Intro({ onDone }) {
+  const root = useRef(null);
+  useGSAP(() => {
+    const tl = gsap.timeline({ onComplete: onDone });
+    tl.addLabel("mark")
+      .from("[data-mark]", { autoAlpha: 0, duration: 0.8 })
+      .addLabel("hold")
+      .to("[data-dot]", { rotation: 360, duration: 2, repeat: -1, ease: "none" }, "hold")
+      .to({}, { duration: 0.45 }, "hold");
+  }, { scope: root });
+  return <div ref={root} />;
+}`,
+      { count: 1 },
+    );
+  });
+
+  test("fires on an onComplete attached by eventCallback, with the loop passed to add", () => {
+    fires(
+      "never-completes",
+      `${PLAIN}
+export function loader(ring, finish) {
+  const tl = gsap.timeline();
+  tl.to(ring, { drawSVG: "0% 75%", duration: 0.9 })
+    .add(gsap.to(ring, { rotation: 360, duration: 1.8, repeat: -1, ease: "none" }));
+  tl.eventCallback("onComplete", finish);
+}`,
+      { ext: "ts", count: 1 },
+    );
+  });
+
+  test("fires on a tween and a timeline that repeat forever and wait to complete", () => {
+    fires(
+      "never-completes",
+      `${PLAIN}
+export function idle(dot, done) {
+  gsap.to(dot, { rotation: 360, repeat: -1, ease: "none", onComplete: done });
+  gsap.timeline({ repeat: -1, onComplete: done }).to(dot, { x: 10 });
+}`,
+      { ext: "ts", count: 2 },
+    );
+  });
+
+  test("stays quiet on a handover at a position with call", () => {
+    quiet(
+      "never-completes",
+      `${PLAIN}
+export function intro(mark, dot, finish) {
+  const tl = gsap.timeline();
+  tl.from(mark, { autoAlpha: 0, duration: 0.8 })
+    .addLabel("hold")
+    .to(dot, { rotation: 360, duration: 2, repeat: -1, ease: "none" }, "hold")
+    .call(finish, [], "hold+=0.45");
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on a finite timeline beside a loop, and on another function's tl", () => {
+    quiet(
+      "never-completes",
+      `${PLAIN}
+export function intro(mark, dot, finish) {
+  const tl = gsap.timeline({ onComplete: finish });
+  tl.from(mark, { autoAlpha: 0, duration: 0.8 })
+    .to(mark, { scale: 1.05, repeat: 2, yoyo: true });
+  gsap.to(dot, { rotation: 360, repeat: -1, ease: "none" });
+}
+
+export function idle(dot) {
+  const tl = gsap.timeline();
+  tl.to(dot, { rotation: 360, repeat: -1, ease: "none" });
+}`,
+      { ext: "ts" },
+    );
+  });
+});
+
+describe("late-transform-origin", () => {
+  test("fires on a fromTo that grows from nothing with the origin only in the to-vars", () => {
+    fires(
+      "late-transform-origin",
+      `${PLAIN}
+export const pop = (dot) =>
+  gsap.fromTo(dot, { scale: 0 }, { scale: 1, duration: 0.4, transformOrigin: "50% 50%" });`,
+      { ext: "ts", count: 1 },
+    );
+  });
+
+  test("fires on a chained fromTo that rotates, with svgOrigin in the to-vars", () => {
+    fires(
+      "late-transform-origin",
+      `${PLAIN}
+export function turn(tl, dial) {
+  tl.addLabel("in")
+    .fromTo(dial, { rotation: "90deg", autoAlpha: 0 }, { rotation: 0, autoAlpha: 1, svgOrigin: "50 50" }, "in");
+}`,
+      { ext: "ts", count: 1 },
+    );
+  });
+
+  test("stays quiet with the origin in the from-vars, smoothOrigin off, or no transform to move", () => {
+    quiet(
+      "late-transform-origin",
+      `${PLAIN}
+export function pop(dot, ring, bar, pin) {
+  gsap.fromTo(dot, { scale: 0, transformOrigin: "50% 50%" }, { scale: 1 });
+  gsap.fromTo(ring, { scale: 0 }, { scale: 1, transformOrigin: "50% 50%", smoothOrigin: false });
+  gsap.fromTo(bar, { scale: 1, x: 20 }, { scale: 2, x: 0, transformOrigin: "0% 50%" });
+  gsap.fromTo(pin, { rotation: 0 }, { rotation: 45, transformOrigin: "50% 100%" });
+}`,
+      { ext: "ts" },
+    );
+  });
+});
+
 describe("shared-plugin-id", () => {
   test("fires on a hardcoded id in a component's plugin config", () => {
     fires(

@@ -126,10 +126,11 @@ function listenerCalls(code, method) {
 }
 
 /**
- * The argument spans of the `.to(` / `.from(` / `.fromTo(` calls chained on
- * from `cursor`, following the chain through labels and other calls.
+ * The argument spans of the `.to(` / `.from(` / `.fromTo(` calls — or of
+ * whichever `methods` are asked for — chained on from `cursor`, following the
+ * chain through labels and other calls.
  */
-function chainedTweens(code, cursor) {
+function chainedTweens(code, cursor, methods = ["to", "from", "fromTo"]) {
   const spans = [];
   for (;;) {
     const next = code.slice(cursor).match(/^\s*\.\s*([\w$]+)\s*\(/);
@@ -137,9 +138,81 @@ function chainedTweens(code, cursor) {
     const open = cursor + next[0].length - 1;
     const span = parenSpan(code, open);
     if (!span) return spans;
-    if (["to", "from", "fromTo"].includes(next[1])) spans.push([open, span[1]]);
+    if (methods.includes(next[1])) spans.push([open, span[1]]);
     cursor = span[1] + 1;
   }
+}
+
+/**
+ * What is added to the timeline created by the `gsap.timeline(` match `call`,
+ * whose arguments close at `close`: the argument spans of its children, and
+ * whether an `onComplete` is attached through `eventCallback`.
+ *
+ * Both are read from the chain on the call itself and from every chain on the
+ * variable it was kept in — including one that starts with a label, which is
+ * how a sequence usually opens. Those uses are read only up to the next
+ * declaration of the same name, so two functions that each keep a `tl` do not
+ * lend each other their children.
+ */
+function timelineCalls(code, call, close) {
+  const CHILDREN = ["to", "from", "fromTo", "add"];
+  const children = chainedTweens(code, close + 1, CHILDREN);
+  const callbacks = chainedTweens(code, close + 1, ["eventCallback"]);
+
+  const kept = code
+    .slice(Math.max(0, call.index - 80), call.index)
+    .match(/([\w$]+)\s*=\s*$/);
+  if (kept) {
+    const name = kept[1].replace(/\$/g, "\\$");
+    const redeclared = code
+      .slice(close)
+      .search(new RegExp(`\\b(?:const|let|var)\\s+${name}\\b`));
+    const end = redeclared === -1 ? code.length : close + redeclared;
+    const uses = new RegExp(`(?<![\\w$.])${name}(?=\\s*\\.\\s*[\\w$]+\\s*\\()`, "g");
+
+    for (const use of code.slice(close, end).matchAll(uses)) {
+      const cursor = close + use.index + use[0].length;
+      children.push(...chainedTweens(code, cursor, CHILDREN));
+      callbacks.push(...chainedTweens(code, cursor, ["eventCallback"]));
+    }
+  }
+
+  const completes = callbacks.some(([open, end]) =>
+    /^\(\s*["'`]onComplete["'`]/.test(code.slice(open, end)),
+  );
+  return { children, completes };
+}
+
+/**
+ * The top-level arguments of the call whose parentheses span `[open, close]`,
+ * as `[start, end]` pairs. A comma inside brackets, braces or a string does not
+ * separate arguments.
+ */
+function callArgs(code, open, close) {
+  const args = [];
+  let depth = 0;
+  let quote = "";
+  let start = open + 1;
+
+  for (let i = open + 1; i < close; i += 1) {
+    const c = code[i];
+
+    if (quote) {
+      if (c === "\\") i += 1;
+      else if (c === quote) quote = "";
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") quote = c;
+    else if ("([{".includes(c)) depth += 1;
+    else if (")]}".includes(c)) depth -= 1;
+    else if (c === "," && depth === 0) {
+      args.push([start, i]);
+      start = i + 1;
+    }
+  }
+
+  if (code.slice(start, close).trim()) args.push([start, close]);
+  return args;
 }
 
 export const RULES = [
@@ -429,6 +502,125 @@ export const RULES = [
       }
 
       return findings.slice(0, 1);
+    },
+  },
+  /**
+   * An `onComplete` that can never run. A `repeat: -1` tween never completes,
+   * and a timeline holding one is given an effectively infinite duration —
+   * 1e10 seconds, measured in gsap 3.15, where neither callback fired — so its
+   * `onComplete` never fires either, and a short tween added after the loop
+   * does not change that.
+   *
+   * Nothing reports it. Whatever the callback was meant to start simply does not
+   * start: behind a ceiling timer the visitor waits for the ceiling on every
+   * visit, and without one the curtain never lifts. The guidance described this
+   * for a whole release and it still shipped, which is why it is a rule.
+   */
+  {
+    id: "never-completes",
+    level: "error",
+    test(file) {
+      /** `-1` exactly: the boundary after it rejects `-10`. */
+      const endless = /\brepeat\s*:\s*-1\b/;
+      const findings = [];
+
+      for (const call of find(
+        file.code,
+        /\bgsap\s*\.\s*(to|from|fromTo|timeline)\s*\(/g,
+      )) {
+        const open = call.index + call[0].length - 1;
+        const span = parenSpan(file.code, open);
+        if (!span) continue;
+        const args = file.code.slice(open, span[1]);
+        const waits = /\bonComplete\b/.test(args);
+
+        const own = args.search(endless);
+        if (waits && own !== -1) {
+          findings.push({
+            index: open + own,
+            message: `\`gsap.${call[1]}\` repeats forever, so its \`onComplete\` can never run.`,
+            hint: "An endless repeat never completes. Use `onRepeat` for something that should happen every cycle, or give it a finite `repeat`.",
+          });
+          continue;
+        }
+        if (call[1] !== "timeline") continue;
+
+        const { children, completes } = timelineCalls(file.code, call, span[1]);
+        if (!waits && !completes) continue;
+
+        for (const [start, end] of children) {
+          const at = file.code.slice(start, end).search(endless);
+          if (at === -1) continue;
+          findings.push({
+            index: start + at,
+            message:
+              "An endlessly repeating child in a timeline with an `onComplete`, which therefore never fires.",
+            hint: 'The child gives the timeline an effectively infinite duration, and a tween added after it does not end it. Hand over at a position instead — `.call(fn, [], "label+=0.5")` fires when the playhead passes — or run the loop as its own tween outside the timeline.',
+          });
+          break;
+        }
+      }
+
+      return findings;
+    },
+  },
+  /**
+   * A transform origin that arrives after the transform it belongs to.
+   *
+   * When the origin of an SVG element that is already scaled, rotated or
+   * skewed changes, GSAP's `smoothOrigin` adds a translate that holds the
+   * element where it is. A `fromTo` renders its from-vars first, so an origin
+   * given only in its to-vars lands on an element already at its starting
+   * transform, and the translate outlives the tween. Measured in gsap 3.15 in
+   * Chrome: a circle grown from 0 about its centre ends a whole radius up and
+   * left; rotation and skew offset it too; a translation, an identity start or
+   * an HTML element does not.
+   *
+   * `warn`, not `error`: nothing here can tell an SVG target from an HTML one.
+   */
+  {
+    id: "late-transform-origin",
+    level: "warn",
+    test(file) {
+      const ORIGIN = /\b(?:transformOrigin|svgOrigin)\s*:/;
+      const TRANSFORM = /\b(scale[XY]?|rotation|rotate|skew[XY])\s*:\s*([^,}\n]+)/g;
+      /** Whether a from-value leaves the element untransformed. */
+      const identity = (prop, value) => {
+        const v = value.trim().replace(/^["'`]|["'`]$/g, "");
+        return prop.startsWith("scale")
+          ? /^1(?:\.0+)?$/.test(v)
+          : /^-?0(?:\.0+)?(?:deg|rad)?$/.test(v);
+      };
+
+      return find(file.code, /\.\s*fromTo\s*\(/g).flatMap((call) => {
+        const open = call.index + call[0].length - 1;
+        const span = parenSpan(file.code, open);
+        if (!span) return [];
+        const [, from, to] = callArgs(file.code, open, span[1]);
+        if (!from || !to) return [];
+
+        const fromVars = file.code.slice(from[0], from[1]);
+        const toVars = file.code.slice(to[0], to[1]);
+        const origin = toVars.search(ORIGIN);
+        if (origin === -1 || ORIGIN.test(fromVars)) return [];
+        if (/\bsmoothOrigin\s*:\s*false\b/.test(toVars)) return [];
+        if (
+          [...fromVars.matchAll(TRANSFORM)].every(([, prop, value]) =>
+            identity(prop, value),
+          )
+        ) {
+          return [];
+        }
+
+        return [
+          {
+            index: to[0] + origin,
+            message:
+              "The transform origin is only in this `fromTo`'s to-vars, while its from-vars scale, rotate or skew.",
+            hint: "On an SVG element GSAP holds the element in place when its origin changes, and that correction outlives the tween: it ends offset, silently — a circle grown from 0 about its centre lands a whole radius off. Put `transformOrigin` or `svgOrigin` in the from-vars, or set it before the tween. HTML elements are unaffected.",
+          },
+        ];
+      });
     },
   },
   {
