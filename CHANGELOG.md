@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- When a simpler technique does what the user asked for, the skill writes only
+  the simpler one and offers the requested version in a sentence. The first
+  eval pilot caught it shipping both.
+- References load by the size of the request: a one-element change loads
+  `motion-design.md` and the command's own reference only.
+- A whole page or site with nothing in it named counts as no target, so the
+  skill asks what should move instead of inventing an animation.
+- Evals: `outcome-marquee-loop` also checks for `useGSAP` and an RTL decision,
+  and `outcome-asks-for-target` gives a real page with no target named.
+
 ## [2.1.0] - 2026-09-13
 
 The first public release. Earlier versions were developed privately, inside a

@@ -49,10 +49,10 @@ sentence or is cut.
 
 ## Load map
 
-The project's own rules come first (SKILL.md, setup step 2). Then always
-[motion-design](motion-design.md); add [core-gsap](core-gsap.md) when writing or
-changing code, and [react-nextjs](react-nextjs.md) if `package.json` has
-`react`, or [frameworks](frameworks.md) if it does not.
+The project's own rules come first, then the size tiers in SKILL.md, setup step
+3: a one-element change loads [motion-design](motion-design.md) and the
+command's own reference only. The table applies from component size up — a
+single hover takes [interaction](interaction.md) and nothing else from its row.
 
 | Request | Add |
 |---|---|

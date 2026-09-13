@@ -45,19 +45,25 @@ const SPEC_KEYS = [
 const EXTENSIONS = [];
 
 /**
- * What loads on every invocation, and what loads on the commonest path —
- * writing code in a React project. Raise a budget only on purpose, in the same
- * change as the content that needs the room.
+ * What loads at each size tier in SKILL.md's setup step 3, before the command's
+ * own reference. Raise a budget only on purpose, in the same change as the
+ * content that needs the room.
  */
 const BUDGET = {
   "SKILL.md": 1500,
   always: ["SKILL.md", "reference/motion-design.md"],
   alwaysWords: 2600,
+  component: [
+    "SKILL.md",
+    "reference/motion-design.md",
+    "reference/react-nextjs.md",
+  ],
+  componentWords: 4000,
   reactBuild: [
     "SKILL.md",
     "reference/motion-design.md",
-    "reference/core-gsap.md",
     "reference/react-nextjs.md",
+    "reference/core-gsap.md",
   ],
   reactBuildWords: 5000,
 };
@@ -143,12 +149,17 @@ describe("context budget", () => {
     assert.ok(source.split("\n").length < 500);
   });
 
-  test(`what always loads stays under ${BUDGET.alwaysWords} words`, () => {
+  test(`a one-element change loads under ${BUDGET.alwaysWords} words`, () => {
     const total = count(BUDGET.always);
     assert.ok(total <= BUDGET.alwaysWords, `${total} words`);
   });
 
-  test(`a React build stays under ${BUDGET.reactBuildWords} words`, () => {
+  test(`a React component loads under ${BUDGET.componentWords} words`, () => {
+    const total = count(BUDGET.component);
+    assert.ok(total <= BUDGET.componentWords, `${total} words`);
+  });
+
+  test(`a React sequence or scene loads under ${BUDGET.reactBuildWords} words`, () => {
     const total = count(BUDGET.reactBuild);
     assert.ok(total <= BUDGET.reactBuildWords, `${total} words`);
   });

@@ -43,13 +43,16 @@ Core principles:
    `AGENTS.md`, `CLAUDE.md` or similar points to. Open
    [reference/project-rules.md](reference/project-rules.md) only when there is
    no such file, or for its RTL, colour and waiver rules.
-3. **Load only what the request needs.** Always
-   [motion-design.md](reference/motion-design.md). Add
-   [core-gsap.md](reference/core-gsap.md) when writing or changing code, then
-   [react-nextjs.md](reference/react-nextjs.md) if `package.json` has `react`,
-   or [frameworks.md](reference/frameworks.md) if it does not. Everything else
-   comes from the command, through [routing.md](reference/routing.md). Never
-   load a file "for completeness".
+3. **Load by the size of the request, and nothing "for completeness".**
+   - **One element, one tween or interaction** — a hover, a fade, a retime:
+     [motion-design.md](reference/motion-design.md) and the command's own
+     reference. Nothing else.
+   - **A component or section:** also
+     [react-nextjs.md](reference/react-nextjs.md) if `package.json` has
+     `react`, or [frameworks.md](reference/frameworks.md) if it does not.
+   - **A sequence, scroll scene, intro, transition or audit:** also
+     [core-gsap.md](reference/core-gsap.md), and what
+     [routing.md](reference/routing.md) adds for that request.
 
 ## Commands
 
@@ -72,8 +75,9 @@ Core principles:
 
 Routing:
 
-- **No argument:** read [routing.md](reference/routing.md) and ask what the
-  target is. Never invent an animation for an unnamed target.
+- **No argument, or no target:** read [routing.md](reference/routing.md) and
+  ask what should move. A whole page or site with nothing in it named — "add
+  some animation to my homepage" — has no target. Never invent one.
 - **An explicit or clearly implied command:** load its reference and follow it.
 - **A description rather than a command** ("make this feel like Apple", "the
   hero is boring"): that is `animate`. Classify the intent with routing.md's
@@ -96,9 +100,8 @@ intent → precedent → targets → trigger → motion language → technique
    house language: match them, and differ only for a reason you can state.
    Nothing downstream catches a skipped precedent — the code compiles, the
    audit passes, and the page reads as two different sites.
-3. **Targets** — which elements move, and can they be reached? A component that
-   does not forward props has nowhere to hang a `data-*`; a positional selector
-   breaks when the markup moves.
+3. **Targets** — which elements move, and can they be reached without a
+   positional selector that breaks when the markup moves?
 4. **Trigger** — mount, in-view, scroll position, pointer, click, route, loop.
 5. **Motion language** — weight, rhythm, hierarchy, contrast.
 6. **Technique** — the minimum set. Justify every plugin.
@@ -120,8 +123,10 @@ For anything beyond a one-line tweak, answer in this shape, each part short:
 - **Usage** — how to mount it.
 - **Notes** — responsive behaviour, reduced motion, cost, dev-only tooling.
 
-When you decline a technique the user asked for, say so in Analysis with the
-reason and the alternative. Never quietly substitute.
+When a simpler technique does what the user asked for, **write only the
+simpler one**. Say in Analysis which technique you declined and why, and offer
+the requested version in one sentence; write it only if the user still wants it
+after that. Never quietly substitute, and never ship both.
 
 ## Reference map
 
@@ -167,21 +172,10 @@ node <skill-dir>/scripts/audit-svg.mjs --morph <a.svg> <b.svg>
 node <skill-dir>/scripts/audit-svg.mjs --hues <file.svg>   # also flag hue literals
 ```
 
-Run `audit-gsap` first in an `audit`, and after writing any animation. It
-checks no craft, and it is static analysis without a parser: a false finding is
-a bug in the script, not something to work around.
-
-## Development-only tooling
+Run `audit-gsap` first in an `audit` and after writing any animation. A false
+finding is a bug in the script, not something to work around.
 
 `MotionPathHelper`, `GSDevTools`, `markers: true` and
-`MorphSVGPlugin.findShapeIndex()` never ship. A static import ships whatever
-`if` surrounds it, so import them dynamically and delete the block once their
-value is baked in:
-
-```ts
-if (process.env.NODE_ENV === "development") {
-  const { MotionPathHelper } = await import("gsap/MotionPathHelper");
-  gsap.registerPlugin(MotionPathHelper);
-  MotionPathHelper.create("#dot");
-}
-```
+`MorphSVGPlugin.findShapeIndex()` are development-only. A static import ships
+whatever `if` surrounds it: import them dynamically behind a `NODE_ENV` check,
+and delete the block once their value is baked in.
