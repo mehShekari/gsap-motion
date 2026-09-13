@@ -38,6 +38,6 @@ body:
     id: versions
     attributes:
       label: Versions
-      placeholder: skill 2.1.0 · gsap 3.15.0 · Node 24
+      placeholder: skill 3.0.0 · gsap 3.15.0 · Node 24
     validations:
       required: true

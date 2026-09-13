@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-09-13
+
+Major because `never-completes` is a new error-level audit rule: a project that
+gates its build on the audit can fail on code that passed 2.1.0. No command,
+rule id or flag was renamed or removed.
+
 ### Added
 
 - `never-completes`, an error-level audit rule: an `onComplete` that can never
@@ -109,5 +115,6 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/mehShekari/gsap-motion/compare/v2.1.0...v3.0.0
 [2.1.0]: https://github.com/mehShekari/gsap-motion/releases/tag/v2.1.0

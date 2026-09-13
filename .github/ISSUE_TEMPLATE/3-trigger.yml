@@ -28,6 +28,6 @@ body:
     id: client
     attributes:
       label: Client and version
-      placeholder: Claude Code 2.x · skill 2.1.0
+      placeholder: Claude Code 2.x · skill 3.0.0
     validations:
       required: true

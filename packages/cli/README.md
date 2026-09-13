@@ -28,7 +28,7 @@ The audit needs no install. Pin the version, so a new rule cannot fail your
 build without warning:
 
 ```json
-"lint": "eslint && npx @mehshekari/gsap-motion@2.1.0 audit src --quiet"
+"lint": "eslint && npx @mehshekari/gsap-motion@3.0.0 audit src --quiet"
 ```
 
 Or install it with `npm install --save-dev --save-exact @mehshekari/gsap-motion`.
