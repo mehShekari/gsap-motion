@@ -1,5 +1,6 @@
 {
   "name": "mehshekari",
+  "description": "Claude Code plugins by @mehShekari, starting with gsap-motion: production GSAP animation, and an audit for the animation failures that stay silent.",
   "owner": {
     "name": "mehran.shekari",
     "url": "https://github.com/mehShekari"

@@ -27,8 +27,10 @@ const marketplace = json(".claude-plugin/marketplace.json");
 const plugin = json(`${PLUGIN_DIR}/.claude-plugin/plugin.json`);
 
 describe("marketplace", () => {
-  test("has a kebab-case name, an owner and at least one plugin", () => {
+  test("has a kebab-case name, a description, an owner and at least one plugin", () => {
     assert.match(marketplace.name, KEBAB);
+    // `claude plugin validate --strict` fails a marketplace with no description.
+    assert.ok(marketplace.description, "description");
     assert.ok(marketplace.owner?.name, "owner.name");
     assert.ok(marketplace.plugins.length > 0);
   });
