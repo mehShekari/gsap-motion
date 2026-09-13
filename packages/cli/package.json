@@ -1,0 +1,48 @@
+{
+  "name": "gsap-motion",
+  "version": "2.1.0",
+  "description": "Install the gsap-creative-animation Agent Skill, and audit GSAP animation for leaks, jank and accessibility failures — with npx.",
+  "keywords": [
+    "gsap",
+    "animation",
+    "scrolltrigger",
+    "agent-skills",
+    "claude-code",
+    "skill",
+    "audit",
+    "cli",
+    "react",
+    "nextjs"
+  ],
+  "homepage": "https://github.com/mehShekari/gsap-motion#readme",
+  "bugs": {
+    "url": "https://github.com/mehShekari/gsap-motion/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mehShekari/gsap-motion.git",
+    "directory": "packages/cli"
+  },
+  "license": "MIT",
+  "author": "mehran.shekari (https://github.com/mehShekari)",
+  "type": "module",
+  "bin": {
+    "gsap-motion": "bin/gsap-motion.mjs"
+  },
+  "files": [
+    "bin/",
+    "skill/",
+    "NOTICE.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "bundle": "node scripts/bundle-skill.mjs",
+    "prepack": "node scripts/bundle-skill.mjs",
+    "check-pack": "node scripts/check-pack.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

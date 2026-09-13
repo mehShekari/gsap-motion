@@ -24,6 +24,7 @@ Optional, depending on what you change:
 | The example app against the templates | `npm install`, then `npm run example:build` |
 | Your change in Claude Code itself | `claude --plugin-dir ./plugins/gsap-motion`, then `/reload-plugins` after each edit |
 | Whether GSAP has moved on | `npm run freshness` |
+| The npm package, exactly as users download it | `npm run pack:check` |
 
 ## Repository layout
 
@@ -38,6 +39,7 @@ plugins/gsap-motion/
 │   └── scripts/                        audit-gsap, audit-svg, and their tests
 └── evals/                              behaviour tests for `claude plugin eval`
 examples/next-app/                      a Next.js app that compiles the templates
+packages/cli/                           the gsap-motion npm package: `npx gsap-motion`
 scripts/                                repository tooling: test runner, freshness check
 tests/                                  checks that the manifests and versions agree
 ```
@@ -133,14 +135,17 @@ Semantic versioning, applied to what users depend on:
 
 For maintainers:
 
-1. Set the same version in `plugins/gsap-motion/.claude-plugin/plugin.json` and
-   in SKILL.md's `metadata.version`. The tests fail if they differ.
+1. Set the same version in three places: `plugins/gsap-motion/.claude-plugin/plugin.json`,
+   SKILL.md's `metadata.version`, and `packages/cli/package.json`. The tests
+   fail if they differ, and the npm package refuses to pack.
 2. In `CHANGELOG.md`, move the **Unreleased** entries under the new version,
    with today's date.
-3. Run `node scripts/test.mjs`, then merge.
-4. Tag `vX.Y.Z` and publish a GitHub Release with that changelog section.
+3. Run `node scripts/test.mjs` and `npm run pack:check`, then merge.
+4. Publish a GitHub Release tagged `vX.Y.Z`, with that changelog section. The
+   **Release to npm** workflow then publishes the package, with provenance.
 
-Marketplace users receive an update only when `plugin.json`'s version changes.
+Marketplace users receive an update only when `plugin.json`'s version changes;
+npm users with `npx gsap-motion@latest`.
 
 ## Pull requests
 

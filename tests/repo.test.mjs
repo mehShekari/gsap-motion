@@ -81,6 +81,35 @@ describe("plugin", () => {
   });
 });
 
+describe("npm package", () => {
+  const pkg = json("packages/cli/package.json");
+
+  test("is gsap-motion, at the plugin's version", () => {
+    assert.equal(pkg.name, "gsap-motion");
+    assert.equal(pkg.version, plugin.version);
+  });
+
+  test("points at this repository", () => {
+    assert.equal(pkg.repository.url, `git+${plugin.repository}.git`);
+    assert.equal(pkg.repository.directory, "packages/cli");
+  });
+
+  test("has a bin that exists", () => {
+    for (const file of Object.values(pkg.bin)) {
+      assert.ok(existsSync(join(ROOT, "packages/cli", file)), file);
+    }
+  });
+
+  test("has no dependencies and no install scripts, because npx runs it", () => {
+    for (const key of ["dependencies", "peerDependencies", "optionalDependencies"]) {
+      assert.equal(pkg[key], undefined, key);
+    }
+    for (const script of ["preinstall", "install", "postinstall"]) {
+      assert.equal(pkg.scripts?.[script], undefined, script);
+    }
+  });
+});
+
 describe("evals", () => {
   const PREFIXES = ["trigger-", "ignore-", "outcome-"];
   const GRADER_TYPES = [

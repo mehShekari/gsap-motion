@@ -1,0 +1,46 @@
+name: Release to npm
+
+# Publishes packages/cli when a GitHub Release is published.
+#
+# It uses npm trusted publishing: npm verifies this workflow run through OIDC,
+# so no npm token is stored in the repository, and every version carries
+# provenance linking it to the commit and run that built it. The trusted
+# publisher (this repository and release.yml) must be configured on the
+# package's settings page on npmjs.com first.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs a recent npm.
+      - run: npm install --global npm@latest
+
+      - name: The release tag matches the package version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="v$(node -p "require('./packages/cli/package.json').version")"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "Release tag $TAG does not match package version $VERSION"
+            exit 1
+          fi
+
+      - run: node scripts/test.mjs
+      - run: node packages/cli/scripts/check-pack.mjs
+
+      - run: npm publish --provenance --access public
+        working-directory: packages/cli

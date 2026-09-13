@@ -8,5 +8,11 @@ next-env.d.ts
 plugins/*/evals/results/
 results.json
 
+# Copied into the npm package at pack time; the source lives in plugins/.
+packages/cli/skill/
+packages/cli/LICENSE
+packages/cli/NOTICE.md
+*.tgz
+
 .DS_Store
 Thumbs.db

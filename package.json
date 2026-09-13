@@ -12,6 +12,7 @@
   "scripts": {
     "test": "node scripts/test.mjs",
     "freshness": "node scripts/check-freshness.mjs",
+    "pack:check": "node packages/cli/scripts/check-pack.mjs",
     "audit:example": "node plugins/gsap-motion/skills/gsap-creative-animation/scripts/audit-gsap.mjs examples/next-app/app plugins/gsap-motion/skills/gsap-creative-animation/template",
     "example:dev": "npm run dev --workspace examples/next-app",
     "example:build": "npm run build --workspace examples/next-app"
