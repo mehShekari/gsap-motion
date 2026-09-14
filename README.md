@@ -48,7 +48,7 @@ This skill gives the agent two things it lacks:
   They load only when a request needs them.
 - **Presets and worked examples** for reveals, marquees, card stacks, loaders,
   site intros, page transitions and scroll storytelling.
-- **`audit-gsap`**: 14 rules for leaks, per-frame cost, eased loops, shared
+- **`audit-gsap`**: 16 rules for leaks, per-frame cost, eased loops, shared
   plugin ids, unregistered plugins and shipped dev tooling.
 - **`audit-svg`**: what an SVG can do before you animate it — what DrawSVG can
   draw, what MorphSVG can morph, and what will fail silently.

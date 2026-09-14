@@ -41,6 +41,22 @@ export function collect(root) {
 }
 
 /**
+ * Whether the character at `i` opens a string literal.
+ *
+ * An apostrophe between two word characters never does: that is JSX text —
+ * `<p>Don't</p>` — and in code it would be a syntax error. Read as an opening
+ * quote, it inverted every string and comment after it, so a comment survived
+ * stripping and a call's span ran past its own closing parenthesis. A backtick
+ * after a word character is left alone: that is a tagged template.
+ */
+export function opensString(source, i) {
+  const c = source[i];
+  if (c !== '"' && c !== "'" && c !== "`") return false;
+  const word = (ch) => ch !== undefined && /\w/.test(ch);
+  return !(c === "'" && word(source[i - 1]) && word(source[i + 1]));
+}
+
+/**
  * Replaces comment bodies with spaces, keeping every newline and every offset.
  *
  * Offsets are preserved rather than the text being cut out, so an index into
@@ -68,7 +84,7 @@ export function stripComments(source) {
         out[i] = " ";
         out[i + 1] = " ";
         i += 1;
-      } else if (c === '"' || c === "'" || c === "`") {
+      } else if (opensString(source, i)) {
         mode = "string";
         quote = c;
       }
@@ -135,7 +151,7 @@ export function blockAfter(source, from) {
       else if (c === quote) quote = "";
       continue;
     }
-    if (c === '"' || c === "'" || c === "`") {
+    if (opensString(source, i)) {
       quote = c;
       continue;
     }
@@ -169,7 +185,7 @@ export function parenSpan(source, open) {
       else if (c === quote) quote = "";
       continue;
     }
-    if (c === '"' || c === "'" || c === "`") {
+    if (opensString(source, i)) {
       quote = c;
       continue;
     }

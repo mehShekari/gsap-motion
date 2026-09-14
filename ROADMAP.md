@@ -30,7 +30,8 @@ Four rules hold throughout:
 
 ### 3.0.x — close the gaps the audit already claims to cover
 
-- `tween-per-event` matches event names case-insensitively, and adds `resize`,
+- `tween-per-event` reads the event from a listener's first argument and from a
+  JSX prop, not from a substring anywhere in the file, and adds `resize`,
   `pointerrawupdate` and the JSX props `onScroll`, `onWheel` and `onTouchMove`.
   It misses all of them today.
 - `eased-scrub` follows a timeline's variable when its chain starts with a label.

@@ -11,6 +11,8 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { RULES } from "../plugins/gsap-motion/skills/gsap-creative-animation/scripts/lib/rules.mjs";
+
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const read = (path) =>
   readFileSync(join(ROOT, path), "utf8").replace(/\r\n/g, "\n");
@@ -170,4 +172,9 @@ describe("evals", () => {
       }
     }
   });
+});
+
+test("the README states the audit's real rule count", () => {
+  const stated = read("README.md").match(/\*\*`audit-gsap`\*\*: (\d+) rules/)?.[1];
+  assert.equal(Number(stated), RULES.length);
 });

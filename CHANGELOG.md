@@ -6,6 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `tween-per-event` reads the event from a listener's first argument, in any
+  quote style, and from a JSX prop, instead of a substring anywhere in the file.
+  It now reports `resize`, `pointerrawupdate`, `onScroll`, `onWheel`,
+  `onTouchMove` and expression-bodied handlers, and no longer reads the next
+  function as the body of a handler passed by name. A debounced handler —
+  wrapped in `debounce(…)`, or a `setTimeout` it clears first — is not reported.
+- `state-per-event` reads handlers the same way but leaves `resize` out: a width
+  kept in state decides what exists, not a frame of motion. A member call such as
+  `el.style.setProperty(…)`, and `setTimeout`, are no longer read as state
+  setters.
+- `eased-scrub` follows a timeline's variable when its chain opens with a label,
+  reads that variable only up to its next declaration, and leaves
+  `scrub: false` alone.
+- An apostrophe in JSX text, as in `Don't`, no longer inverts every string and
+  comment after it. A comment could survive stripping, and a `useGSAP` span
+  could run past its parenthesis and report `orphan-tween` errors inside it.
+- The README says 16 audit rules, as there are, and a test keeps the number true.
+- Known wrong findings that need a parser, and the probe cases for the rules 3.3
+  adds, are kept as skipped test fixtures.
+
 ## [3.0.0] - 2026-09-13
 
 Major because `never-completes` is a new error-level audit rule: a project that

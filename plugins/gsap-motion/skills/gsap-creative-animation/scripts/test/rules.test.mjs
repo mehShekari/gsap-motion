@@ -65,6 +65,24 @@ export function Box() {
     );
   });
 
+  test("stays quiet when JSX text with an apostrophe comes before the hook", () => {
+    quiet(
+      "orphan-tween",
+      `${REACT}
+export function Note() {
+  return <p>Don't panic</p>;
+}
+export function Box() {
+  const ref = useRef(null);
+  useGSAP(() => {
+    // don't run this twice
+    gsap.to("[data-box]", { x: 100 });
+  }, { scope: ref });
+  return <div ref={ref} />;
+}`,
+    );
+  });
+
   test("stays quiet inside an expression-bodied contextSafe", () => {
     quiet(
       "orphan-tween",
@@ -290,6 +308,93 @@ export function follow(el) {
       { ext: "ts" },
     );
   });
+
+  test("fires on resize, pointerrawupdate and an expression-bodied handler", () => {
+    fires(
+      "tween-per-event",
+      `${PLAIN}
+export function follow(el) {
+  window.addEventListener("resize", () => { gsap.to(el, { x: window.innerWidth / 2 }); });
+  window.addEventListener('pointerrawupdate', (event) => gsap.to(el, { x: event.clientX }));
+}`,
+      { ext: "ts", count: 2 },
+    );
+  });
+
+  test("fires on scroll, wheel and touchmove listeners in any quote style", () => {
+    fires(
+      "tween-per-event",
+      `${PLAIN}
+export function track(el, bar) {
+  window.addEventListener(\`scroll\`, () => { gsap.to(bar, { scaleX: window.scrollY / 1000 }); });
+  el.addEventListener("wheel", (e) => { gsap.to(el, { y: e.deltaY }); }, { passive: true });
+  el.addEventListener("touchmove", function (e) { gsap.to(el, { x: e.touches[0].clientX }); });
+}`,
+      { ext: "ts", count: 3 },
+    );
+  });
+
+  test("fires on the JSX props onScroll, onWheel and onTouchMove", () => {
+    fires(
+      "tween-per-event",
+      `${PLAIN}
+export function Bars() {
+  return (
+    <div
+      onScroll={(e) => { gsap.to("[data-bar]", { scaleX: e.currentTarget.scrollTop / 100 }); }}
+      onWheel={(e) => gsap.to("[data-bar]", { y: e.deltaY })}
+      onTouchMoveCapture={(e) => { gsap.to("[data-bar]", { x: e.touches[0].clientX }); }}
+    />
+  );
+}`,
+      { count: 3 },
+    );
+  });
+
+  test("stays quiet on names that only contain an event: ResizeObserver, onResize", () => {
+    quiet(
+      "tween-per-event",
+      `${PLAIN}
+export function watch(el) {
+  const onResize = () => { gsap.to(el, { x: 0 }); };
+  const ro = new ResizeObserver(() => { gsap.to(el, { scale: 1 }); });
+  ro.observe(el);
+  return { onResize, ro };
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on a named handler followed by an unrelated tweening function", () => {
+    quiet(
+      "tween-per-event",
+      `${PLAIN}
+export function follow(onMove) {
+  window.addEventListener("pointermove", onMove);
+}
+export function intro(el) {
+  gsap.to(el, { autoAlpha: 1 });
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on a resize handler that refreshes, and on a debounced one", () => {
+    quiet(
+      "tween-per-event",
+      `${PLAIN}
+let timer;
+export function watch(el) {
+  window.addEventListener("resize", () => { ScrollTrigger.refresh(); });
+  window.addEventListener("resize", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { gsap.to(el, { x: window.innerWidth / 2 }); }, 150);
+  });
+  window.addEventListener("resize", debounce(() => { gsap.to(el, { y: 0 }); }, 150));
+}`,
+      { ext: "ts" },
+    );
+  });
 });
 
 describe("state-per-event", () => {
@@ -311,6 +416,52 @@ export function Tracker() {
 export function Menu() {
   const [open, setOpen] = useState(false);
   return <button onClick={() => { setOpen(!open); }}>menu</button>;
+}`,
+    );
+  });
+
+  test("fires on a state setter in an expression-bodied onScroll", () => {
+    fires(
+      "state-per-event",
+      `${REACT}
+export function Progress() {
+  const [progress, setProgress] = useState(0);
+  return <div onScroll={(e) => setProgress(e.currentTarget.scrollTop)}>{progress}</div>;
+}`,
+    );
+  });
+
+  test("stays quiet on a width kept in state on resize", () => {
+    quiet(
+      "state-per-event",
+      `${REACT}
+export function useWidth() {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", () => setWidth(window.innerWidth));
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return width;
+}`,
+    );
+  });
+
+  test("stays quiet on a member call and a timer in a pointermove handler", () => {
+    quiet(
+      "state-per-event",
+      `${REACT}
+export function Spot() {
+  const ref = useRef(null);
+  return (
+    <div
+      ref={ref}
+      onPointerMove={(e) => {
+        ref.current.style.setProperty("--x", e.clientX + "px");
+        setTimeout(() => ref.current.classList.remove("idle"), 0);
+      }}
+    />
+  );
 }`,
     );
   });
@@ -454,6 +605,36 @@ export function scene(section, button) {
     .to("[data-a]", { x: 100 });
   gsap.to(button, { scale: 1.05, ease: "power2.out" });
 }`,
+      { ext: "ts" },
+    );
+  });
+
+  test("fires on an eased child added through the timeline's variable after a label", () => {
+    fires(
+      "eased-scrub",
+      `${PLAIN}
+export function scene(section) {
+  const tl = gsap.timeline({ scrollTrigger: { trigger: section, scrub: true } });
+  tl.addLabel("start").to("[data-a]", { x: 100, ease: "power2.out" });
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on another function's timeline of the same name, and on scrub: false", () => {
+    quiet(
+      "eased-scrub",
+      `${PLAIN}
+export function intro() {
+  const tl = gsap.timeline();
+  tl.to("[data-logo]", { autoAlpha: 1, ease: "power2.out" });
+}
+export function scene(section) {
+  const tl = gsap.timeline({ scrollTrigger: { trigger: section, scrub: 1 } });
+  tl.to("[data-a]", { x: 100, ease: "none" });
+}
+export const nudge = (el) =>
+  gsap.to(el, { x: 10, ease: "power2.out", scrollTrigger: { trigger: el, scrub: false } });`,
       { ext: "ts" },
     );
   });
@@ -680,6 +861,18 @@ export const show = (el) => gsap.set(el, { autoAlpha: 1 });`,
       { ext: "ts" },
     );
   });
+
+  test("fires when only a comment mentions it, after JSX text with an apostrophe", () => {
+    fires(
+      "missing-reduced-motion",
+      `${PLAIN}
+export function Hero() {
+  return <p>Don't wait</p>;
+}
+// TODO: add a prefers-reduced-motion branch
+export const play = (el) => gsap.to(el, { x: 10 });`,
+    );
+  });
 });
 
 describe("dev-tool-shipped", () => {
@@ -716,6 +909,232 @@ describe("barrel-import", () => {
     quiet(
       "barrel-import",
       `${PLAIN}import { ScrollTrigger } from "gsap/ScrollTrigger";`,
+      { ext: "ts" },
+    );
+  });
+});
+
+/**
+ * Known wrong findings the text-matching engine cannot fix, kept as skipped
+ * fixtures so they live in the repository rather than in someone's notes.
+ * Each needs scope, bindings or real tokens: 3.1 moves the audit onto a parser
+ * and un-skips this block. A skipped test records no coverage.
+ */
+describe("parked for 3.1: needs a parser", () => {
+  test.skip("orphan-tween stays quiet on a helper only the useGSAP body calls", () => {
+    quiet(
+      "orphan-tween",
+      `${REACT}
+export function Box() {
+  const ref = useRef(null);
+  const grow = (el) => { gsap.to(el, { scale: 1.2 }); };
+  useGSAP(() => { grow(ref.current); }, { scope: ref });
+  return <div ref={ref} />;
+}`,
+    );
+  });
+
+  test.skip("orphan-tween stays quiet through aliased useGSAP and contextSafe", () => {
+    quiet(
+      "orphan-tween",
+      `"use client";
+import { useGSAP as useG } from "@gsap/react";
+import gsap from "gsap";
+import { useRef } from "react";
+export function Box() {
+  const ref = useRef(null);
+  const { contextSafe: cs } = useG(() => { gsap.to("[data-a]", { x: 1 }); }, { scope: ref });
+  const spin = cs(() => { gsap.to(ref.current, { rotation: 90 }); });
+  return <button ref={ref} onClick={spin} />;
+}`,
+    );
+  });
+
+  test.skip("orphan-tween stays quiet on a module-scope tween after an arrow", () => {
+    quiet(
+      "orphan-tween",
+      `${REACT}
+export const noop = () => {};
+gsap.set("[data-a]", { autoAlpha: 0 });
+gsap.to("[data-a]", { autoAlpha: 1 });`,
+    );
+  });
+
+  test.skip("eased-loop and layout-property read timeline children", () => {
+    fires(
+      "eased-loop",
+      `${PLAIN}
+export const spin = (tl, dot) => tl.to(dot, { rotation: 360, repeat: -1, ease: "power1.inOut" });`,
+      { ext: "ts" },
+    );
+    fires(
+      "layout-property",
+      `${PLAIN}
+export const grow = (tl, el) => tl.to(el, { width: 200 });`,
+      { ext: "ts" },
+    );
+  });
+
+  test.skip("layout-property reads fromTo to-vars, and ignores an unrelated object", () => {
+    fires(
+      "layout-property",
+      `${PLAIN}
+export const grow = (el) => gsap.fromTo(el, { x: 0 }, { width: 200 });`,
+      { ext: "ts" },
+    );
+    quiet(
+      "layout-property",
+      `${PLAIN}
+export function scene() {
+  const tl = gsap.timeline();
+  const box = { width: 10 };
+  return { tl, box };
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  test.skip("trigger-per-item reads for...of, and ignores a block after .map(fn)", () => {
+    fires(
+      "trigger-per-item",
+      `${PLAIN}
+export function reveal(items) {
+  for (const item of items) {
+    gsap.from(item, { autoAlpha: 0, scrollTrigger: { trigger: item } });
+  }
+}`,
+      { ext: "ts" },
+    );
+    quiet(
+      "trigger-per-item",
+      `${PLAIN}
+export function reveal(section, items, toLabel) {
+  const labels = items.map(toLabel);
+  if (labels.length) {
+    gsap.from(items, { autoAlpha: 0, stagger: 0.1, scrollTrigger: { trigger: section } });
+  }
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  test.skip("unmanaged-instance fires on ScrollTrigger.create outside a context", () => {
+    fires(
+      "unmanaged-instance",
+      `${PLAIN}import { ScrollTrigger } from "gsap/ScrollTrigger";
+gsap.registerPlugin(ScrollTrigger);
+export const watch = (el) => ScrollTrigger.create({ trigger: el, onEnter: () => {} });`,
+      { ext: "ts" },
+    );
+  });
+
+  test.skip("shared-plugin-id fires on a template literal and on the morphSVG shorthand", () => {
+    fires(
+      "shared-plugin-id",
+      `${REACT}
+export function Morph() {
+  useGSAP(() => {
+    gsap.to("[data-dot]", { motionPath: { path: \`#track\` } });
+    gsap.to("[data-shape]", { morphSVG: "#star" });
+  });
+  return <svg />;
+}`,
+      { count: 2 },
+    );
+  });
+
+  test.skip("unregistered-plugin fires on a default import", () => {
+    fires(
+      "unregistered-plugin",
+      `${PLAIN}import ScrollTrigger from "gsap/ScrollTrigger";
+export const refresh = () => ScrollTrigger.refresh();`,
+      { ext: "ts" },
+    );
+  });
+
+  test.skip("never-completes and eased-scrub follow a timeline kept on this", () => {
+    fires(
+      "never-completes",
+      `${PLAIN}
+export class Intro {
+  play(done) {
+    this.tl = gsap.timeline({ onComplete: done });
+    this.tl.to("[data-dot]", { rotation: 360, repeat: -1, ease: "none" });
+  }
+}`,
+      { ext: "ts" },
+    );
+    fires(
+      "eased-scrub",
+      `${PLAIN}
+export class Scene {
+  build(section) {
+    this.tl = gsap.timeline({ scrollTrigger: { trigger: section, scrub: 1 } });
+    this.tl.to("[data-a]", { x: 100, ease: "power2.out" });
+  }
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  test.skip("tween-per-event follows a named handler", () => {
+    fires(
+      "tween-per-event",
+      `${PLAIN}
+export function follow(el) {
+  const onMove = (event) => { gsap.to(el, { x: event.clientX }); };
+  window.addEventListener("pointermove", onMove);
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  test.skip("comments are stripped after a quote in a regex literal or a plural possessive", () => {
+    fires(
+      "missing-reduced-motion",
+      `${PLAIN}
+const quote = /"/;
+// prefers-reduced-motion is still to do
+export const play = (el) => gsap.to(el, { x: 10 });`,
+      { ext: "ts" },
+    );
+    fires(
+      "missing-reduced-motion",
+      `${PLAIN}
+export const Picks = () => <p>Our users' picks</p>;
+// prefers-reduced-motion is still to do
+export const play = (el) => gsap.to(el, { x: 10 });`,
+    );
+  });
+});
+
+/**
+ * Failures a 3.3 rule exists for, found by the 2026-09-13 probe. The rule ids do
+ * not exist yet; 3.3 adds `tween-per-frame` and `paint-property` and un-skips
+ * these.
+ */
+describe("parked for 3.3: rules not written yet", () => {
+  const PROBE = `import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Observer } from "gsap/Observer";
+gsap.registerPlugin(ScrollTrigger, Observer);
+`;
+
+  test.skip("tween-per-frame fires on onUpdate, the ticker, Observer onMove and a rAF loop", () => {
+    for (const body of [
+      "ScrollTrigger.create({ trigger: el, onUpdate: (self) => { gsap.to(bar, { scaleX: self.progress }); } });",
+      "gsap.ticker.add(() => { gsap.to(el, { x: mouse.x }); });",
+      "Observer.create({ target: window, onMove: (self) => { gsap.to(el, { x: self.x }); } });",
+      "function tick() { gsap.to(el, { x: mouse.x }); requestAnimationFrame(tick); }\nrequestAnimationFrame(tick);",
+    ]) {
+      fires("tween-per-frame", `${PROBE}${body}\n`, { ext: "ts" });
+    }
+  });
+
+  test.skip("paint-property fires on filter and boxShadow", () => {
+    fires(
+      "paint-property",
+      `${PROBE}gsap.to(card, { filter: "blur(12px)", boxShadow: "0 30px 60px rgba(0,0,0,.4)", duration: 1 });\n`,
       { ext: "ts" },
     );
   });

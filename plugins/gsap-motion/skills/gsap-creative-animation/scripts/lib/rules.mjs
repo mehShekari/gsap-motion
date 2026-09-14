@@ -15,7 +15,7 @@
  * on and a case it must stay quiet on. A wrong finding in either direction is
  * fixed by adding the case there first and watching it fail.
  */
-import { blockAfter, parenSpan, within } from "./source.mjs";
+import { blockAfter, opensString, parenSpan, within } from "./source.mjs";
 
 /** Properties whose animation forces the browser to re-run layout. */
 const LAYOUT_PROPERTIES = [
@@ -62,9 +62,38 @@ const TRANSFORM_FOR = {
 const PERCENT_CAVEAT =
   "Careful with percentages: `top: 50%` is half the containing block, `yPercent: 50` is half the element itself. Either wrap it in a full-height box and translate that — the percentages then agree — or measure the container once and translate in pixels.";
 
-/** Events that fire many times a second. Global: every occurrence is scanned. */
-const HOT_EVENTS =
-  /(pointermove|mousemove|touchmove|onMouseMove|onPointerMove|"scroll"|'scroll'|wheel)/g;
+/**
+ * Events that fire many times a second, by the name a listener is given.
+ *
+ * This used to be one regular expression matched anywhere in the file, with
+ * the handler taken to be the next `{`. `resize` could not be added without
+ * reporting every `ResizeObserver`, a JSX prop was recognised in two spellings
+ * only, and a handler passed by name lent the next function's body to the
+ * listener before it.
+ */
+const HOT_EVENTS = new Set([
+  "pointermove",
+  "pointerrawupdate",
+  "mousemove",
+  "touchmove",
+  "scroll",
+  "wheel",
+  "resize",
+]);
+
+/**
+ * A resize handler that sets state is how a component learns its width: a
+ * render per resize, but a render deciding what exists rather than a frame of
+ * motion. `state-per-event` leaves it out; a tween per resize is still a tween
+ * per event.
+ */
+const STATE_HOT_EVENTS = new Set(
+  [...HOT_EVENTS].filter((event) => event !== "resize"),
+);
+
+/** The same events as React props, capture phase included. */
+const HOT_PROPS =
+  /\bon(PointerMove|MouseMove|TouchMove|Scroll|Wheel)(?:Capture)?\s*=\s*\{/g;
 
 /** Every `gsap.to/from/fromTo/set(` call site, as offsets. */
 const tweenCalls = (code) => [
@@ -202,7 +231,7 @@ function callArgs(code, open, close) {
       else if (c === quote) quote = "";
       continue;
     }
-    if (c === '"' || c === "'" || c === "`") quote = c;
+    if (opensString(code, i)) quote = c;
     else if ("([{".includes(c)) depth += 1;
     else if (")]}".includes(c)) depth -= 1;
     else if (c === "," && depth === 0) {
@@ -213,6 +242,55 @@ function callArgs(code, open, close) {
 
   if (code.slice(start, close).trim()) args.push([start, close]);
   return args;
+}
+
+/**
+ * Every handler for one of `events`, as `{ name, span }`: the second argument
+ * of an `addEventListener` whose first is that event as a literal, or the
+ * `{…}` of a JSX prop for it. A handler passed by name has no body here to
+ * read, so it is skipped rather than guessed at.
+ */
+function hotHandlers(code, events) {
+  const handlers = [];
+
+  for (const m of find(code, /\baddEventListener\s*\(/g)) {
+    const open = m.index + m[0].length - 1;
+    const span = parenSpan(code, open);
+    if (!span) continue;
+    const [first, second] = callArgs(code, open, span[1]);
+    if (!first || !second) continue;
+    const event = code
+      .slice(first[0], first[1])
+      .match(/^\s*(["'`])([\w:-]+)\1\s*$/);
+    if (event && events.has(event[2])) {
+      handlers.push({ name: event[2], span: second });
+    }
+  }
+
+  for (const m of find(code, HOT_PROPS)) {
+    if (!events.has(m[1].toLowerCase())) continue;
+    const span = blockAfter(code, m.index + m[0].length - 1);
+    if (span) handlers.push({ name: `on${m[1]}`, span });
+  }
+
+  return handlers;
+}
+
+/**
+ * Whether the call at `index` runs once the events stop rather than once per
+ * event: the handler is wrapped in `debounce(…)`, or the call sits in a
+ * `setTimeout` that the same handler clears first.
+ */
+function debounced(code, handler, index) {
+  const [start, end] = handler.span;
+  const body = code.slice(start, end);
+  if (/^\s*debounce\s*\(/.test(body)) return true;
+  if (!/\bclearTimeout\s*\(/.test(body)) return false;
+
+  return find(body, /\bsetTimeout\s*\(/g).some((timer) => {
+    const span = parenSpan(code, start + timer.index + timer[0].length - 1);
+    return span !== null && within([span], index);
+  });
 }
 
 export const RULES = [
@@ -309,16 +387,14 @@ export const RULES = [
     test(file) {
       const findings = [];
 
-      for (const handler of find(file.code, HOT_EVENTS)) {
-        const span = blockAfter(file.code, handler.index);
-        if (!span) continue;
-
+      for (const handler of hotHandlers(file.code, HOT_EVENTS)) {
         for (const call of tweenCalls(file.code)) {
-          if (call[1] === "set" || !within([span], call.index)) continue;
+          if (call[1] === "set" || !within([handler.span], call.index)) continue;
+          if (debounced(file.code, handler, call.index)) continue;
           findings.push({
             index: call.index,
-            message: `\`gsap.${call[1]}\` inside a high-frequency handler (${handler[1]}).`,
-            hint: "One tween allocated per event, each fighting the last. Create a `gsap.quickTo()` once and call it from the handler.",
+            message: `\`gsap.${call[1]}\` inside a high-frequency handler (${handler.name}).`,
+            hint: "One tween allocated per event, each fighting the last. Create a `gsap.quickTo()` once and call it from the handler — or, for work that only matters once resizing stops, debounce it.",
           });
         }
       }
@@ -332,16 +408,20 @@ export const RULES = [
     test(file) {
       if (!file.isReact) return [];
       const findings = [];
+      /**
+       * A bare `setX(` call. A member call — `el.style.setProperty(`, which is
+       * exactly what a pointer handler should do — and the timers are not
+       * state setters.
+       */
+      const setters = /(?<![\w$.])set(?!Timeout\b|Interval\b)[A-Z]\w*\s*\(/g;
 
-      for (const handler of find(file.code, HOT_EVENTS)) {
-        const span = blockAfter(file.code, handler.index);
-        if (!span) continue;
-
-        for (const setter of find(file.code, /\bset[A-Z]\w*\s*\(/g)) {
-          if (!within([span], setter.index)) continue;
+      for (const handler of hotHandlers(file.code, STATE_HOT_EVENTS)) {
+        for (const setter of find(file.code, setters)) {
+          if (!within([handler.span], setter.index)) continue;
+          if (debounced(file.code, handler, setter.index)) continue;
           findings.push({
             index: setter.index,
-            message: `React state setter inside a ${handler[1]} handler.`,
+            message: `React state setter inside a ${handler.name} handler.`,
             hint: "A re-render per frame so one element can move a few pixels. State owns what exists; GSAP owns how it moves — use a ref and quickTo.",
           });
         }
@@ -447,7 +527,13 @@ export const RULES = [
     id: "eased-scrub",
     level: "warn",
     test(file) {
-      if (!/scrub\s*:/.test(file.code)) return [];
+      /**
+       * `scrub: false` is the explicit opposite, and is left alone. The space
+       * belongs inside the lookahead: outside it, `\s*` backtracks to match
+       * nothing and the lookahead then sees " false", which is not "false".
+       */
+      const scrubbed = /\bscrub\s*:(?!\s*false\b)/;
+      if (!scrubbed.test(file.code)) return [];
 
       const eased = (text) => text.search(/\bease\s*:\s*["'`](?!none["'`])/);
       const findings = [];
@@ -472,28 +558,21 @@ export const RULES = [
         const span = parenSpan(file.code, open);
         if (!span) continue;
         const args = file.code.slice(open, span[1]);
-        if (!/scrub\s*:/.test(args)) continue;
+        if (!scrubbed.test(args)) continue;
 
         const own = eased(args);
         if (own !== -1) report(open + own);
         if (call[1] !== "timeline") continue;
 
-        const children = chainedTweens(file.code, span[1] + 1);
-        const kept = file.code
-          .slice(Math.max(0, call.index - 80), call.index)
-          .match(/([\w$]+)\s*=\s*$/);
-        if (kept) {
-          const name = kept[1].replace(/\$/g, "\\$");
-          const uses = new RegExp(
-            `(?<![\\w$.])${name}(?=\\s*\\.\\s*(?:to|from|fromTo)\\s*\\()`,
-            "g",
-          );
-          for (const use of find(file.code, uses)) {
-            children.push(
-              ...chainedTweens(file.code, use.index + use[0].length),
-            );
-          }
-        }
+        /**
+         * The children come from `timelineCalls`, as for never-completes: from
+         * the chain and from the timeline's variable, including a chain that
+         * opens with a label, and only up to that name's next declaration. This
+         * used to match uses anywhere in the file whose first call was a tween,
+         * so `tl.addLabel("a").to(…)` was missed and another function's `tl`
+         * was read as this one.
+         */
+        const { children } = timelineCalls(file.code, call, span[1]);
 
         for (const [start, end] of children) {
           const at = eased(file.code.slice(start, end));
