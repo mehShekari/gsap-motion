@@ -15,7 +15,41 @@
  * on and a case it must stay quiet on. A wrong finding in either direction is
  * fixed by adding the case there first and watching it fail.
  */
+import {
+  calleeName,
+  findAll,
+  isGsapCall,
+  keyName,
+  moduleSource,
+  staticString,
+  unwrap,
+} from "./ast.mjs";
 import { blockAfter, opensString, parenSpan, within } from "./source.mjs";
+
+/**
+ * Hints for the rules that have moved onto the syntax tree. While a rule has a
+ * text engine and a tree engine side by side, both must say exactly the same
+ * thing, so the words live here once.
+ */
+const HINT = {
+  sharedPluginId:
+    "useGSAP scopes the selectors it resolves itself, but MotionPath and MorphSVG resolve their own config against the whole document. Mount this component twice and both instances drive the first one's geometry, silently. Namespace it with useId().",
+  unregisteredPlugin:
+    "An unregistered plugin's properties are ignored without an error — the animation simply does nothing.",
+  missingReducedMotion:
+    "Reduced motion is a design, not an off switch: decide what the motion was saying and say it without the travel. Note that the reduced branch must set the END state — a `from` that never runs leaves its target invisible.",
+  devToolImport:
+    "A static import ships regardless of any `if` around the call. Load it with a dynamic `import()` behind a NODE_ENV check, or bake its output in and delete it.",
+  markers: 'Gate it: `markers: process.env.NODE_ENV === "development"`.',
+  barrelImport:
+    "Import each from its own subpath — `gsap/ScrollTrigger` — so the bundler can drop the ones this route does not use.",
+};
+
+/** Whether a string, template chunk or JSX text spells `text`. Comments are not nodes. */
+const spells = (node, text) =>
+  (node.type === "Literal" && typeof node.raw === "string" && node.raw.includes(text)) ||
+  (node.type === "TemplateElement" && node.value.raw.includes(text)) ||
+  (node.type === "JSXText" && node.value.includes(text));
 
 /** Properties whose animation forces the browser to re-run layout. */
 const LAYOUT_PROPERTIES = [
@@ -714,8 +748,33 @@ export const RULES = [
       ).map((m) => ({
         index: m.index,
         message: `Hardcoded id \`${m[1]}\` in plugin config.`,
-        hint: "useGSAP scopes the selectors it resolves itself, but MotionPath and MorphSVG resolve their own config against the whole document. Mount this component twice and both instances drive the first one's geometry, silently. Namespace it with useId().",
+        hint: HINT.sharedPluginId,
       }));
+    },
+    /**
+     * Any property naming a target geometry whose value is a fixed `#id`: a
+     * string or a template literal with nothing interpolated, including the
+     * shorthands `motionPath: "#id"` and `morphSVG: "#id"`. The text engine
+     * saw only quoted values under `path`, `shape` and `align`.
+     */
+    testAst(file) {
+      if (!file.isReact || !file.ast) return [];
+      const KEYS = new Set(["path", "shape", "align", "motionPath", "morphSVG"]);
+
+      return findAll(file.ast, (node) => KEYS.has(keyName(node))).flatMap(
+        (property) => {
+          const id = staticString(property.value)?.match(/^#[A-Za-z][\w-]*$/)?.[0];
+          return id
+            ? [
+                {
+                  index: property.start,
+                  message: `Hardcoded id \`${id}\` in plugin config.`,
+                  hint: HINT.sharedPluginId,
+                },
+              ]
+            : [];
+        },
+      );
     },
   },
   {
@@ -757,11 +816,59 @@ export const RULES = [
               {
                 index: m.index,
                 message: `\`${imported}\` is imported but never passed to \`gsap.registerPlugin\`.`,
-                hint: "An unregistered plugin's properties are ignored without an error — the animation simply does nothing.",
+                hint: HINT.unregisteredPlugin,
               },
             ];
           }),
       );
+    },
+    /**
+     * Registered means named anywhere inside the arguments of a
+     * `registerPlugin` call. Imports are read as declarations: a default import
+     * takes its plugin's name from the path, and a type-only import, of the
+     * whole statement or of one specifier, ships nothing and is skipped.
+     */
+    testAst(file) {
+      if (!file.ast) return [];
+
+      const registered = new Set();
+      const registrations = findAll(file.ast, (node) => {
+        const name = calleeName(node);
+        return name === "registerPlugin" || name?.endsWith(".registerPlugin");
+      });
+      for (const call of registrations) {
+        for (const arg of call.arguments) {
+          for (const id of findAll(arg, (node) => node.type === "Identifier")) {
+            registered.add(id.name);
+          }
+        }
+      }
+
+      const findings = [];
+      for (const declaration of file.ast.body) {
+        if (declaration.type !== "ImportDeclaration") continue;
+        if (declaration.importKind === "type") continue;
+        const from = declaration.source.value;
+        if (typeof from !== "string" || !/^gsap\/[\w/-]+$/.test(from)) continue;
+
+        for (const specifier of declaration.specifiers) {
+          if (specifier.importKind === "type") continue;
+          const imported =
+            specifier.type === "ImportSpecifier"
+              ? (specifier.imported.name ?? specifier.imported.value)
+              : specifier.type === "ImportDefaultSpecifier"
+                ? from.split("/").pop()
+                : null;
+          if (!imported || !PLUGIN_NAME.test(imported)) continue;
+          if (registered.has(specifier.local.name)) continue;
+          findings.push({
+            index: declaration.start,
+            message: `\`${imported}\` is imported but never passed to \`gsap.registerPlugin\`.`,
+            hint: HINT.unregisteredPlugin,
+          });
+        }
+      }
+      return findings;
     },
   },
   {
@@ -777,7 +884,36 @@ export const RULES = [
         {
           index: file.code.search(/\bgsap\./),
           message: "No `prefers-reduced-motion` branch in an animating file.",
-          hint: "Reduced motion is a design, not an off switch: decide what the motion was saying and say it without the travel. Note that the reduced branch must set the END state — a `from` that never runs leaves its target invisible.",
+          hint: HINT.missingReducedMotion,
+        },
+      ];
+    },
+    /**
+     * A branch is the query written in code — a string, a template or JSX
+     * text. A comment that mentions it is not a branch, and a quote inside a
+     * regular expression or a plural possessive can no longer turn a comment
+     * into what looked like code.
+     */
+    testAst(file) {
+      if (!file.usesGsap || !file.ast) return [];
+      if (findAll(file.ast, (node) => spells(node, "prefers-reduced-motion")).length) {
+        return [];
+      }
+      if (!findAll(file.ast, (node) => isGsapCall(node)).length) return [];
+
+      const first = findAll(
+        file.ast,
+        (node) =>
+          node.type === "MemberExpression" &&
+          unwrap(node.object)?.type === "Identifier" &&
+          unwrap(node.object).name === "gsap",
+      ).sort((a, b) => a.start - b.start)[0];
+
+      return [
+        {
+          index: first.start,
+          message: "No `prefers-reduced-motion` branch in an animating file.",
+          hint: HINT.missingReducedMotion,
         },
       ];
     },
@@ -797,7 +933,7 @@ export const RULES = [
         findings.push({
           index: m.index,
           message: `\`${m[1]}\` is statically imported.`,
-          hint: "A static import ships regardless of any `if` around the call. Load it with a dynamic `import()` behind a NODE_ENV check, or bake its output in and delete it.",
+          hint: HINT.devToolImport,
         });
       }
 
@@ -805,7 +941,52 @@ export const RULES = [
         findings.push({
           index: m.index,
           message: "`markers: true` is unconditional.",
-          hint: 'Gate it: `markers: process.env.NODE_ENV === "development"`.',
+          hint: HINT.markers,
+        });
+      }
+
+      return findings;
+    },
+    /**
+     * A static import declaration that brings in a dev tool, by a specifier's
+     * name or, for a bare or default import, by its path. A type-only import
+     * ships no code. `markers: true` is the property itself, not the text.
+     */
+    testAst(file) {
+      if (!file.ast) return [];
+      const TOOLS = /^(?:MotionPathHelper|GSDevTools)$/;
+      const findings = [];
+
+      for (const declaration of file.ast.body) {
+        if (declaration.type !== "ImportDeclaration") continue;
+        if (declaration.importKind === "type") continue;
+        const values = declaration.specifiers.filter((s) => s.importKind !== "type");
+        if (declaration.specifiers.length && !values.length) continue;
+
+        const tool =
+          values
+            .map((s) => s.imported?.name ?? s.local.name)
+            .find((name) => TOOLS.test(name)) ??
+          String(declaration.source.value).split("/").pop();
+        if (!TOOLS.test(tool)) continue;
+
+        findings.push({
+          index: declaration.start,
+          message: `\`${tool}\` is statically imported.`,
+          hint: HINT.devToolImport,
+        });
+      }
+
+      const markers = findAll(file.ast, (node) => {
+        if (keyName(node) !== "markers") return false;
+        const value = unwrap(node.value);
+        return value?.type === "Literal" && value.value === true;
+      });
+      for (const property of markers) {
+        findings.push({
+          index: property.start,
+          message: "`markers: true` is unconditional.",
+          hint: HINT.markers,
         });
       }
 
@@ -819,8 +1000,20 @@ export const RULES = [
       return find(file.code, /from\s*["']gsap\/all["']/g).map((m) => ({
         index: m.index,
         message: "Importing from `gsap/all` pulls in every plugin.",
-        hint: "Import each from its own subpath — `gsap/ScrollTrigger` — so the bundler can drop the ones this route does not use.",
+        hint: HINT.barrelImport,
       }));
+    },
+    /** An import or re-export whose module is `gsap/all`. */
+    testAst(file) {
+      if (!file.ast) return [];
+      return file.ast.body
+        .map(moduleSource)
+        .filter((source) => source?.value === "gsap/all")
+        .map((source) => ({
+          index: source.start,
+          message: "Importing from `gsap/all` pulls in every plugin.",
+          hint: HINT.barrelImport,
+        }));
     },
   },
 ];

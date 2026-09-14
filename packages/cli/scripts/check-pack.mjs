@@ -73,6 +73,9 @@ try {
     "skill/scripts/audit-gsap.mjs",
     "skill/scripts/audit-svg.mjs",
     "skill/scripts/lib/rules.mjs",
+    "skill/scripts/lib/source.mjs",
+    "skill/scripts/lib/ast.mjs",
+    "skill/scripts/lib/vendor/parser.mjs",
   ]) {
     check(files.includes(required), `ships ${required}`);
   }

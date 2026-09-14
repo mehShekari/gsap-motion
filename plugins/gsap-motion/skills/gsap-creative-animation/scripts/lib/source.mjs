@@ -10,6 +10,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 
+import { parse } from "./ast.mjs";
+
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
 const SKIP_DIRECTORIES = new Set([
   "node_modules",
@@ -231,7 +233,38 @@ export function load(path, root) {
   const raw = readFileSync(path, "utf8");
   const code = stripComments(raw);
 
+  /**
+   * Parsed on first use, and once. Most files in a project never mention GSAP,
+   * and the run skips those before any rule asks for a tree. A file that does
+   * not parse keeps `ast: null` and says why in `parseError`, so it can be
+   * reported as not checked rather than passed as clean.
+   */
+  let parsed;
+  const tree = () => {
+    if (parsed === undefined) {
+      try {
+        parsed = { ...parse(raw, path), error: null };
+      } catch (error) {
+        parsed = {
+          ast: null,
+          comments: [],
+          error: { message: error.message, line: error.loc?.line ?? 1 },
+        };
+      }
+    }
+    return parsed;
+  };
+
   return {
+    get ast() {
+      return tree().ast;
+    },
+    get comments() {
+      return tree().comments;
+    },
+    get parseError() {
+      return tree().error;
+    },
     path,
     display: relative(root, path).replace(/\\/g, "/"),
     raw,

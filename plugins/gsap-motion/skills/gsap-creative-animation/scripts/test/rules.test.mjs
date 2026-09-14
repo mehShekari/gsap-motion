@@ -1028,7 +1028,7 @@ export const watch = (el) => ScrollTrigger.create({ trigger: el, onEnter: () => 
     );
   });
 
-  test.skip("shared-plugin-id fires on a template literal and on the morphSVG shorthand", () => {
+  test("shared-plugin-id fires on a template literal and on the morphSVG shorthand", () => {
     fires(
       "shared-plugin-id",
       `${REACT}
@@ -1039,16 +1039,16 @@ export function Morph() {
   });
   return <svg />;
 }`,
-      { count: 2 },
+      { count: 2, oldEngineWrong: true },
     );
   });
 
-  test.skip("unregistered-plugin fires on a default import", () => {
+  test("unregistered-plugin fires on a default import", () => {
     fires(
       "unregistered-plugin",
       `${PLAIN}import ScrollTrigger from "gsap/ScrollTrigger";
 export const refresh = () => ScrollTrigger.refresh();`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
   });
 
@@ -1089,14 +1089,14 @@ export function follow(el) {
     );
   });
 
-  test.skip("comments are stripped after a quote in a regex literal or a plural possessive", () => {
+  test("comments are stripped after a quote in a regex literal or a plural possessive", () => {
     fires(
       "missing-reduced-motion",
       `${PLAIN}
 const quote = /"/;
 // prefers-reduced-motion is still to do
 export const play = (el) => gsap.to(el, { x: 10 });`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
     fires(
       "missing-reduced-motion",
@@ -1104,6 +1104,7 @@ export const play = (el) => gsap.to(el, { x: 10 });`,
 export const Picks = () => <p>Our users' picks</p>;
 // prefers-reduced-motion is still to do
 export const play = (el) => gsap.to(el, { x: 10 });`,
+      { oldEngineWrong: true },
     );
   });
 });
