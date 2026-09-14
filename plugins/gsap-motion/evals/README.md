@@ -27,3 +27,6 @@ claude plugin eval plugins/gsap-motion --max-cost-usd 15
 
 Results are written to `results/`, which is ignored by git. Maintainers run the
 full suite from the repository's **Evals** workflow.
+
+[PROGRESS.md](PROGRESS.md) records what has run, on which version, and what remains —
+including the cases the roadmap plans. Update it with every run.
