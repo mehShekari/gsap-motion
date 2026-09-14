@@ -21,8 +21,13 @@ import {
   isGsapCall,
   keyName,
   moduleSource,
+  numberValue,
+  ownVars,
+  propertyOf,
   staticString,
+  tweenMethod,
   unwrap,
+  varsObjects,
 } from "./ast.mjs";
 import { blockAfter, opensString, parenSpan, within } from "./source.mjs";
 
@@ -43,6 +48,17 @@ const HINT = {
   markers: 'Gate it: `markers: process.env.NODE_ENV === "development"`.',
   barrelImport:
     "Import each from its own subpath — `gsap/ScrollTrigger` — so the bundler can drop the ones this route does not use.",
+  easedLoop:
+    'The tween decelerates into its own restart, so the loop seam becomes visible. Use `ease: "none"`, or `yoyo: true` if it should breathe.',
+  lateTransformOrigin:
+    "On an SVG element GSAP holds the element in place when its origin changes, and that correction outlives the tween: it ends offset, silently — a circle grown from 0 about its centre lands a whole radius off. Put `transformOrigin` or `svgOrigin` in the from-vars, or set it before the tween. HTML elements are unaffected.",
+};
+
+/** Messages that do not vary with what was found, shared the same way. */
+const MESSAGE = {
+  easedLoop: "An infinite repeat with an ease other than `none`.",
+  lateTransformOrigin:
+    "The transform origin is only in this `fromTo`'s to-vars, while its from-vars scale, rotate or skew.",
 };
 
 /** Whether a string, template chunk or JSX text spells `text`. Comments are not nodes. */
@@ -95,6 +111,26 @@ const TRANSFORM_FOR = {
  */
 const PERCENT_CAVEAT =
   "Careful with percentages: `top: 50%` is half the containing block, `yPercent: 50` is half the element itself. Either wrap it in a full-height box and translate that — the percentages then agree — or measure the container once and translate in pixels.";
+
+/**
+ * The hint for an animated layout property: the transform that replaces it,
+ * and the percentage trap when the value is a percentage.
+ */
+function layoutHint(property, percent) {
+  const swap = TRANSFORM_FOR[property];
+  return swap
+    ? `Use \`${swap}\` instead — a compositor-only property.` +
+        (percent ? ` ${PERCENT_CAVEAT}` : "")
+    : "Prefer transform and opacity; they never touch layout.";
+}
+
+/** Whether a transform's from-value, as written, leaves the element untransformed. */
+function identityTransform(property, value) {
+  const v = value.trim().replace(/^["'`]|["'`]$/g, "");
+  return property.startsWith("scale")
+    ? /^1(?:\.0+)?$/.test(v)
+    : /^-?0(?:\.0+)?(?:deg|rad)?$/.test(v);
+}
 
 /**
  * Events that fire many times a second, by the name a listener is given.
@@ -481,7 +517,6 @@ export const RULES = [
         return [...body.matchAll(pattern)]
           .filter((m) => !/^\s*(?:\/\/|\*)/.test(m[0]))
           .map((m) => {
-            const swap = TRANSFORM_FOR[m[1]];
             /**
              * Whether the flagged value is a percentage of something.
              *
@@ -498,13 +533,46 @@ export const RULES = [
             return {
               index: span[0] + m.index,
               message: `Animating \`${m[1]}\` forces layout on every frame.`,
-              hint: swap
-                ? `Use \`${swap}\` instead — a compositor-only property.` +
-                  (percent ? ` ${PERCENT_CAVEAT}` : "")
-                : "Prefer transform and opacity; they never touch layout.",
+              hint: layoutHint(m[1], percent),
             };
           });
       });
+    },
+    /**
+     * The layout keys of every vars object a tween carries — both of a
+     * `fromTo`'s — on any receiver, so a timeline child counts. The text engine
+     * read the first brace after `gsap.*(`: a `fromTo`'s from-vars only, or an
+     * unrelated object after an argument-less `gsap.timeline()`.
+     *
+     * One finding per key per call: a `fromTo` that names `height` in both vars
+     * animates one property, and says so once, where it first appears.
+     */
+    testAst(file) {
+      if (!file.ast) return [];
+      const LAYOUT = new Set(LAYOUT_PROPERTIES);
+
+      return findAll(file.ast, (node) => tweenMethod(node) !== null).flatMap(
+        (call) => {
+          const seen = new Set();
+          return varsObjects(call, tweenMethod(call))
+            .flatMap((vars) => vars.properties)
+            .filter((property) => {
+              const key = keyName(property);
+              if (!LAYOUT.has(key) || staticString(property.value) === "") return false;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            })
+            .map((property) => ({
+              index: property.start,
+              message: `Animating \`${keyName(property)}\` forces layout on every frame.`,
+              hint: layoutHint(
+                keyName(property),
+                findAll(property.value, (node) => spells(node, "%")).length > 0,
+              ),
+            }));
+        },
+      );
     },
   },
   {
@@ -550,11 +618,35 @@ export const RULES = [
         return [
           {
             index: span[0] + body.indexOf("ease"),
-            message: "An infinite repeat with an ease other than `none`.",
-            hint: "The tween decelerates into its own restart, so the loop seam becomes visible. Use `ease: \"none\"`, or `yoyo: true` if it should breathe.",
+            message: MESSAGE.easedLoop,
+            hint: HINT.easedLoop,
           },
         ];
       });
+    },
+    /**
+     * The tween's own vars — a `fromTo`'s to-vars — on any receiver, so a
+     * timeline child counts. Keys at the top level only: a `stagger` object's
+     * own `repeat` is not the tween's.
+     */
+    testAst(file) {
+      if (!file.ast) return [];
+
+      return findAll(file.ast, (node) => tweenMethod(node) !== null).flatMap(
+        (call) => {
+          const vars = ownVars(call, tweenMethod(call));
+          if (!vars) return [];
+          const repeat = propertyOf(vars, "repeat");
+          if (!repeat || numberValue(repeat.value) !== -1) return [];
+          const yoyo = unwrap(propertyOf(vars, "yoyo")?.value);
+          if (yoyo?.type === "Literal" && yoyo.value === true) return [];
+          const ease = propertyOf(vars, "ease");
+          if (!ease || staticString(ease.value) === "none") return [];
+          return [
+            { index: ease.start, message: MESSAGE.easedLoop, hint: HINT.easedLoop },
+          ];
+        },
+      );
     },
   },
   {
@@ -697,13 +789,6 @@ export const RULES = [
     test(file) {
       const ORIGIN = /\b(?:transformOrigin|svgOrigin)\s*:/;
       const TRANSFORM = /\b(scale[XY]?|rotation|rotate|skew[XY])\s*:\s*([^,}\n]+)/g;
-      /** Whether a from-value leaves the element untransformed. */
-      const identity = (prop, value) => {
-        const v = value.trim().replace(/^["'`]|["'`]$/g, "");
-        return prop.startsWith("scale")
-          ? /^1(?:\.0+)?$/.test(v)
-          : /^-?0(?:\.0+)?(?:deg|rad)?$/.test(v);
-      };
 
       return find(file.code, /\.\s*fromTo\s*\(/g).flatMap((call) => {
         const open = call.index + call[0].length - 1;
@@ -719,7 +804,7 @@ export const RULES = [
         if (/\bsmoothOrigin\s*:\s*false\b/.test(toVars)) return [];
         if (
           [...fromVars.matchAll(TRANSFORM)].every(([, prop, value]) =>
-            identity(prop, value),
+            identityTransform(prop, value),
           )
         ) {
           return [];
@@ -728,11 +813,62 @@ export const RULES = [
         return [
           {
             index: to[0] + origin,
-            message:
-              "The transform origin is only in this `fromTo`'s to-vars, while its from-vars scale, rotate or skew.",
-            hint: "On an SVG element GSAP holds the element in place when its origin changes, and that correction outlives the tween: it ends offset, silently — a circle grown from 0 about its centre lands a whole radius off. Put `transformOrigin` or `svgOrigin` in the from-vars, or set it before the tween. HTML elements are unaffected.",
+            message: MESSAGE.lateTransformOrigin,
+            hint: HINT.lateTransformOrigin,
           },
         ];
+      });
+    },
+    /**
+     * Any `.fromTo(target, fromVars, toVars)` whose two vars are object
+     * literals. Keys are read at the top level of each, and a transform's
+     * from-value as it is written: `rotation: "90deg"` and `scale: 0` move the
+     * element, `scale: 1` and `rotation: 0` do not.
+     */
+    testAst(file) {
+      if (!file.ast) return [];
+      const ORIGIN = new Set(["transformOrigin", "svgOrigin"]);
+      const TRANSFORM = /^(?:scale[XY]?|rotation|rotate|skew[XY])$/;
+
+      const calls = findAll(file.ast, (node) => {
+        if (node.type !== "CallExpression") return false;
+        const callee = unwrap(node.callee);
+        return (
+          callee?.type === "MemberExpression" &&
+          !callee.computed &&
+          callee.property.name === "fromTo"
+        );
+      });
+
+      return calls.flatMap((call) => {
+        const from = unwrap(call.arguments[1]);
+        const to = unwrap(call.arguments[2]);
+        if (from?.type !== "ObjectExpression" || to?.type !== "ObjectExpression") {
+          return [];
+        }
+        const origin = to.properties.find((property) => ORIGIN.has(keyName(property)));
+        if (!origin) return [];
+        if (from.properties.some((property) => ORIGIN.has(keyName(property)))) return [];
+        const smooth = unwrap(propertyOf(to, "smoothOrigin")?.value);
+        if (smooth?.type === "Literal" && smooth.value === false) return [];
+
+        const moves = from.properties.some(
+          (property) =>
+            TRANSFORM.test(keyName(property) ?? "") &&
+            !identityTransform(
+              keyName(property),
+              file.raw.slice(property.value.start, property.value.end),
+            ),
+        );
+        return moves
+          ? [
+              {
+                index: origin.start,
+                message: MESSAGE.lateTransformOrigin,
+                hint: HINT.lateTransformOrigin,
+              },
+            ]
+          : [];
       });
     },
   },

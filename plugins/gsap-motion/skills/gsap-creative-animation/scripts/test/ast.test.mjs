@@ -13,7 +13,11 @@ import {
   findAll,
   isGsapCall,
   parse,
+  numberValue,
+  ownVars,
   staticString,
+  tweenMethod,
+  varsObjects,
   walk,
 } from "../lib/ast.mjs";
 import { lineAt, load } from "../lib/source.mjs";
@@ -84,6 +88,30 @@ describe("names", () => {
     assert.equal(staticString(expr(`"#star"`)), "#star");
     assert.equal(staticString(expr("`#${id}`")), null);
     assert.equal(staticString(expr(`1`)), null);
+  });
+
+  test("numberValue reads negative literals, and nothing computed", () => {
+    assert.equal(numberValue(expr(`-1`)), -1);
+    assert.equal(numberValue(expr(`0.5`)), 0.5);
+    assert.equal(numberValue(expr(`count`)), null);
+  });
+
+  test("tweenMethod takes set and timeline on gsap only, and to/from/fromTo on anything", () => {
+    assert.equal(tweenMethod(expr(`gsap.set(a, {})`)), "set");
+    assert.equal(tweenMethod(expr(`gsap.timeline()`)), "timeline");
+    assert.equal(tweenMethod(expr(`this.tl.fromTo(a, {}, {})`)), "fromTo");
+    assert.equal(tweenMethod(expr(`tl.addLabel("a").to(a, {})`)), "to");
+    assert.equal(tweenMethod(expr(`tl.set(a, {})`)), null);
+    assert.equal(tweenMethod(expr(`gsap.quickTo(a, "x")`)), null);
+  });
+
+  test("ownVars and varsObjects pick the right arguments", () => {
+    const fromTo = expr(`gsap.fromTo(a, { x: 0 }, { x: 1, repeat: -1 })`);
+    assert.equal(ownVars(fromTo, "fromTo"), fromTo.arguments[2]);
+    assert.deepEqual(varsObjects(fromTo, "fromTo"), [fromTo.arguments[1], fromTo.arguments[2]]);
+    const timeline = expr(`gsap.timeline({ repeat: -1 })`);
+    assert.equal(ownVars(timeline, "timeline"), timeline.arguments[0]);
+    assert.equal(ownVars(expr(`gsap.to(a, vars)`), "to"), null);
   });
 });
 

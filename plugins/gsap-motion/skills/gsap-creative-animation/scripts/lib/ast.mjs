@@ -167,3 +167,65 @@ export function isGsapCall(node, methods = TWEEN_METHODS) {
     methods.has(name.slice(5))
   );
 }
+
+/** The property of an object literal with key `name`, or `undefined`. */
+export const propertyOf = (object, name) =>
+  object?.properties?.find((property) => keyName(property) === name);
+
+/** The number a literal spells, a negative one included: `-1` for `repeat: -1`. */
+export function numberValue(node) {
+  const target = unwrap(node);
+  if (target?.type === "Literal" && typeof target.value === "number") {
+    return target.value;
+  }
+  if (target?.type === "UnaryExpression" && target.operator === "-") {
+    const value = numberValue(target.argument);
+    return value === null ? null : -value;
+  }
+  return null;
+}
+
+const ON_GSAP = new Set(["to", "from", "fromTo", "set", "timeline"]);
+const ON_ANYTHING = new Set(["to", "from", "fromTo"]);
+
+/**
+ * The method of a call that creates a tween or adds one: `gsap.to`, `.from`,
+ * `.fromTo`, `.set` or `.timeline`, and `.to`, `.from` or `.fromTo` on any other
+ * receiver — a timeline variable, `this.tl`, a chain. `null` for anything else.
+ */
+export function tweenMethod(node) {
+  if (node.type !== "CallExpression") return null;
+  const callee = unwrap(node.callee);
+  if (
+    callee?.type !== "MemberExpression" ||
+    callee.computed ||
+    callee.property.type !== "Identifier"
+  ) {
+    return null;
+  }
+  const method = callee.property.name;
+  const allowed = dottedName(callee.object) === "gsap" ? ON_GSAP : ON_ANYTHING;
+  return allowed.has(method) ? method : null;
+}
+
+const argumentObject = (call, index) => {
+  const node = unwrap(call.arguments[index]);
+  return node?.type === "ObjectExpression" ? node : null;
+};
+
+/**
+ * The vars object that holds a tween's own settings — `repeat`, `ease`,
+ * `yoyo`: the second argument, a `fromTo`'s third, a timeline's first. `null`
+ * when it is not an object literal.
+ */
+export const ownVars = (call, method) =>
+  argumentObject(call, method === "fromTo" ? 2 : method === "timeline" ? 0 : 1);
+
+/**
+ * Every vars object a tween call carries, as object literals: both of a
+ * `fromTo`'s, a timeline's own, or the tween's.
+ */
+export function varsObjects(call, method) {
+  const indexes = method === "fromTo" ? [1, 2] : method === "timeline" ? [0] : [1];
+  return indexes.map((index) => argumentObject(call, index)).filter(Boolean);
+}

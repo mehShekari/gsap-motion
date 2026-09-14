@@ -496,6 +496,28 @@ export const grow = (el) => gsap.to(el, { scaleX: 0.5, x: 20, yPercent: 50 });`,
       { ext: "ts" },
     );
   });
+
+  test("reports a property a fromTo names in both vars once", () => {
+    fires(
+      "layout-property",
+      `${PLAIN}
+export const grow = (el) => gsap.fromTo(el, { width: 0 }, { width: 200 });`,
+      { ext: "ts", count: 1 },
+    );
+    fires(
+      "layout-property",
+      `${PLAIN}
+export function carry(tl, grid, from, to) {
+  tl.fromTo(
+    grid,
+    { height: from },
+    { height: to, duration: 0.6 },
+    0,
+  );
+}`,
+      { ext: "ts", count: 1, oldEngineWrong: true },
+    );
+  });
 });
 
 describe("trigger-per-item", () => {
@@ -960,27 +982,27 @@ gsap.to("[data-a]", { autoAlpha: 1 });`,
     );
   });
 
-  test.skip("eased-loop and layout-property read timeline children", () => {
+  test("eased-loop and layout-property read timeline children", () => {
     fires(
       "eased-loop",
       `${PLAIN}
 export const spin = (tl, dot) => tl.to(dot, { rotation: 360, repeat: -1, ease: "power1.inOut" });`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
     fires(
       "layout-property",
       `${PLAIN}
 export const grow = (tl, el) => tl.to(el, { width: 200 });`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
   });
 
-  test.skip("layout-property reads fromTo to-vars, and ignores an unrelated object", () => {
+  test("layout-property reads fromTo to-vars, and ignores an unrelated object", () => {
     fires(
       "layout-property",
       `${PLAIN}
 export const grow = (el) => gsap.fromTo(el, { x: 0 }, { width: 200 });`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
     quiet(
       "layout-property",
@@ -990,7 +1012,7 @@ export function scene() {
   const box = { width: 10 };
   return { tl, box };
 }`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
   });
 
