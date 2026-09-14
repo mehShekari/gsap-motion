@@ -5,6 +5,9 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 
+# The precision corpus's cloned projects and findings; only its labels are committed.
+corpus/.cache/
+
 # Written by every `claude plugin eval` run.
 plugins/*/evals/results/
 results.json

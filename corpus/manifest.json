@@ -1,0 +1,117 @@
+{
+  "about": "Public GSAP projects the audit's precision is measured on, each pinned to a commit. Chosen from a GitHub search for projects pushed after June 2025 with gsap >= 3.13 in a root package.json, an open licence, and a spread of stacks. Only labels are committed, never their code. Projects whose GSAP lives in .vue, .astro or .svelte files are kept for 3.2, when the audit reads those.",
+  "projects": [
+    {
+      "name": "satus",
+      "repo": "darkroomengineering/satus",
+      "commit": "ae1d0f846f01d6897280c9ebfb3ddef8955ea0ef",
+      "stack": "next",
+      "license": "MIT",
+      "paths": ["."]
+    },
+    {
+      "name": "careercompass",
+      "repo": "arsh342/careercompass",
+      "commit": "fade6f4a83ebc8ca3790ae56d06f1fcd9a43b1f1",
+      "stack": "next",
+      "license": "MIT",
+      "paths": ["."]
+    },
+    {
+      "name": "devfolio",
+      "repo": "shubh73/devfolio",
+      "commit": "c163d643426f535db1a39dfbc1a9c897c7d1e548",
+      "stack": "next",
+      "license": "MIT",
+      "paths": ["."]
+    },
+    {
+      "name": "nurui",
+      "repo": "afsar-dev/Nurui",
+      "commit": "8b5ac874e4fc12b9004c328e7715ba933c9dbd86",
+      "stack": "next",
+      "license": "MIT",
+      "paths": ["."]
+    },
+    {
+      "name": "card-master",
+      "repo": "LYiHub/Card-master-browser-extension-public",
+      "commit": "7638ea2aa40f010a37094dd89446561508c5e4c9",
+      "stack": "vite-react",
+      "license": "GPL-3.0",
+      "paths": ["."]
+    },
+    {
+      "name": "sc-datav",
+      "repo": "knight-L/sc-datav",
+      "commit": "c1aebf1d9ceb6067d41cb6fd7440b00ec2d71f8e",
+      "stack": "r3f",
+      "license": "Apache-2.0",
+      "paths": ["."]
+    },
+    {
+      "name": "elemental-serenity",
+      "repo": "SahilK-027/Elemental-Serenity",
+      "commit": "6b8cebefa0ee10e1bdd081dd342a01b3fe753e09",
+      "stack": "three",
+      "license": "MIT",
+      "paths": ["."]
+    },
+    {
+      "name": "happy-birthday",
+      "repo": "abandon888/HappyBirthday",
+      "commit": "739550701397cb281134ba6f7a74ae5d8c5219cf",
+      "stack": "vanilla",
+      "license": "MIT",
+      "paths": ["."]
+    },
+    {
+      "name": "wallpaper-gallery",
+      "repo": "IT-NuanxinPro/wallpaper-gallery",
+      "commit": "e7c3dde1ecd8453f7d9d0cc4d1dcd3285496a356",
+      "stack": "vue",
+      "license": "MIT",
+      "paths": ["."]
+    },
+    {
+      "name": "what-happen",
+      "repo": "LYX9527/what-happen",
+      "commit": "2844d7f6be06b548eeb8cf8f82e81c906b6a35e4",
+      "stack": "nuxt",
+      "license": "MIT",
+      "paths": ["."]
+    },
+    {
+      "name": "bentolio",
+      "repo": "oneminch/bentolio",
+      "commit": "59a8cb27dd973a80186db0f2a1081d1a8bca92b1",
+      "stack": "nuxt",
+      "license": "MIT",
+      "paths": ["."]
+    },
+    {
+      "name": "screwfast",
+      "repo": "mearashadowfax/ScrewFast",
+      "commit": "e0d60c282f99aa15e79efd45a65b724f1a1dc817",
+      "stack": "astro",
+      "license": "MIT",
+      "paths": ["."]
+    },
+    {
+      "name": "astro-bento-portfolio",
+      "repo": "Ladvace/astro-bento-portfolio",
+      "commit": "b232125502dd52f37061d4f4e843ff84fc6a01ad",
+      "stack": "astro",
+      "license": "MIT",
+      "paths": ["."]
+    },
+    {
+      "name": "vivix",
+      "repo": "HenryOnilude/vivix",
+      "commit": "b09aee89e839d860fa5554afbef903ed75c0787b",
+      "stack": "svelte",
+      "license": "MIT",
+      "paths": ["."]
+    }
+  ]
+}

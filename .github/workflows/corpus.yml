@@ -1,0 +1,26 @@
+name: Corpus precision
+
+# Clones the corpus projects at their pinned commits, audits them, and reports
+# precision per rule. Fails when a finding has no label, which is what keeps the
+# published numbers true. Needs the network, so it is run by hand rather than on
+# every push.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: node scripts/corpus.mjs fetch
+      - run: node scripts/corpus.mjs run
+      - run: node scripts/corpus.mjs report --markdown >> "$GITHUB_STEP_SUMMARY"
+      - run: node scripts/corpus.mjs report
