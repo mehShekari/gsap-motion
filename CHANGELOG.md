@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A JavaScript and TypeScript parser for the audit: acorn 8.18.0 with
+  @sveltejs/acorn-typescript 1.0.13, bundled into `scripts/lib/vendor/parser.mjs`
+  by `scripts/vendor-parser.mjs` from exact pinned versions. The audit still
+  installs nothing and runs on Node 18. No rule reads it yet; the rules move onto
+  it group by group. The npm package grows to about 487 kB unpacked, and
+  `check-pack` now fails above 600 kB.
+- CI: a `vendor` job regenerates the parser and fails if the committed file
+  differs from its pinned sources.
+
 ## [3.0.1] - 2026-09-14
 
 A patch: no rule id, level, command or flag changed. Two error-level rules now

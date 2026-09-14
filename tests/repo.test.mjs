@@ -178,3 +178,24 @@ test("the README states the audit's real rule count", () => {
   const stated = read("README.md").match(/\*\*`audit-gsap`\*\*: (\d+) rules/)?.[1];
   assert.equal(Number(stated), RULES.length);
 });
+
+/**
+ * The vendored parser's header names the versions it was built from. CI's
+ * `vendor` job proves the bytes match; this proves, with no install, that a
+ * change to a pin did not go without a regeneration.
+ */
+test("the vendored parser was generated from the pinned versions", () => {
+  const header = read(
+    `${PLUGIN_DIR}/skills/gsap-creative-animation/scripts/lib/vendor/parser.mjs`,
+  )
+    .split("\n")
+    .slice(0, 4)
+    .join("\n");
+  const { devDependencies } = json("package.json");
+  for (const name of ["acorn", "@sveltejs/acorn-typescript"]) {
+    assert.ok(
+      header.includes(`${name} ${devDependencies[name]} (`),
+      `${name} ${devDependencies[name]} in the vendored parser's header`,
+    );
+  }
+});

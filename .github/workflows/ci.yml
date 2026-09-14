@@ -61,6 +61,18 @@ jobs:
       - run: npm run build --workspace examples/next-app
       - run: npm run audit:example -- --quiet
 
+  vendor:
+    name: Vendored parser matches its pinned sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node scripts/vendor-parser.mjs --check
+
   package:
     name: npm package, as users download it
     runs-on: ubuntu-latest
