@@ -36,7 +36,7 @@ This skill gives the agent two things it lacks:
   performance, accessibility — so every animation has a reason to exist, matches
   what the site already does, and has a reduced-motion design rather than an off
   switch.
-- **A deterministic check.** Two dependency-free scripts that find the silent
+- **A deterministic check.** Two scripts that install nothing and find the silent
   failures in real code, so a mistake is caught by a tool rather than by a
   visitor.
 
@@ -371,9 +371,12 @@ Behaviour is tested at three levels:
 
 ## Limitations
 
-- **The audit is static analysis without a parser.** It is conservative and can
-  still be wrong. A tween inside a helper that only a `useGSAP` body calls reads
-  as outside, because the audit does not follow calls.
+- **The audit reads one file at a time.** It parses each file and follows what
+  it can inside it — an aliased `useGSAP`, a helper called only from a context,
+  a timeline kept under a name — but not calls into other files. A file it
+  cannot parse is reported as `not-parsed` (info), never passed as clean. It is
+  still conservative and can be wrong, and its precision per rule is not yet
+  published.
 - **`.vue`, `.svelte` and `.astro` files are not scanned.** Keep animation logic
   in a `.ts` module if you want it checked.
 - **The audit judges no craft.** Rhythm and easing choices are the skill's job,

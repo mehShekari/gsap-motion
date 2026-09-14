@@ -537,7 +537,7 @@ export function carry(tl, grid, from, to) {
     0,
   );
 }`,
-      { ext: "ts", count: 1, oldEngineWrong: true },
+      { ext: "ts", count: 1 },
     );
   });
 });
@@ -959,12 +959,11 @@ describe("barrel-import", () => {
 });
 
 /**
- * Known wrong findings the text-matching engine cannot fix, kept as skipped
- * fixtures so they live in the repository rather than in someone's notes.
- * Each needs scope, bindings or real tokens: 3.1 moves the audit onto a parser
- * and un-skips this block. A skipped test records no coverage.
+ * Findings the text-matching engine got wrong and the syntax tree gets right:
+ * scope, bindings, aliases, helpers and real tokens. Each was parked here as a
+ * skipped fixture in 3.0.1, and runs since the audit moved onto the tree.
  */
-describe("parked for 3.1: needs a parser", () => {
+describe("what the text engine got wrong", () => {
   test("orphan-tween stays quiet on a helper only the useGSAP body calls", () => {
     quiet(
       "orphan-tween",
@@ -975,7 +974,6 @@ export function Box() {
   useGSAP(() => { grow(ref.current); }, { scope: ref });
   return <div ref={ref} />;
 }`,
-      { oldEngineWrong: true },
     );
   });
 
@@ -992,7 +990,6 @@ export function Box() {
   const spin = cs(() => { gsap.to(ref.current, { rotation: 90 }); });
   return <button ref={ref} onClick={spin} />;
 }`,
-      { oldEngineWrong: true },
     );
   });
 
@@ -1003,7 +1000,6 @@ export function Box() {
 export const noop = () => {};
 gsap.set("[data-a]", { autoAlpha: 0 });
 gsap.to("[data-a]", { autoAlpha: 1 });`,
-      { oldEngineWrong: true },
     );
   });
 
@@ -1012,13 +1008,13 @@ gsap.to("[data-a]", { autoAlpha: 1 });`,
       "eased-loop",
       `${PLAIN}
 export const spin = (tl, dot) => tl.to(dot, { rotation: 360, repeat: -1, ease: "power1.inOut" });`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
     fires(
       "layout-property",
       `${PLAIN}
 export const grow = (tl, el) => tl.to(el, { width: 200 });`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
   });
 
@@ -1027,7 +1023,7 @@ export const grow = (tl, el) => tl.to(el, { width: 200 });`,
       "layout-property",
       `${PLAIN}
 export const grow = (el) => gsap.fromTo(el, { x: 0 }, { width: 200 });`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
     quiet(
       "layout-property",
@@ -1037,7 +1033,7 @@ export function scene() {
   const box = { width: 10 };
   return { tl, box };
 }`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
   });
 
@@ -1050,7 +1046,7 @@ export function reveal(items) {
     gsap.from(item, { autoAlpha: 0, scrollTrigger: { trigger: item } });
   }
 }`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
     quiet(
       "trigger-per-item",
@@ -1061,7 +1057,7 @@ export function reveal(section, items, toLabel) {
     gsap.from(items, { autoAlpha: 0, stagger: 0.1, scrollTrigger: { trigger: section } });
   }
 }`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
   });
 
@@ -1071,7 +1067,7 @@ export function reveal(section, items, toLabel) {
       `${PLAIN}import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 export const watch = (el) => ScrollTrigger.create({ trigger: el, onEnter: () => {} });`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
   });
 
@@ -1086,7 +1082,7 @@ export function Morph() {
   });
   return <svg />;
 }`,
-      { count: 2, oldEngineWrong: true },
+      { count: 2 },
     );
   });
 
@@ -1095,7 +1091,7 @@ export function Morph() {
       "unregistered-plugin",
       `${PLAIN}import ScrollTrigger from "gsap/ScrollTrigger";
 export const refresh = () => ScrollTrigger.refresh();`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
   });
 
@@ -1109,7 +1105,7 @@ export class Intro {
     this.tl.to("[data-dot]", { rotation: 360, repeat: -1, ease: "none" });
   }
 }`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
     fires(
       "eased-scrub",
@@ -1120,7 +1116,7 @@ export class Scene {
     this.tl.to("[data-a]", { x: 100, ease: "power2.out" });
   }
 }`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
   });
 
@@ -1132,7 +1128,7 @@ export function follow(el) {
   const onMove = (event) => { gsap.to(el, { x: event.clientX }); };
   window.addEventListener("pointermove", onMove);
 }`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
   });
 
@@ -1143,7 +1139,7 @@ export function follow(el) {
 const quote = /"/;
 // prefers-reduced-motion is still to do
 export const play = (el) => gsap.to(el, { x: 10 });`,
-      { ext: "ts", oldEngineWrong: true },
+      { ext: "ts" },
     );
     fires(
       "missing-reduced-motion",
@@ -1151,7 +1147,6 @@ export const play = (el) => gsap.to(el, { x: 10 });`,
 export const Picks = () => <p>Our users' picks</p>;
 // prefers-reduced-motion is still to do
 export const play = (el) => gsap.to(el, { x: 10 });`,
-      { oldEngineWrong: true },
     );
   });
 });

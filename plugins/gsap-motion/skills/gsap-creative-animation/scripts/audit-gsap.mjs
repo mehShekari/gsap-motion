@@ -13,10 +13,12 @@
  * Rhythm, easing choice and whether an animation earns its place are not
  * checkable and are not attempted — reference/motion-design.md owns those.
  *
- * This is static analysis without a parser, so it is deliberately conservative
- * and will still be wrong sometimes. `info` findings have the loosest match.
- * A wrong finding is a bug in this script; report it rather than working
- * around it.
+ * It reads each file's syntax tree — with a vendored parser, so nothing is
+ * installed — and follows what can be followed inside one file: aliases, a
+ * helper called only from a context, a timeline kept under a name. It does not
+ * follow calls into other files. A file it cannot parse is reported as
+ * `not-parsed`, never passed as clean. A wrong finding is a bug in this script;
+ * report it rather than working around it.
  *
  * Usage — paths resolve from the current directory, so run it from the project
  * root, wherever the skill itself is installed:
@@ -92,6 +94,26 @@ for (const path of paths) {
      * once here rather than in every rule.
      */
     if (!source.usesGsap && !/\bgsap\./.test(source.code)) continue;
+
+    /**
+     * What was not checked is reported as not checked. A file that uses GSAP
+     * and does not parse gets no rule's verdict — a silent skip would read as
+     * clean.
+     */
+    if (source.parseError) {
+      const { line, message } = source.parseError;
+      if (!waived(source.raw, line, "not-parsed")) {
+        findings.push({
+          rule: "not-parsed",
+          level: "info",
+          file: source.display,
+          line,
+          message: `Not checked: the file could not be parsed (${message}).`,
+          hint: "No rule ran on this file. If it is valid JavaScript or TypeScript, the audit's parser is wrong — report it with this line.",
+        });
+      }
+      continue;
+    }
 
     for (const rule of RULES) {
       for (const hit of rule.test(source)) {

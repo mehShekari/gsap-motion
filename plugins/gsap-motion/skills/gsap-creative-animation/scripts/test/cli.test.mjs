@@ -103,6 +103,20 @@ describe("audit-gsap.mjs", () => {
     const rules = json(run("audit-gsap.mjs", ["--json"], dir)).map((f) => f.rule);
     assert.ok(rules.includes("orphan-tween"));
   });
+
+  test("reports a file it cannot parse as not checked, not as clean", () => {
+    const dir = project({
+      "src/Broken.ts": 'import gsap from "gsap";\n\nexport const play = (el) => gsap.to(el, { x: 1 };\n',
+      "src/Box.tsx": CLEAN,
+    });
+    const result = run("audit-gsap.mjs", ["--json"], dir);
+    assert.equal(result.status, 0, "not-parsed is info, not an error");
+    const [finding] = json(result).filter((f) => f.rule === "not-parsed");
+    assert.ok(finding, "not-parsed reported");
+    assert.equal(finding.level, "info");
+    assert.equal(finding.file, "src/Broken.ts");
+    assert.equal(finding.line, 3);
+  });
 });
 
 describe("audit-svg.mjs", () => {

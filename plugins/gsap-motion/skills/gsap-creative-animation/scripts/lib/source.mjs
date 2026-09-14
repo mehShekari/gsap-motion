@@ -1,11 +1,11 @@
 /**
- * Source reading for the GSAP audit.
+ * Source reading for the GSAP audit: finding the files, and reading each one
+ * once into what the rules need.
  *
- * Every helper here exists because naive matching produces false findings, and
- * a checker that cries wolf is one people switch off. Comments are stripped
- * before any rule runs — well-commented animation code explains itself at length, and
- * a docblock saying "do not use `gsap.to` in a pointermove handler" would
- * otherwise be reported as doing exactly that.
+ * Rules read the syntax tree. A few facts about the whole file — is it React,
+ * does it use GSAP — are still read from its text with the comments blanked
+ * out, because well-commented animation code explains itself at length, and a
+ * docblock that mentions `@gsap/react` is not an import of it.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, relative } from "node:path";
@@ -131,103 +131,6 @@ export function lineAt(source, index) {
   return line;
 }
 
-/**
- * The `{ … }` block that opens at or after `from`, as a `[start, end]` pair.
- *
- * Used to ask "is this call inside that handler?" without a parser. Quotes are
- * tracked so a brace inside a string cannot close the block early; comments are
- * already gone by the time this runs.
- */
-export function blockAfter(source, from) {
-  const start = source.indexOf("{", from);
-  if (start === -1) return null;
-
-  let depth = 0;
-  let quote = "";
-
-  for (let i = start; i < source.length; i += 1) {
-    const c = source[i];
-
-    if (quote) {
-      if (c === "\\") i += 1;
-      else if (c === quote) quote = "";
-      continue;
-    }
-    if (opensString(source, i)) {
-      quote = c;
-      continue;
-    }
-    if (c === "{") depth += 1;
-    else if (c === "}") {
-      depth -= 1;
-      if (depth === 0) return [start, i];
-    }
-  }
-
-  return null;
-}
-
-/** Whether `index` falls inside any of the given `[start, end]` spans. */
-export const within = (spans, index) =>
-  spans.some(([start, end]) => index > start && index < end);
-
-/**
- * The `( … )` of a call, as a `[start, end]` pair, given the index of its
- * opening paren. Quotes are tracked the same way `blockAfter` tracks them.
- */
-export function parenSpan(source, open) {
-  let depth = 0;
-  let quote = "";
-
-  for (let i = open; i < source.length; i += 1) {
-    const c = source[i];
-
-    if (quote) {
-      if (c === "\\") i += 1;
-      else if (c === quote) quote = "";
-      continue;
-    }
-    if (opensString(source, i)) {
-      quote = c;
-      continue;
-    }
-    if (c === "(") depth += 1;
-    else if (c === ")") {
-      depth -= 1;
-      if (depth === 0) return [open, i];
-    }
-  }
-
-  return null;
-}
-
-/**
- * Spans of every `useGSAP(…)`, `gsap.context(…)` and `contextSafe(…)` call.
- *
- * Anything created outside these is outside the context that reverts it, which
- * is the single most common way an animation outlives its component.
- *
- * The span is the call's parentheses, not the first `{` after its name. The
- * first brace failed silently twice over: a bodiless `useGSAP()` — the usual
- * way to get `contextSafe` — claimed whatever block came next in the file, so an
- * orphaned tween in the handler below it read as owned; and an expression-bodied
- * `contextSafe(() => gsap.to(el, { … }))` measured as the tween's own vars
- * object, which the call itself sits in front of.
- *
- * `contextSafe` counts because it is a context: a wrapped function's tweens are
- * added to the one `useGSAP` created.
- */
-export function contextSpans(code) {
-  const spans = [];
-  for (const match of code.matchAll(
-    /\b(?:useGSAP|gsap\.context|contextSafe)\s*\(/g,
-  )) {
-    const span = parenSpan(code, match.index + match[0].length - 1);
-    if (span) spans.push(span);
-  }
-  return spans;
-}
-
 /** A file plus everything the rules need, read once. */
 export function load(path, root) {
   const raw = readFileSync(path, "utf8");
@@ -282,6 +185,5 @@ export function load(path, root) {
       /\bfrom ["']@gsap\/react["']/.test(code),
     isClient: /^\s*["']use client["']/m.test(code),
     usesGsap: /\bfrom ["']gsap(?:\/|["'])/.test(code),
-    contexts: contextSpans(code),
   };
 }

@@ -16,6 +16,38 @@ All notable changes to this project are documented here. The format follows
   `check-pack` now fails above 600 kB.
 - CI: a `vendor` job regenerates the parser and fails if the committed file
   differs from its pinned sources.
+- `not-parsed` (info): a file that uses GSAP and does not parse is reported as
+  not checked, with the parser's line, instead of being skipped.
+
+### Changed
+
+- The audit reads a syntax tree instead of matching text. Every rule was moved
+  onto the tree with the old engine running beside it, and both had to agree on
+  every fixture, and on the example app, the templates and a real Next.js site,
+  before the text engine was deleted. Messages, levels, waivers, `--json` and
+  exit codes are unchanged.
+- A helper function counts as inside a context when every use of it is a call
+  from inside one, so the audit follows calls within a file.
+
+### Fixed
+
+What the text engine got wrong and the tree gets right:
+
+- `orphan-tween` no longer reports a helper called only from `useGSAP`, an
+  aliased `useGSAP` or `contextSafe`, or a module-scope tween after an arrow.
+- `unmanaged-instance` reports `ScrollTrigger.create` outside a context.
+- `layout-property` and `eased-loop` read timeline children and a `fromTo`'s
+  to-vars, no longer read an unrelated object after `gsap.timeline()`, and
+  report a key a `fromTo` names twice once.
+- `trigger-per-item` reads `for`, `for…of` and `for…in`, and no longer reads the
+  block after `.map(fn)`.
+- `tween-per-event` follows a handler passed by name.
+- `never-completes` and `eased-scrub` follow a timeline kept on `this`.
+- `shared-plugin-id` reads a fixed id in a template literal and the `motionPath`
+  and `morphSVG` string shorthands.
+- `unregistered-plugin` reads a plugin's default import.
+- `missing-reduced-motion` is no longer silenced by a comment after a quote in a
+  regular expression or a plural possessive.
 
 ## [3.0.1] - 2026-09-14
 
