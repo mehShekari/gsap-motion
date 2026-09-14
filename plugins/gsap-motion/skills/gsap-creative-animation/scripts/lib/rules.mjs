@@ -16,19 +16,24 @@
  * fixed by adding the case there first and watching it fail.
  */
 import {
+  ancestorsOf,
   calleeName,
   contains,
   dottedName,
   findAll,
+  gsapContexts,
   isFunction,
   isGsapCall,
+  keptUnder,
   keyName,
+  methodName,
   moduleSource,
   numberValue,
   ownVars,
   propertyOf,
   resolveFunction,
   staticString,
+  timelineLinks,
   tweenMethod,
   unwrap,
   varsObjects,
@@ -64,11 +69,24 @@ const HINT = {
     "A re-render per frame so one element can move a few pixels. State owns what exists; GSAP owns how it moves — use a ref and quickTo.",
   triggerPerItem:
     "Each carries its own start/end maths on every scroll frame. If the items belong to one visual moment, use one trigger with a stagger. Per-item is right only when they genuinely reveal independently — pinned card stacks, for instance.",
+  orphanTween:
+    "Nothing reverts it on unmount, and React StrictMode runs it twice in development. Move it into the useGSAP body, or wrap the handler in contextSafe. A helper counts as inside only when every use of it is a call from inside a context.",
+  unmanagedInstance:
+    "Inside a context these register themselves and are reverted with it. Out here nothing is watching: move it into the useGSAP body, or keep the instance and revert/kill it from the cleanup.",
+  easedScrub:
+    "The scrollbar is the playhead, so an ease fights the visitor's own scrolling and reads as lag. Use `ease: \"none\"` on the children and let `scrub: 1` do the smoothing.",
+  neverCompletesOwn:
+    "An endless repeat never completes. Use `onRepeat` for something that should happen every cycle, or give it a finite `repeat`.",
+  neverCompletesChild:
+    'The child gives the timeline an effectively infinite duration, and a tween added after it does not end it. Hand over at a position instead — `.call(fn, [], "label+=0.5")` fires when the playhead passes — or run the loop as its own tween outside the timeline.',
 };
 
 /** Messages that do not vary with what was found, shared the same way. */
 const MESSAGE = {
   easedLoop: "An infinite repeat with an ease other than `none`.",
+  easedScrub: "Easing inside a scrubbed ScrollTrigger timeline.",
+  neverCompletesChild:
+    "An endlessly repeating child in a timeline with an `onComplete`, which therefore never fires.",
   lateTransformOrigin:
     "The transform origin is only in this `fromTo`'s to-vars, while its from-vars scale, rotate or skew.",
 };
@@ -476,6 +494,25 @@ export const RULES = [
           hint: "Nothing reverts it on unmount, and React StrictMode runs it twice in development. Move it into the useGSAP body, or wrap the handler in contextSafe. This check does not follow calls: a helper that tweens reads as outside even when only the body calls it — keep the measuring in the helper and the tween in the body.",
         }));
     },
+    /**
+     * A GSAP tween call inside a function but outside every context. Contexts
+     * are recognised under the names the file gives them, and a helper counts
+     * as inside when every use of it is a call from inside one — the case the
+     * text engine could only warn about in its hint.
+     */
+    testAst(file) {
+      if (!file.isReact || !file.usesGsap || !file.ast) return [];
+      const inside = gsapContexts(file.ast);
+
+      return findAll(file.ast, (node) => isGsapCall(node))
+        .filter((call) => !inside(call))
+        .filter((call) => ancestorsOf(file.ast, call).some(isFunction))
+        .map((call) => ({
+          index: call.start,
+          message: `\`gsap.${methodName(call)}\` is created outside any useGSAP/gsap.context scope.`,
+          hint: HINT.orphanTween,
+        }));
+    },
   },
   /**
    * GSAP's own teardown is wider than it is usually given credit for, and
@@ -505,6 +542,52 @@ export const RULES = [
           index: m.index,
           message: `\`${m[1] ?? m[2] ?? m[3]}\` is created outside any useGSAP/gsap.context scope and never torn down.`,
           hint: "Inside a context these register themselves and are reverted with it. Out here nothing is watching: move it into the useGSAP body, or keep the instance and revert/kill it from the cleanup.",
+        }));
+    },
+    /**
+     * Also `ScrollTrigger.create`, which the list above names and the text
+     * engine never matched. Kept means held under a name, through any chain
+     * called on it; torn down means that name has `.revert()` or `.kill()`
+     * called on it somewhere in the file, optional chaining included.
+     */
+    testAst(file) {
+      if (!file.ast) return [];
+      const inside = gsapContexts(file.ast);
+      const CREATORS = new Set(["Observer", "Draggable", "ScrollSmoother", "ScrollTrigger"]);
+
+      const label = (node) => {
+        if (node.type === "NewExpression") {
+          const callee = unwrap(node.callee);
+          return callee?.type === "Identifier" && callee.name === "SplitText"
+            ? "SplitText"
+            : null;
+        }
+        if (node.type !== "CallExpression") return null;
+        const name = calleeName(node);
+        if (name === "gsap.matchMedia") return "matchMedia";
+        const [owner, method, extra] = name?.split(".") ?? [];
+        return method === "create" && extra === undefined && CREATORS.has(owner)
+          ? owner
+          : null;
+      };
+      const tornDown = (name) =>
+        findAll(
+          file.ast,
+          (node) =>
+            ["revert", "kill"].includes(methodName(node)) &&
+            dottedName(unwrap(node.callee).object) === name,
+        ).length > 0;
+
+      return findAll(file.ast, (node) => label(node) !== null)
+        .filter((node) => !inside(node))
+        .filter((node) => {
+          const kept = keptUnder(file.ast, node);
+          return !(kept?.name && tornDown(kept.name));
+        })
+        .map((node) => ({
+          index: node.start,
+          message: `\`${label(node)}\` is created outside any useGSAP/gsap.context scope and never torn down.`,
+          hint: HINT.unmanagedInstance,
         }));
     },
   },
@@ -926,6 +1009,47 @@ export const RULES = [
 
       return findings.slice(0, 1);
     },
+    /**
+     * A GSAP call scrubbed anywhere in its arguments — `scrub: false` aside —
+     * with a string ease other than `"none"` in those arguments or, for a
+     * timeline, in a child `timelineLinks` finds: the chain, and the name it is
+     * kept under within its scope, `this.tl` included. One finding per file.
+     */
+    testAst(file) {
+      if (!file.ast) return [];
+      const CHILDREN = new Set(["to", "from", "fromTo", "add"]);
+      const scrubbed = (node) =>
+        findAll(node, (n) => {
+          if (keyName(n) !== "scrub") return false;
+          const value = unwrap(n.value);
+          return !(value?.type === "Literal" && value.value === false);
+        }).length > 0;
+      const eased = (nodes) =>
+        nodes.flatMap((node) =>
+          findAll(node, (n) => {
+            if (keyName(n) !== "ease") return false;
+            const value = staticString(n.value);
+            return value !== null && value !== "none";
+          }),
+        )[0];
+
+      for (const call of findAll(file.ast, (node) => isGsapCall(node))) {
+        if (!call.arguments.some(scrubbed)) continue;
+        const own = eased(call.arguments);
+        const child =
+          methodName(call) === "timeline"
+            ? timelineLinks(file.ast, call)
+                .filter((link) => CHILDREN.has(methodName(link)))
+                .map((link) => eased(link.arguments))
+                .find(Boolean)
+            : undefined;
+        const at = own ?? child;
+        if (at) {
+          return [{ index: at.start, message: MESSAGE.easedScrub, hint: HINT.easedScrub }];
+        }
+      }
+      return [];
+    },
   },
   /**
    * An `onComplete` that can never run. A `repeat: -1` tween never completes,
@@ -984,6 +1108,59 @@ export const RULES = [
         }
       }
 
+      return findings;
+    },
+    /**
+     * `onComplete` and `repeat: -1` anywhere in a GSAP call's arguments; for a
+     * timeline, its children and any `eventCallback("onComplete", …)` from
+     * `timelineLinks` — the chain, and the name it is kept under within its
+     * scope, `this.tl` included.
+     */
+    testAst(file) {
+      if (!file.ast) return [];
+      const CHILDREN = new Set(["to", "from", "fromTo", "add"]);
+      const endless = (nodes) =>
+        nodes.flatMap((node) =>
+          findAll(node, (n) => keyName(n) === "repeat" && numberValue(n.value) === -1),
+        )[0];
+      const findings = [];
+
+      for (const call of findAll(file.ast, (node) => isGsapCall(node))) {
+        const method = methodName(call);
+        const waits = call.arguments.some(
+          (argument) => findAll(argument, (n) => keyName(n) === "onComplete").length > 0,
+        );
+        const own = endless(call.arguments);
+        if (waits && own) {
+          findings.push({
+            index: own.start,
+            message: `\`gsap.${method}\` repeats forever, so its \`onComplete\` can never run.`,
+            hint: HINT.neverCompletesOwn,
+          });
+          continue;
+        }
+        if (method !== "timeline") continue;
+
+        const links = timelineLinks(file.ast, call);
+        const completes = links.some(
+          (link) =>
+            methodName(link) === "eventCallback" &&
+            staticString(link.arguments[0]) === "onComplete",
+        );
+        if (!waits && !completes) continue;
+
+        const child = links
+          .filter((link) => CHILDREN.has(methodName(link)))
+          .map((link) => endless(link.arguments))
+          .find(Boolean);
+        if (child) {
+          findings.push({
+            index: child.start,
+            message: MESSAGE.neverCompletesChild,
+            hint: HINT.neverCompletesChild,
+          });
+        }
+      }
       return findings;
     },
   },

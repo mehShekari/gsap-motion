@@ -12,13 +12,17 @@ import {
   contains,
   dottedName,
   findAll,
+  gsapContexts,
   isFunction,
   isGsapCall,
+  keptUnder,
+  methodName,
   parse,
   resolveFunction,
   numberValue,
   ownVars,
   staticString,
+  timelineLinks,
   tweenMethod,
   varsObjects,
   walk,
@@ -155,4 +159,43 @@ test("walk visits parents before children, with ancestors nearest last", () => {
     "CallExpression",
     "ObjectExpression",
   ]);
+});
+
+describe("contexts and timelines", () => {
+  test("gsapContexts knows aliases, and a helper only every use of which is a call from inside", () => {
+    const { ast } = parse(
+      `import { useGSAP as useG } from "@gsap/react";
+export function Box() {
+  const grow = (el) => gsap.to(el, { x: 1 });
+  const loose = () => gsap.to("a", { x: 1 });
+  const { contextSafe: cs } = useG(() => { grow(null); loose(); });
+  const spin = cs(() => gsap.to("b", { x: 1 }));
+  return <button onClick={loose} />;
+}`,
+      "a.tsx",
+    );
+    const inside = gsapContexts(ast);
+    const tweens = findAll(ast, (node) => isGsapCall(node));
+    assert.deepEqual(tweens.map((tween) => inside(tween)), [true, false, true]);
+  });
+
+  test("timelineLinks reads the chain and the kept name, only within its own scope", () => {
+    const { ast } = parse(
+      `function a() {
+  const tl = gsap.timeline().to("x", {});
+  tl.addLabel("l").from("y", {});
+}
+function b() {
+  const tl = gsap.timeline();
+  tl.to("z", {});
+}`,
+      "a.ts",
+    );
+    const [first] = findAll(ast, (node) => isGsapCall(node));
+    assert.equal(keptUnder(ast, first).name, "tl");
+    assert.deepEqual(
+      timelineLinks(ast, first).map((call) => methodName(call)),
+      ["to", "addLabel", "from"],
+    );
+  });
 });

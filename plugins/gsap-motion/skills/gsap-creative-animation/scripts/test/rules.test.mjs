@@ -965,7 +965,7 @@ describe("barrel-import", () => {
  * and un-skips this block. A skipped test records no coverage.
  */
 describe("parked for 3.1: needs a parser", () => {
-  test.skip("orphan-tween stays quiet on a helper only the useGSAP body calls", () => {
+  test("orphan-tween stays quiet on a helper only the useGSAP body calls", () => {
     quiet(
       "orphan-tween",
       `${REACT}
@@ -975,10 +975,11 @@ export function Box() {
   useGSAP(() => { grow(ref.current); }, { scope: ref });
   return <div ref={ref} />;
 }`,
+      { oldEngineWrong: true },
     );
   });
 
-  test.skip("orphan-tween stays quiet through aliased useGSAP and contextSafe", () => {
+  test("orphan-tween stays quiet through aliased useGSAP and contextSafe", () => {
     quiet(
       "orphan-tween",
       `"use client";
@@ -991,16 +992,18 @@ export function Box() {
   const spin = cs(() => { gsap.to(ref.current, { rotation: 90 }); });
   return <button ref={ref} onClick={spin} />;
 }`,
+      { oldEngineWrong: true },
     );
   });
 
-  test.skip("orphan-tween stays quiet on a module-scope tween after an arrow", () => {
+  test("orphan-tween stays quiet on a module-scope tween after an arrow", () => {
     quiet(
       "orphan-tween",
       `${REACT}
 export const noop = () => {};
 gsap.set("[data-a]", { autoAlpha: 0 });
 gsap.to("[data-a]", { autoAlpha: 1 });`,
+      { oldEngineWrong: true },
     );
   });
 
@@ -1062,13 +1065,13 @@ export function reveal(section, items, toLabel) {
     );
   });
 
-  test.skip("unmanaged-instance fires on ScrollTrigger.create outside a context", () => {
+  test("unmanaged-instance fires on ScrollTrigger.create outside a context", () => {
     fires(
       "unmanaged-instance",
       `${PLAIN}import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 export const watch = (el) => ScrollTrigger.create({ trigger: el, onEnter: () => {} });`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
   });
 
@@ -1096,7 +1099,7 @@ export const refresh = () => ScrollTrigger.refresh();`,
     );
   });
 
-  test.skip("never-completes and eased-scrub follow a timeline kept on this", () => {
+  test("never-completes and eased-scrub follow a timeline kept on this", () => {
     fires(
       "never-completes",
       `${PLAIN}
@@ -1106,7 +1109,7 @@ export class Intro {
     this.tl.to("[data-dot]", { rotation: 360, repeat: -1, ease: "none" });
   }
 }`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
     fires(
       "eased-scrub",
@@ -1117,7 +1120,7 @@ export class Scene {
     this.tl.to("[data-a]", { x: 100, ease: "power2.out" });
   }
 }`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
   });
 

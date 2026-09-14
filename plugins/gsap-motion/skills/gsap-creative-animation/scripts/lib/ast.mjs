@@ -271,3 +271,257 @@ export function resolveFunction(root, node) {
     ? declaration
     : unwrap(declaration.init);
 }
+
+const PARENTS = new WeakMap();
+
+/** The node that directly holds `node` in `root`'s tree, or `null`. Mapped once per tree. */
+export function parentOf(root, node) {
+  let parents = PARENTS.get(root);
+  if (!parents) {
+    parents = new WeakMap();
+    walk(root, (child, ancestors) => {
+      if (ancestors.length) parents.set(child, ancestors[ancestors.length - 1]);
+    });
+    PARENTS.set(root, parents);
+  }
+  return parents.get(node) ?? null;
+}
+
+/** Every node that holds `node`, nearest first. */
+export function ancestorsOf(root, node) {
+  const found = [];
+  for (let parent = parentOf(root, node); parent; parent = parentOf(root, parent)) {
+    found.push(parent);
+  }
+  return found;
+}
+
+/** The method a call makes on a receiver — `to` for `tl.to(…)` — or `null`. */
+export function methodName(node) {
+  if (node?.type !== "CallExpression") return null;
+  const callee = unwrap(node.callee);
+  return callee?.type === "MemberExpression" &&
+    !callee.computed &&
+    callee.property.type === "Identifier"
+    ? callee.property.name
+    : null;
+}
+
+/** The innermost call of a method chain: `tl.addLabel("a")` in `tl.addLabel("a").to(…)`. */
+export function chainStart(call) {
+  let current = call;
+  for (;;) {
+    const callee = unwrap(current.callee);
+    const object = callee?.type === "MemberExpression" ? unwrap(callee.object) : null;
+    if (object?.type !== "CallExpression") return current;
+    current = object;
+  }
+}
+
+/** What a method chain is called on, as a dotted name: `tl` for `tl.addLabel("a").to(…)`. */
+export function chainReceiver(call) {
+  const callee = unwrap(chainStart(call).callee);
+  return callee?.type === "MemberExpression" ? dottedName(callee.object) : null;
+}
+
+/** The nearest function holding `node`, or the program: where a name declared at `node` is visible. */
+export function scopeOf(root, node) {
+  for (let parent = parentOf(root, node); parent; parent = parentOf(root, parent)) {
+    if (isFunction(parent) || parent.type === "Program") return parent;
+  }
+  return root;
+}
+
+/**
+ * The name the value built at `node` is kept under, through any chain called on
+ * it — `tl` for `const tl = gsap.timeline().to(…)`, `split.current` for
+ * `split.current = new SplitText(…)` — as `{ name, holder }`, or `null`.
+ */
+export function keptUnder(root, node) {
+  let current = node;
+  let parent = parentOf(root, current);
+  while (
+    parent &&
+    (TRANSPARENT.has(parent.type) ||
+      (parent.type === "MemberExpression" && parent.object === current) ||
+      (parent.type === "CallExpression" && parent.callee === current))
+  ) {
+    current = parent;
+    parent = parentOf(root, current);
+  }
+  if (parent?.type === "VariableDeclarator" && parent.init === current) {
+    return { name: parent.id.type === "Identifier" ? parent.id.name : null, holder: parent };
+  }
+  if (parent?.type === "AssignmentExpression" && parent.right === current) {
+    return { name: dottedName(parent.left), holder: parent };
+  }
+  return null;
+}
+
+/**
+ * Every call that adds to or configures the timeline `timeline` creates: the
+ * chain on the call itself, and every chain on the name it is kept under —
+ * after that declaration, inside the scope that holds it, and not where the
+ * same name is declared again. Ordered by where each call ends, so a chain
+ * reads from the inside out.
+ */
+export function timelineLinks(root, timeline) {
+  const calls = findAll(root, (node) => node !== timeline && methodName(node) !== null);
+  const links = calls.filter((call) => chainStart(call) === timeline);
+
+  const kept = keptUnder(root, timeline);
+  if (kept?.name) {
+    const scope = scopeOf(root, kept.holder);
+    const redeclarations = findAll(
+      root,
+      (node) =>
+        node !== kept.holder &&
+        node.type === "VariableDeclarator" &&
+        node.id.type === "Identifier" &&
+        node.id.name === kept.name,
+    );
+
+    for (const call of calls) {
+      if (links.includes(call) || call.start < kept.holder.end) continue;
+      if (!contains(scope, call) || chainReceiver(call) !== kept.name) continue;
+      const shadowed = redeclarations.some((declaration) => {
+        const region = scopeOf(root, declaration);
+        if (!contains(region, call) || declaration.start > call.start) return false;
+        return region === scope
+          ? declaration.start > kept.holder.end
+          : contains(scope, region);
+      });
+      if (!shadowed) links.push(call);
+    }
+  }
+
+  return links.sort((a, b) => a.end - b.end);
+}
+
+/** Whether an identifier is a use of a name, rather than a name being declared or a property key. */
+function isReference(root, id) {
+  const parent = parentOf(root, id);
+  if (!parent) return true;
+  switch (parent.type) {
+    case "VariableDeclarator":
+      return parent.id !== id;
+    case "FunctionDeclaration":
+    case "FunctionExpression":
+    case "ArrowFunctionExpression":
+      return parent.id !== id && !parent.params.includes(id);
+    case "Property":
+    case "PropertyDefinition":
+    case "MethodDefinition":
+      return !(parent.key === id && !parent.computed && !parent.shorthand);
+    case "MemberExpression":
+      return !(parent.property === id && !parent.computed);
+    case "ImportSpecifier":
+    case "ImportDefaultSpecifier":
+    case "ImportNamespaceSpecifier":
+    case "ExportSpecifier":
+    case "LabeledStatement":
+    case "BreakStatement":
+    case "ContinueStatement":
+      return false;
+    default:
+      return true;
+  }
+}
+
+/**
+ * A test for whether a node runs inside a GSAP context: within the arguments
+ * of a `useGSAP`, `gsap.context` or `contextSafe` call, under whatever local
+ * names the file imports or destructures them as — or within a function the
+ * file declares once whose every use is a call from inside a context.
+ *
+ * A function used any other way — passed as a prop, stored, returned — can run
+ * from anywhere, so it is not counted as inside, however it is called here.
+ */
+export function gsapContexts(root) {
+  const hooks = new Set(["useGSAP"]);
+  for (const declaration of root.body) {
+    if (declaration.type !== "ImportDeclaration") continue;
+    if (declaration.source.value !== "@gsap/react") continue;
+    for (const specifier of declaration.specifiers) {
+      const imported = specifier.imported?.name ?? specifier.imported?.value;
+      if (specifier.type === "ImportSpecifier" && imported === "useGSAP") {
+        hooks.add(specifier.local.name);
+      }
+    }
+  }
+
+  const bareName = (call) => {
+    const callee = unwrap(call.callee);
+    return callee?.type === "Identifier" ? callee.name : null;
+  };
+  const isHook = (node) => node?.type === "CallExpression" && hooks.has(bareName(node));
+
+  const safe = new Set(["contextSafe"]);
+  const destructured = findAll(
+    root,
+    (node) =>
+      node.type === "VariableDeclarator" &&
+      node.id.type === "ObjectPattern" &&
+      isHook(unwrap(node.init)),
+  );
+  for (const declarator of destructured) {
+    for (const property of declarator.id.properties) {
+      if (keyName(property) === "contextSafe" && property.value.type === "Identifier") {
+        safe.add(property.value.name);
+      }
+    }
+  }
+
+  const scopes = findAll(
+    root,
+    (node) =>
+      node.type === "CallExpression" &&
+      (isHook(node) || calleeName(node) === "gsap.context" || safe.has(bareName(node))),
+  ).flatMap((call) => call.arguments);
+
+  const counts = new Map();
+  const functions = new Map();
+  const declared = findAll(
+    root,
+    (node) =>
+      (node.type === "FunctionDeclaration" && node.id) ||
+      (node.type === "VariableDeclarator" &&
+        node.id.type === "Identifier" &&
+        isFunction(unwrap(node.init))),
+  );
+  for (const node of declared) {
+    const { name } = node.id;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+    functions.set(name, node.type === "FunctionDeclaration" ? node : unwrap(node.init));
+  }
+
+  const contained = new Set();
+  const inside = (node) =>
+    scopes.some((argument) => contains(argument, node)) ||
+    [...contained].some((fn) => contains(fn, node));
+  const identifiers = findAll(root, (node) => node.type === "Identifier");
+
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const [name, fn] of functions) {
+      if (counts.get(name) !== 1 || contained.has(fn)) continue;
+      const uses = identifiers.filter((id) => id.name === name && isReference(root, id));
+      if (!uses.length) continue;
+      const calledFromInside = uses.every((id) => {
+        const parent = parentOf(root, id);
+        return (
+          parent?.type === "CallExpression" &&
+          parent.callee === id &&
+          !contains(fn, parent) &&
+          inside(parent)
+        );
+      });
+      if (calledFromInside) {
+        contained.add(fn);
+        changed = true;
+      }
+    }
+  }
+
+  return inside;
+}
