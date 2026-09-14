@@ -1,7 +1,7 @@
 {
   "name": "gsap-motion",
   "displayName": "GSAP Creative Animation",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "A senior motion engineer for GSAP: designs and builds production animation — reveals, ScrollTrigger, Flip, SVG, text, pointer and 3D — and audits existing animation for leaks, jank and accessibility.",
   "author": {
     "name": "mehran.shekari",

@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-09-14
+
+Minor: no rule id, level, command or flag changed. The audit now reads a syntax
+tree, `not-parsed` is a new info finding, and precision per rule is measured on
+a corpus of public projects and published in the README. Some rules report cases
+they used to miss — `unmanaged-instance` now includes `ScrollTrigger.create` — so
+a build that gates on errors can fail on code that passed 3.0.1: pin the exact
+version. No eval scores: the eval suite is updated and run once the roadmap is
+finished.
+
 ### Added
 
 - A JavaScript and TypeScript parser for the audit: acorn 8.18.0 with
@@ -205,7 +215,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.0.1...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/mehShekari/gsap-motion/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/mehShekari/gsap-motion/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/mehShekari/gsap-motion/compare/v2.1.0...v3.0.0
 [2.1.0]: https://github.com/mehShekari/gsap-motion/releases/tag/v2.1.0
