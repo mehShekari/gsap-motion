@@ -38,11 +38,16 @@ export function project(files) {
 /** Which rules have been shown to fire, and which to stay quiet. */
 export const coverage = { fires: new Set(), quiet: new Set() };
 
-function findings(ruleId, source, ext) {
+/**
+ * `registered` stands in for the rest of a project: the plugins other audited
+ * files register, which the runner collects before any rule reads a file.
+ */
+function findings(ruleId, source, ext, registered = []) {
   const rule = RULES.find((r) => r.id === ruleId);
   assert.ok(rule, `No rule with id "${ruleId}"`);
   const dir = project({ [`fixture.${ext}`]: source });
   const file = load(join(dir, `fixture.${ext}`), dir);
+  file.registeredElsewhere = new Set(registered);
 
   /** A fixture that does not parse would pass every quiet case silently. */
   assert.equal(
@@ -54,9 +59,9 @@ function findings(ruleId, source, ext) {
 }
 
 /** Asserts `ruleId` reports at least one finding — or exactly `count`. */
-export function fires(ruleId, source, { ext = "tsx", count } = {}) {
+export function fires(ruleId, source, { ext = "tsx", count, registered } = {}) {
   coverage.fires.add(ruleId);
-  const found = findings(ruleId, source, ext);
+  const found = findings(ruleId, source, ext, registered);
   assert.ok(found.length > 0, `expected [${ruleId}] to fire on:\n${source}`);
   if (count !== undefined) {
     assert.equal(found.length, count, `[${ruleId}] finding count`);
@@ -65,9 +70,9 @@ export function fires(ruleId, source, { ext = "tsx", count } = {}) {
 }
 
 /** Asserts `ruleId` reports nothing. */
-export function quiet(ruleId, source, { ext = "tsx" } = {}) {
+export function quiet(ruleId, source, { ext = "tsx", registered } = {}) {
   coverage.quiet.add(ruleId);
-  const found = findings(ruleId, source, ext);
+  const found = findings(ruleId, source, ext, registered);
   assert.deepEqual(
     found.map((f) => f.message),
     [],

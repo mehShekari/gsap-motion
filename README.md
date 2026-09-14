@@ -369,6 +369,37 @@ Behaviour is tested at three levels:
    whether the code it produces has the properties it teaches, against a
    no-plugin baseline.
 
+## Measured precision
+
+A rule's precision is the share of its findings that are real. It is measured
+on a corpus of 14 public GSAP projects — Next, Vite React, R3F, Three, vanilla,
+Vue, Nuxt, Astro and Svelte — each pinned to a commit in
+[`corpus/manifest.json`](corpus/manifest.json). Every finding was read in its
+source and labelled true or false with a reason in
+[`corpus/labels.json`](corpus/labels.json).
+
+| Rule | Level | Findings | True | False | Precision |
+|---|---|---|---|---|---|
+| `layout-property` | warn | 3 | 3 | 0 | 100% |
+| `missing-reduced-motion` | warn | 25 | 25 | 0 | 100% |
+| `orphan-tween` | error | 17 | 17 | 0 | 100% |
+| `tween-per-event` | error | 2 | 2 | 0 | 100% |
+
+- The first measurement found 80 findings, 33 of them false. Each false one
+  became a test fixture and then a fix — a manual `kill()` in a cleanup, a
+  plugin registered in another file, `gsap.set`, an in-flight guard, a setter
+  given a constant, a listener on an element the code creates.
+- A rule missing from the table reports nothing on this corpus, so its precision
+  is not measured here: `unregistered-plugin`, `unmanaged-instance`,
+  `state-per-event` and `dangling-listener`, and the rules that never fired.
+- The samples are small, and one project supplies half of them. Treat the
+  numbers as evidence, not as a guarantee.
+- Recall is not measured: a failure nobody found cannot be counted.
+- An error-level rule below 95% drops to warn until it is fixed.
+
+To reproduce: `node scripts/corpus.mjs fetch`, then `run`, then `report`. The
+report fails on any finding without a label.
+
 ## Limitations
 
 - **The audit reads one file at a time.** It parses each file and follows what

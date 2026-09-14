@@ -14,7 +14,11 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const SKIP = new Set(["node_modules", ".git", ".next", "results"]);
+/**
+ * `.cache` holds the precision corpus's cloned projects, which carry test files
+ * of their own that are not this repository's to run.
+ */
+const SKIP = new Set(["node_modules", ".git", ".next", "results", ".cache"]);
 
 const walk = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

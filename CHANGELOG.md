@@ -18,6 +18,9 @@ All notable changes to this project are documented here. The format follows
   differs from its pinned sources.
 - `not-parsed` (info): a file that uses GSAP and does not parse is reported as
   not checked, with the parser's line, instead of being skipped.
+- Measured precision: a corpus of 14 public GSAP projects pinned to commits,
+  every finding labelled with a reason, and `scripts/corpus.mjs` to fetch, audit
+  and report. The README publishes precision per rule.
 
 ### Changed
 
@@ -48,6 +51,22 @@ What the text engine got wrong and the tree gets right:
 - `unregistered-plugin` reads a plugin's default import.
 - `missing-reduced-motion` is no longer silenced by a comment after a quote in a
   regular expression or a plural possessive.
+
+What the corpus showed was wrong, measured on real projects — 33 of the first
+80 findings:
+
+- `orphan-tween` and `unmanaged-instance` no longer report a value torn down by
+  hand: kept under a name that is killed, reverted or finished with
+  `progress(1)`, directly or through a helper that returns it.
+- `unregistered-plugin` counts a registration anywhere in the audited files,
+  because registration is global.
+- `layout-property` skips `gsap.set`, which animates nothing.
+- `tween-per-event` skips a tween inside a completion callback, or behind an
+  in-flight flag the handler raises first.
+- `state-per-event` skips a setter called with a constant: React skips the
+  render once the value is unchanged.
+- `dangling-listener` skips a target the code creates, and outside React
+  reports only listeners on the window and the document.
 
 ## [3.0.1] - 2026-09-14
 

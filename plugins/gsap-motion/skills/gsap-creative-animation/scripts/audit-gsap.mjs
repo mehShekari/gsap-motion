@@ -31,7 +31,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { RULES } from "./lib/rules.mjs";
+import { pluginRegistrations, RULES } from "./lib/rules.mjs";
 import { collect, lineAt, load } from "./lib/source.mjs";
 
 /**
@@ -84,6 +84,7 @@ function waived(source, line, ruleId) {
 // --- Run ---------------------------------------------------------------------
 
 const findings = [];
+const sources = [];
 
 for (const path of paths) {
   for (const file of collect(path)) {
@@ -115,20 +116,34 @@ for (const path of paths) {
       continue;
     }
 
-    for (const rule of RULES) {
-      for (const hit of rule.test(source)) {
-        const line = lineAt(source.raw, hit.index);
-        if (waived(source.raw, line, rule.id)) continue;
+    sources.push(source);
+  }
+}
 
-        findings.push({
-          rule: rule.id,
-          level: rule.level,
-          file: source.display,
-          line,
-          message: hit.message,
-          hint: hit.hint,
-        });
-      }
+/**
+ * Plugin registration is global: `gsap.registerPlugin(ScrollTrigger)` in one
+ * module registers it for every other. What the audited files register between
+ * them is collected before any rule runs, so a section that imports a plugin
+ * the app's entry registers is not reported as unregistered.
+ */
+const registered = new Set(sources.flatMap((source) => [...pluginRegistrations(source)]));
+
+for (const source of sources) {
+  source.registeredElsewhere = registered;
+
+  for (const rule of RULES) {
+    for (const hit of rule.test(source)) {
+      const line = lineAt(source.raw, hit.index);
+      if (waived(source.raw, line, rule.id)) continue;
+
+      findings.push({
+        rule: rule.id,
+        level: rule.level,
+        file: source.display,
+        line,
+        message: hit.message,
+        hint: hit.hint,
+      });
     }
   }
 }

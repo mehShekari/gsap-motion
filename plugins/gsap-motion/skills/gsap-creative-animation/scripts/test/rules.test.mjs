@@ -96,6 +96,71 @@ export function Box() {
     );
   });
 
+  test("stays quiet on a tween kept under a name and killed or reverted in the cleanup", () => {
+    quiet(
+      "orphan-tween",
+      `${REACT}
+export function Box() {
+  const ref = useRef(null);
+  const tweenRef = useRef(null);
+  useEffect(() => {
+    const tl = gsap.timeline();
+    tl.to(ref.current, { x: 100 });
+    const tween = gsap.to(ref.current, { y: 10 });
+    tweenRef.current = gsap.fromTo(ref.current, { opacity: 0 }, { opacity: 1 });
+    return () => {
+      tl.kill();
+      tween?.revert();
+      tweenRef.current?.kill();
+    };
+  }, []);
+  return <div ref={ref} />;
+}`,
+    );
+  });
+
+  test("stays quiet on a timeline a helper returns and every caller tears down", () => {
+    quiet(
+      "orphan-tween",
+      `${REACT}
+export function Section() {
+  const ref = useRef(null);
+  const build = () => {
+    const tl = gsap.timeline();
+    tl.to(ref.current, { x: 100 });
+    return [tl, ref.current];
+  };
+  useEffect(() => {
+    let later;
+    const [timeline] = build();
+    [later] = build();
+    return () => {
+      timeline && timeline.kill();
+      later.progress(1);
+    };
+  }, []);
+  return <section ref={ref} />;
+}`,
+    );
+  });
+
+  test("fires when only something unrelated is killed", () => {
+    fires(
+      "orphan-tween",
+      `${REACT}
+export function Box({ other }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const tl = gsap.timeline();
+    tl.to(ref.current, { x: 100 });
+    return () => other.kill();
+  }, []);
+  return <div ref={ref} />;
+}`,
+      { count: 1 },
+    );
+  });
+
   test("stays quiet at module scope and on gsap.set", () => {
     quiet(
       "orphan-tween",
@@ -185,6 +250,25 @@ export function Swipe() {
     );
   });
 
+  test("stays quiet on an instance a helper returns and the caller kills", () => {
+    quiet(
+      "unmanaged-instance",
+      `${OBSERVER}import { ScrollTrigger } from "gsap/ScrollTrigger";
+export function Pin() {
+  const ref = useRef(null);
+  const make = () => {
+    const st = ScrollTrigger.create({ trigger: ref.current, pin: true });
+    return st;
+  };
+  useEffect(() => {
+    const trigger = make();
+    return () => trigger && trigger.kill();
+  }, []);
+  return <div ref={ref} />;
+}`,
+    );
+  });
+
   test("stays quiet when a ref-held instance is reverted with optional chaining", () => {
     quiet(
       "unmanaged-instance",
@@ -253,6 +337,37 @@ export function watch(onResize, onScroll) {
   };
 }`,
       { ext: "ts", count: 1 },
+    );
+  });
+
+  test("stays quiet on listeners whose target is created here, or is an element outside React", () => {
+    quiet(
+      "dangling-listener",
+      `${PLAIN}
+export function build(onPick) {
+  const button = document.createElement("button");
+  button.addEventListener("click", () => onPick());
+  const audio = new Audio("/theme.mp3");
+  audio.addEventListener("error", onPick);
+  const start = document.getElementById("start");
+  start?.addEventListener("click", onPick);
+  return button;
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  test("fires on an element listener a React component never removes", () => {
+    fires(
+      "dangling-listener",
+      `${REACT}
+export function Header({ onClick }) {
+  useEffect(() => {
+    document.querySelector("header").addEventListener("click", onClick);
+  }, []);
+  return null;
+}`,
+      { count: 1 },
     );
   });
 
@@ -348,6 +463,43 @@ export function Bars() {
   );
 }`,
       { count: 3 },
+    );
+  });
+
+  test("stays quiet on a tween guarded by an in-flight flag, and on one in its onComplete", () => {
+    quiet(
+      "tween-per-event",
+      `${PLAIN}
+export function pulse(el, state) {
+  window.addEventListener("pointermove", () => {
+    if (!state.animating) {
+      state.animating = true;
+      gsap.to(el, {
+        scale: 1.1,
+        duration: 0.3,
+        onComplete: () => {
+          gsap.to(el, { scale: 1, duration: 1, onComplete: () => { state.animating = false; } });
+        },
+      });
+    }
+  });
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  test("fires on a tween behind a condition that is not an in-flight flag", () => {
+    fires(
+      "tween-per-event",
+      `${PLAIN}
+export function follow(el) {
+  window.addEventListener("pointermove", (event) => {
+    if (el) {
+      gsap.to(el, { x: event.clientX });
+    }
+  });
+}`,
+      { ext: "ts", count: 1 },
     );
   });
 
@@ -466,6 +618,21 @@ export function Spot() {
     );
   });
 
+  test("stays quiet on a setter called with a constant", () => {
+    quiet(
+      "state-per-event",
+      `${REACT}
+export function List({ setOpen }) {
+  const [hovered, setHovered] = useState(null);
+  return (
+    <div onScroll={() => setHovered(null)} onWheel={() => { setOpen(false); }}>
+      {hovered}
+    </div>
+  );
+}`,
+    );
+  });
+
   test("stays quiet on a scroll-spy that sets a discrete value through a named handler", () => {
     quiet(
       "state-per-event",
@@ -515,6 +682,20 @@ export const drop = (el) => gsap.to(el, { top: "50%" });`,
       "layout-property",
       `${PLAIN}
 export const grow = (el) => gsap.to(el, { scaleX: 0.5, x: 20, yPercent: 50 });`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on gsap.set, which animates nothing", () => {
+    quiet(
+      "layout-property",
+      `${PLAIN}
+export function measure(el) {
+  gsap.set(el, { height: "auto" });
+  const natural = el.offsetHeight;
+  gsap.set(el, { height: 0, width: "50%" });
+  return natural;
+}`,
       { ext: "ts" },
     );
   });
@@ -862,6 +1043,15 @@ gsap.registerPlugin(Flip);`,
       { ext: "ts", count: 1 },
     );
     assert.match(finding.message, /SplitText/);
+  });
+
+  test("stays quiet on a plugin another audited file registers", () => {
+    quiet(
+      "unregistered-plugin",
+      `${PLAIN}import { ScrollTrigger } from "gsap/ScrollTrigger";
+export const refresh = () => ScrollTrigger.refresh();`,
+      { ext: "ts", registered: ["ScrollTrigger"] },
+    );
   });
 
   test("stays quiet across several registerPlugin calls, an alias and a type import", () => {

@@ -117,6 +117,21 @@ describe("audit-gsap.mjs", () => {
     assert.equal(finding.file, "src/Broken.ts");
     assert.equal(finding.line, 3);
   });
+
+  test("a plugin registered in another audited file counts as registered", () => {
+    const dir = project({
+      "src/index.ts":
+        'import gsap from "gsap";\nimport { ScrollTrigger } from "gsap/ScrollTrigger";\ngsap.registerPlugin(ScrollTrigger);\n',
+      "src/Section.ts":
+        'import gsap from "gsap";\nimport { ScrollTrigger } from "gsap/ScrollTrigger";\nimport { SplitText } from "gsap/SplitText";\nexport const refresh = () => ScrollTrigger.refresh();\n',
+    });
+    const unregistered = json(run("audit-gsap.mjs", ["--json"], dir))
+      .filter((f) => f.rule === "unregistered-plugin")
+      .map((f) => `${f.file}: ${f.message}`);
+    assert.deepEqual(unregistered, [
+      "src/Section.ts: `SplitText` is imported but never passed to `gsap.registerPlugin`.",
+    ]);
+  });
 });
 
 describe("audit-svg.mjs", () => {

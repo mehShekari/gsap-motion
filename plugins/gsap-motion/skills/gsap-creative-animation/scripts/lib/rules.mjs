@@ -21,6 +21,7 @@
 import {
   ancestorsOf,
   calleeName,
+  chainStart,
   contains,
   dottedName,
   findAll,
@@ -33,8 +34,10 @@ import {
   moduleSource,
   numberValue,
   ownVars,
+  parentOf,
   propertyOf,
   resolveFunction,
+  scopeOf,
   staticString,
   timelineLinks,
   tweenMethod,
@@ -263,6 +266,233 @@ function debounced(handler, node) {
 /** The calls that add a child to a timeline. */
 const CHILDREN = new Set(["to", "from", "fromTo", "add"]);
 
+const TEARDOWN = new Set(["kill", "revert"]);
+const FINISH = new Set(["progress", "totalProgress"]);
+
+/**
+ * Whether the value built at `node` is torn down by hand somewhere in the file:
+ * kept under a name that is `.kill()`ed or `.revert()`ed, or finished with
+ * `.progress(1)`, which completes it so GSAP lets it go.
+ *
+ * Followed through one helper. When a function returns the value — alone, or as
+ * an element of an array — every call to that function must keep the result, or
+ * that element, under a name that is torn down. Found on the corpus: a component
+ * that builds its timeline and trigger in `getProjectsSt()` and kills what the
+ * effect destructures from it.
+ */
+function tornDown(ast, node) {
+  const endsUnder = (name) =>
+    Boolean(name) &&
+    findAll(ast, (n) => {
+      const method = methodName(n);
+      if (!method) return false;
+      const ends =
+        TEARDOWN.has(method) || (FINISH.has(method) && numberValue(n.arguments[0]) === 1);
+      return ends && dottedName(unwrap(n.callee).object) === name;
+    }).length > 0;
+
+  const kept = keptUnder(ast, node);
+  if (endsUnder(kept?.name)) return true;
+
+  const fn = scopeOf(ast, node);
+  if (!isFunction(fn)) return false;
+
+  const holds = (expression) => {
+    const value = unwrap(expression);
+    if (!value) return false;
+    if (value === node) return true;
+    if (value.type === "CallExpression" && chainStart(value) === node) return true;
+    return value.type === "Identifier" && kept?.name === value.name;
+  };
+
+  const returned = findAll(
+    fn,
+    (n) => n.type === "ReturnStatement" && n.argument && scopeOf(ast, n) === fn,
+  ).map((n) => n.argument);
+  if (fn.type === "ArrowFunctionExpression" && fn.expression) returned.push(fn.body);
+
+  let slot = null;
+  for (const expression of returned) {
+    const value = unwrap(expression);
+    if (holds(value)) {
+      slot = "whole";
+      break;
+    }
+    if (value?.type === "ArrayExpression") {
+      const index = value.elements.findIndex((element) => element && holds(element));
+      if (index !== -1) {
+        slot = index;
+        break;
+      }
+    }
+  }
+  if (slot === null) return false;
+
+  const holder = parentOf(ast, fn);
+  const name =
+    fn.type === "FunctionDeclaration"
+      ? fn.id?.name
+      : holder?.type === "VariableDeclarator" &&
+          holder.init === fn &&
+          holder.id.type === "Identifier"
+        ? holder.id.name
+        : null;
+  if (!name) return false;
+
+  const calls = findAll(
+    ast,
+    (n) =>
+      n.type === "CallExpression" &&
+      unwrap(n.callee)?.type === "Identifier" &&
+      unwrap(n.callee).name === name,
+  );
+  return (
+    calls.length > 0 &&
+    calls.every((call) => {
+      const parent = parentOf(ast, call);
+      const target =
+        parent?.type === "VariableDeclarator" && parent.init === call
+          ? parent.id
+          : parent?.type === "AssignmentExpression" && parent.right === call
+            ? parent.left
+            : null;
+      if (!target) return false;
+      if (slot === "whole") return endsUnder(dottedName(target));
+      const element = target.type === "ArrayPattern" ? target.elements[slot] : null;
+      return element?.type === "Identifier" && endsUnder(element.name);
+    })
+  );
+}
+
+/**
+ * Whether `node`, inside a high-frequency handler, runs less often than once
+ * per event: inside a completion callback — `onComplete`, `onStart`,
+ * `onReverseComplete`, `onInterrupt` — of something the handler started, or
+ * behind an in-flight flag the handler raises first,
+ * `if (!busy.current) { busy.current = true; … }`.
+ */
+function notPerEvent(ast, handler, node) {
+  for (const ancestor of ancestorsOf(ast, node)) {
+    if (ancestor === handler.node) return false;
+    if (
+      ancestor.type === "Property" &&
+      /^on(?:Complete|Start|ReverseComplete|Interrupt)$/.test(keyName(ancestor) ?? "") &&
+      isFunction(unwrap(ancestor.value))
+    ) {
+      return true;
+    }
+    if (ancestor.type === "IfStatement" && contains(ancestor.consequent, node)) {
+      const test = unwrap(ancestor.test);
+      const flag =
+        test?.type === "UnaryExpression" && test.operator === "!"
+          ? dottedName(test.argument)
+          : null;
+      const raised =
+        flag !== null &&
+        findAll(ancestor.consequent, (n) => {
+          if (n.type !== "AssignmentExpression" || dottedName(n.left) !== flag) return false;
+          const value = unwrap(n.right);
+          return value?.type === "Literal" && value.value === true;
+        }).length > 0;
+      if (raised) return true;
+    }
+  }
+  return false;
+}
+
+/** Listener targets that outlive every component: the window, the document and its root elements. */
+const GLOBAL_TARGETS = new Set([
+  "window",
+  "document",
+  "document.body",
+  "document.documentElement",
+  "globalThis",
+  "self",
+  "visualViewport",
+  "window.visualViewport",
+]);
+
+/**
+ * Whether `target` is an element or object the file builds itself — every
+ * value it is given comes from `new …` or `createElement` — and so takes its
+ * listeners with it when it goes.
+ */
+function createdHere(ast, target) {
+  const builds = (value) => {
+    const v = unwrap(value);
+    return (
+      v?.type === "NewExpression" ||
+      ["createElement", "createElementNS", "cloneNode"].includes(methodName(v))
+    );
+  };
+  if (builds(target)) return true;
+  if (target.type !== "Identifier") return false;
+
+  const assignments = findAll(
+    ast,
+    (n) =>
+      (n.type === "VariableDeclarator" &&
+        n.id.type === "Identifier" &&
+        n.id.name === target.name &&
+        n.init) ||
+      (n.type === "AssignmentExpression" && dottedName(n.left) === target.name),
+  );
+  return (
+    assignments.length > 0 &&
+    assignments.every((n) => builds(n.type === "VariableDeclarator" ? n.init : n.right))
+  );
+}
+
+/** A value that is the same on every call: a literal, a plain template, `undefined`. */
+const isConstant = (node) => {
+  const value = unwrap(node);
+  return (
+    value?.type === "Literal" ||
+    staticString(value) !== null ||
+    (value?.type === "Identifier" && value.name === "undefined")
+  );
+};
+
+/**
+ * The plugins a file registers, by the names they are imported under from
+ * `gsap/*`, so `ScrollTrigger as ST` registered as `ST` is `ScrollTrigger`.
+ * Registration is global, so the runner unions these across every audited file
+ * before any rule runs.
+ */
+export function pluginRegistrations(file) {
+  const names = new Set();
+  if (!file.ast) return names;
+
+  const imported = new Map();
+  for (const declaration of file.ast.body) {
+    if (declaration.type !== "ImportDeclaration") continue;
+    const from = declaration.source.value;
+    if (typeof from !== "string" || !/^gsap\/[\w/-]+$/.test(from)) continue;
+    for (const specifier of declaration.specifiers) {
+      const name =
+        specifier.type === "ImportSpecifier"
+          ? (specifier.imported.name ?? specifier.imported.value)
+          : specifier.type === "ImportDefaultSpecifier"
+            ? from.split("/").pop()
+            : null;
+      if (name) imported.set(specifier.local.name, name);
+    }
+  }
+
+  const registrations = findAll(file.ast, (node) => {
+    const name = calleeName(node);
+    return name === "registerPlugin" || name?.endsWith(".registerPlugin");
+  });
+  for (const call of registrations) {
+    for (const argument of call.arguments) {
+      for (const id of findAll(argument, (n) => n.type === "Identifier")) {
+        names.add(imported.get(id.name) ?? id.name);
+      }
+    }
+  }
+  return names;
+}
+
 export const RULES = [
   // --- Lifecycle ------------------------------------------------------------
   {
@@ -272,7 +502,8 @@ export const RULES = [
      * A GSAP tween call inside a function but outside every context — module
      * scope is not the target. Contexts are recognised under the names the file
      * gives them, and a helper counts as inside when every use of it is a call
-     * from inside one.
+     * from inside one. A value torn down by hand — see `tornDown` — is not
+     * reported: "nothing reverts it" would be false.
      */
     test(file) {
       if (!file.isReact || !file.usesGsap) return [];
@@ -281,6 +512,7 @@ export const RULES = [
       return findAll(file.ast, (node) => isGsapCall(node))
         .filter((call) => !inside(call))
         .filter((call) => ancestorsOf(file.ast, call).some(isFunction))
+        .filter((call) => !tornDown(file.ast, call))
         .map((call) => ({
           index: call.start,
           message: `\`gsap.${methodName(call)}\` is created outside any useGSAP/gsap.context scope.`,
@@ -306,9 +538,9 @@ export const RULES = [
     id: "unmanaged-instance",
     level: "error",
     /**
-     * Kept means held under a name, through any chain called on it; torn down
-     * means that name has `.revert()` or `.kill()` called on it somewhere in the
-     * file, optional chaining included.
+     * Torn down as `tornDown` reads it: kept under a name — through any chain
+     * called on it, or a helper's return — that has `.revert()` or `.kill()`
+     * called on it somewhere in the file, optional chaining included.
      */
     test(file) {
       const inside = gsapContexts(file.ast);
@@ -329,20 +561,9 @@ export const RULES = [
           ? owner
           : null;
       };
-      const tornDown = (name) =>
-        findAll(
-          file.ast,
-          (node) =>
-            ["revert", "kill"].includes(methodName(node)) &&
-            dottedName(unwrap(node.callee).object) === name,
-        ).length > 0;
-
       return findAll(file.ast, (node) => label(node) !== null)
         .filter((node) => !inside(node))
-        .filter((node) => {
-          const kept = keptUnder(file.ast, node);
-          return !(kept?.name && tornDown(kept.name));
-        })
+        .filter((node) => !tornDown(file.ast, node))
         .map((node) => ({
           index: node.start,
           message: `\`${label(node)}\` is created outside any useGSAP/gsap.context scope and never torn down.`,
@@ -360,6 +581,11 @@ export const RULES = [
      * function each call — can never be matched by a remove. `signal` and
      * `once: true` are read from the options object. A dynamic event name
      * cannot be judged statically, so it is skipped.
+     *
+     * Only a target that can outlive the code is reported. An element or object
+     * the file creates takes its listeners with it. Outside React, where nothing
+     * says when code stops running, only the window and the document can: a
+     * listener on a page's own button lasts exactly as long as the button.
      */
     test(file) {
       const listeners = (method) =>
@@ -370,8 +596,11 @@ export const RULES = [
           const options = unwrap(call.arguments[2]);
           const once = unwrap(propertyOf(options, "once")?.value);
           const callee = unwrap(call.callee);
+          const target = callee.type === "MemberExpression" ? unwrap(callee.object) : null;
           return [
             {
+              global: target === null || GLOBAL_TARGETS.has(dottedName(target)),
+              created: target !== null && createdHere(file.ast, target),
               index: callee.type === "MemberExpression" ? callee.property.start : callee.start,
               event,
               handler: dottedName(handler),
@@ -390,7 +619,8 @@ export const RULES = [
       );
 
       return listeners("addEventListener")
-        .filter((call) => !call.selfCleaning)
+        .filter((call) => !call.selfCleaning && !call.created)
+        .filter((call) => file.isReact || call.global)
         .filter((call) => call.inline || !removed.has(`${call.event}|${call.handler}`))
         .map((call) => ({
           index: call.index,
@@ -406,7 +636,11 @@ export const RULES = [
   {
     id: "tween-per-event",
     level: "error",
-    /** A GSAP tween call anywhere inside a high-frequency handler, followed by name when it can be. */
+    /**
+     * A GSAP tween call inside a high-frequency handler, followed by name when
+     * it can be. A debounced one, one in a completion callback, and one behind
+     * an in-flight flag run less than once per event, and are not reported.
+     */
     test(file) {
       const calls = findAll(file.ast, (node) => isGsapCall(node));
 
@@ -414,6 +648,7 @@ export const RULES = [
         calls
           .filter((call) => contains(handler.node, call))
           .filter((call) => !debounced(handler, call))
+          .filter((call) => !notPerEvent(file.ast, handler, call))
           .map((call) => ({
             index: call.start,
             message: `\`gsap.${methodName(call)}\` inside a high-frequency handler (${handler.name}).`,
@@ -436,6 +671,11 @@ export const RULES = [
      * changed, so "a render per frame" would be false and, at error level, would
      * fail correct code. Telling a continuous value from a discrete one is a
      * precision question for the corpus, not something to guess.
+     *
+     * A setter called with a constant — `null`, a boolean, a literal — is not
+     * reported either: once the state holds that value React skips the render,
+     * so it costs one render, not one per frame. The corpus found
+     * `onScroll={() => setHoveredCard(null)}`.
      */
     test(file) {
       if (!file.isReact) return [];
@@ -444,7 +684,8 @@ export const RULES = [
         const callee = unwrap(node.callee);
         return (
           callee?.type === "Identifier" &&
-          /^set(?!Timeout$|Interval$)[A-Z]\w*$/.test(callee.name)
+          /^set(?!Timeout$|Interval$)[A-Z]\w*$/.test(callee.name) &&
+          !(node.arguments.length <= 1 && node.arguments.every(isConstant))
         );
       });
 
@@ -468,12 +709,18 @@ export const RULES = [
      * The layout keys of every vars object a tween carries — both of a
      * `fromTo`'s — on any receiver, so a timeline child counts. One finding per
      * key per call: a `fromTo` that names `height` in both vars animates one
-     * property, and says so once, where it first appears.
+     * property, and says so once, where it first appears. `gsap.set` animates
+     * nothing, and is skipped: measuring with `set(el, { height: "auto" })` is
+     * not a frame of layout.
      */
     test(file) {
       const LAYOUT = new Set(LAYOUT_PROPERTIES);
+      const animates = (node) => {
+        const method = tweenMethod(node);
+        return method !== null && method !== "set";
+      };
 
-      return findAll(file.ast, (node) => tweenMethod(node) !== null).flatMap(
+      return findAll(file.ast, animates).flatMap(
         (call) => {
           const seen = new Set();
           return varsObjects(call, tweenMethod(call))
@@ -806,6 +1053,7 @@ export const RULES = [
                 : null;
           if (!imported || !PLUGIN_NAME.test(imported)) continue;
           if (registered.has(specifier.local.name)) continue;
+          if (file.registeredElsewhere?.has(imported)) continue;
           findings.push({
             index: declaration.start,
             message: `\`${imported}\` is imported but never passed to \`gsap.registerPlugin\`.`,
