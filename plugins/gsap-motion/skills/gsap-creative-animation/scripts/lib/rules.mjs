@@ -17,13 +17,17 @@
  */
 import {
   calleeName,
+  contains,
+  dottedName,
   findAll,
+  isFunction,
   isGsapCall,
   keyName,
   moduleSource,
   numberValue,
   ownVars,
   propertyOf,
+  resolveFunction,
   staticString,
   tweenMethod,
   unwrap,
@@ -52,6 +56,14 @@ const HINT = {
     'The tween decelerates into its own restart, so the loop seam becomes visible. Use `ease: "none"`, or `yoyo: true` if it should breathe.',
   lateTransformOrigin:
     "On an SVG element GSAP holds the element in place when its origin changes, and that correction outlives the tween: it ends offset, silently — a circle grown from 0 about its centre lands a whole radius off. Put `transformOrigin` or `svgOrigin` in the from-vars, or set it before the tween. HTML elements are unaffected.",
+  danglingListener:
+    "A listener that survives unmount keeps the component's closure — and its DOM nodes — alive. Name the handler and remove it in the cleanup, or pass `{ signal }` from an AbortController and abort it there.",
+  tweenPerEvent:
+    "One tween allocated per event, each fighting the last. Create a `gsap.quickTo()` once and call it from the handler — or, for work that only matters once resizing stops, debounce it.",
+  statePerEvent:
+    "A re-render per frame so one element can move a few pixels. State owns what exists; GSAP owns how it moves — use a ref and quickTo.",
+  triggerPerItem:
+    "Each carries its own start/end maths on every scroll frame. If the items belong to one visual moment, use one trigger with a stagger. Per-item is right only when they genuinely reveal independently — pinned card stacks, for instance.",
 };
 
 /** Messages that do not vary with what was found, shared the same way. */
@@ -363,6 +375,77 @@ function debounced(code, handler, index) {
   });
 }
 
+/** `addEventListener` or `removeEventListener` when `node` calls one, on any receiver. */
+function listenerMethod(node) {
+  if (node.type !== "CallExpression") return null;
+  const callee = unwrap(node.callee);
+  const name =
+    callee?.type === "Identifier"
+      ? callee.name
+      : callee?.type === "MemberExpression" && !callee.computed
+        ? callee.property.name
+        : null;
+  return name === "addEventListener" || name === "removeEventListener" ? name : null;
+}
+
+/**
+ * Every handler for one of `events` in the tree, as `{ name, node }`: the
+ * second argument of an `addEventListener` whose first names that event, or
+ * the expression of a JSX prop for it. A wrapping call — `debounce(fn, 150)` —
+ * is kept whole. With `followNames`, a handler passed by name is followed to its
+ * declaration when the file declares exactly one function of that name.
+ */
+function treeHandlers(ast, events, { followNames = true } = {}) {
+  const handler = (expression) => {
+    const node = unwrap(expression);
+    if (node?.type === "CallExpression") return node;
+    if (!followNames && !isFunction(node)) return null;
+    return resolveFunction(ast, node);
+  };
+  const handlers = [];
+
+  for (const call of findAll(ast, (node) => listenerMethod(node) === "addEventListener")) {
+    const event = staticString(call.arguments[0]);
+    if (event === null || !events.has(event) || !call.arguments[1]) continue;
+    const node = handler(call.arguments[1]);
+    if (node) handlers.push({ name: event, node });
+  }
+
+  const props = findAll(
+    ast,
+    (node) => node.type === "JSXAttribute" && node.name.type === "JSXIdentifier",
+  );
+  for (const attribute of props) {
+    const prop = attribute.name.name.match(
+      /^on(PointerMove|MouseMove|TouchMove|Scroll|Wheel)(?:Capture)?$/,
+    );
+    if (!prop || !events.has(prop[1].toLowerCase())) continue;
+    if (attribute.value?.type !== "JSXExpressionContainer") continue;
+    const node = handler(attribute.value.expression);
+    if (node) handlers.push({ name: `on${prop[1]}`, node });
+  }
+
+  return handlers;
+}
+
+/**
+ * Whether `node` runs once the events stop rather than once per event: the
+ * handler is a `debounce(…)` call, or `node` sits inside a `setTimeout` that
+ * the same handler also clears.
+ */
+function treeDebounced(handler, node) {
+  const timer = (name) => (n) => {
+    const called = calleeName(n);
+    return called === name || called === `window.${name}`;
+  };
+  const wrapper = handler.node.type === "CallExpression" ? calleeName(handler.node) : null;
+  if (wrapper === "debounce" || wrapper?.endsWith(".debounce")) return true;
+  if (!findAll(handler.node, timer("clearTimeout")).length) return false;
+  return findAll(handler.node, timer("setTimeout")).some(
+    (call) => call !== node && contains(call, node),
+  );
+}
+
 export const RULES = [
   // --- Lifecycle ------------------------------------------------------------
   {
@@ -448,6 +531,54 @@ export const RULES = [
           hint: "A listener that survives unmount keeps the component's closure — and its DOM nodes — alive. Name the handler and remove it in the cleanup, or pass `{ signal }` from an AbortController and abort it there.",
         }));
     },
+    /**
+     * Adds and removes are paired by event and by the handler's name as
+     * written, across the file. A handler that is not a plain name — an inline
+     * function, or `fn.bind(this)`, which makes a new function each call — can
+     * never be matched by a remove. `signal` and `once: true` are read from the
+     * options object itself.
+     */
+    testAst(file) {
+      if (!file.ast) return [];
+
+      const listeners = (method) =>
+        findAll(file.ast, (node) => listenerMethod(node) === method).flatMap((call) => {
+          const event = staticString(call.arguments[0]);
+          const handler = unwrap(call.arguments[1]);
+          if (event === null || !/^[\w:-]+$/.test(event) || !handler) return [];
+          const options = unwrap(call.arguments[2]);
+          const once = unwrap(propertyOf(options, "once")?.value);
+          const callee = unwrap(call.callee);
+          return [
+            {
+              index: callee.type === "MemberExpression" ? callee.property.start : callee.start,
+              event,
+              handler: dottedName(handler),
+              inline: isFunction(handler) || dottedName(handler) === null,
+              selfCleaning:
+                Boolean(propertyOf(options, "signal")) ||
+                (once?.type === "Literal" && once.value === true),
+            },
+          ];
+        });
+
+      const removed = new Set(
+        listeners("removeEventListener")
+          .filter((call) => call.handler)
+          .map((call) => `${call.event}|${call.handler}`),
+      );
+
+      return listeners("addEventListener")
+        .filter((call) => !call.selfCleaning)
+        .filter((call) => call.inline || !removed.has(`${call.event}|${call.handler}`))
+        .map((call) => ({
+          index: call.index,
+          message: call.inline
+            ? `An inline \`${call.event}\` listener, which no removeEventListener can reach.`
+            : `\`${call.event}\` listener \`${call.handler}\` is added and never removed.`,
+          hint: HINT.danglingListener,
+        }));
+    },
   },
 
   // --- Cost -----------------------------------------------------------------
@@ -470,6 +601,22 @@ export const RULES = [
       }
 
       return findings;
+    },
+    /** A GSAP tween call anywhere inside a high-frequency handler, followed by name when it can be. */
+    testAst(file) {
+      if (!file.ast) return [];
+      const calls = findAll(file.ast, (node) => isGsapCall(node));
+
+      return treeHandlers(file.ast, HOT_EVENTS).flatMap((handler) =>
+        calls
+          .filter((call) => contains(handler.node, call))
+          .filter((call) => !treeDebounced(handler, call))
+          .map((call) => ({
+            index: call.start,
+            message: `\`gsap.${unwrap(call.callee).property.name}\` inside a high-frequency handler (${handler.name}).`,
+            hint: HINT.tweenPerEvent,
+          })),
+      );
     },
   },
   {
@@ -498,6 +645,39 @@ export const RULES = [
       }
 
       return findings;
+    },
+    /**
+     * A bare `setX(…)` call — not a member call, not a timer — inside an inline
+     * high-frequency handler other than resize.
+     *
+     * A handler passed by name is not followed here, unlike tween-per-event. A
+     * named scroll handler is usually a scroll-spy setting a discrete value — a
+     * section id, a boolean — and React skips the render when that value has not
+     * changed, so "a render per frame" would be false and, at error level, would
+     * fail correct code. Telling a continuous value from a discrete one is a
+     * precision question for the corpus, not something this port should guess.
+     */
+    testAst(file) {
+      if (!file.isReact || !file.ast) return [];
+      const setters = findAll(file.ast, (node) => {
+        if (node.type !== "CallExpression") return false;
+        const callee = unwrap(node.callee);
+        return (
+          callee?.type === "Identifier" &&
+          /^set(?!Timeout$|Interval$)[A-Z]\w*$/.test(callee.name)
+        );
+      });
+
+      return treeHandlers(file.ast, STATE_HOT_EVENTS, { followNames: false }).flatMap((handler) =>
+        setters
+          .filter((setter) => contains(handler.node, setter))
+          .filter((setter) => !treeDebounced(handler, setter))
+          .map((setter) => ({
+            index: setter.start,
+            message: `React state setter inside a ${handler.name} handler.`,
+            hint: HINT.statePerEvent,
+          })),
+      );
     },
   },
   {
@@ -596,6 +776,44 @@ export const RULES = [
               ];
         })
         .slice(0, 1);
+    },
+    /**
+     * A `scrollTrigger` property inside a loop body: the callback of `.forEach`
+     * or `.map`, or a `for`, `for…of` or `for…in` statement. The text engine read
+     * the first brace after `.map(`, which for `items.map(toLabel)` was
+     * whatever block came next. Still one finding per file, at the first.
+     */
+    testAst(file) {
+      if (!file.ast) return [];
+
+      const callbacks = findAll(file.ast, (node) => {
+        if (node.type !== "CallExpression") return false;
+        const callee = unwrap(node.callee);
+        return (
+          callee?.type === "MemberExpression" &&
+          !callee.computed &&
+          (callee.property.name === "forEach" || callee.property.name === "map")
+        );
+      })
+        .map((call) => unwrap(call.arguments[0]))
+        .filter(isFunction);
+      const loops = findAll(file.ast, (node) =>
+        ["ForStatement", "ForOfStatement", "ForInStatement"].includes(node.type),
+      ).map((loop) => loop.body);
+
+      const [first] = [...callbacks, ...loops]
+        .flatMap((body) => findAll(body, (node) => keyName(node) === "scrollTrigger"))
+        .sort((a, b) => a.start - b.start);
+
+      return first
+        ? [
+            {
+              index: first.start,
+              message: "A ScrollTrigger created per item in a loop.",
+              hint: HINT.triggerPerItem,
+            },
+          ]
+        : [];
     },
   },
 

@@ -465,6 +465,28 @@ export function Spot() {
 }`,
     );
   });
+
+  test("stays quiet on a scroll-spy that sets a discrete value through a named handler", () => {
+    quiet(
+      "state-per-event",
+      `${REACT}
+export function useSection(anchors) {
+  const [section, setSection] = useState(null);
+  useEffect(() => {
+    const measure = () => {
+      let best = null;
+      for (const id of anchors) {
+        if (document.getElementById(id)?.getBoundingClientRect().top <= 0) best = id;
+      }
+      setSection(best);
+    };
+    window.addEventListener("scroll", measure, { passive: true });
+    return () => window.removeEventListener("scroll", measure);
+  }, [anchors]);
+  return section;
+}`,
+    );
+  });
 });
 
 describe("layout-property", () => {
@@ -1016,7 +1038,7 @@ export function scene() {
     );
   });
 
-  test.skip("trigger-per-item reads for...of, and ignores a block after .map(fn)", () => {
+  test("trigger-per-item reads for...of, and ignores a block after .map(fn)", () => {
     fires(
       "trigger-per-item",
       `${PLAIN}
@@ -1025,7 +1047,7 @@ export function reveal(items) {
     gsap.from(item, { autoAlpha: 0, scrollTrigger: { trigger: item } });
   }
 }`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
     quiet(
       "trigger-per-item",
@@ -1036,7 +1058,7 @@ export function reveal(section, items, toLabel) {
     gsap.from(items, { autoAlpha: 0, stagger: 0.1, scrollTrigger: { trigger: section } });
   }
 }`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
   });
 
@@ -1099,7 +1121,7 @@ export class Scene {
     );
   });
 
-  test.skip("tween-per-event follows a named handler", () => {
+  test("tween-per-event follows a named handler", () => {
     fires(
       "tween-per-event",
       `${PLAIN}
@@ -1107,7 +1129,7 @@ export function follow(el) {
   const onMove = (event) => { gsap.to(el, { x: event.clientX }); };
   window.addEventListener("pointermove", onMove);
 }`,
-      { ext: "ts" },
+      { ext: "ts", oldEngineWrong: true },
     );
   });
 

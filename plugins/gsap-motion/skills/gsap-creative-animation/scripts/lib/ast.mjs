@@ -229,3 +229,45 @@ export function varsObjects(call, method) {
   const indexes = method === "fromTo" ? [1, 2] : method === "timeline" ? [0] : [1];
   return indexes.map((index) => argumentObject(call, index)).filter(Boolean);
 }
+
+const FUNCTIONS = new Set([
+  "ArrowFunctionExpression",
+  "FunctionExpression",
+  "FunctionDeclaration",
+]);
+
+/** Whether `node` is a function of any form. */
+export const isFunction = (node) => FUNCTIONS.has(node?.type);
+
+/** Whether `inner` lies within `outer`'s source range. */
+export const contains = (outer, inner) =>
+  outer.start <= inner.start && inner.end <= outer.end;
+
+/**
+ * The function `node` stands for: itself when it is one, or, for a plain name,
+ * the single function declared under that name anywhere in the file — a
+ * `function` declaration or a `const` holding one.
+ *
+ * Names are not resolved through scopes. A name declared twice, or not at all,
+ * returns `null`: an ambiguous handler is left unread rather than guessed at.
+ */
+export function resolveFunction(root, node) {
+  const target = unwrap(node);
+  if (isFunction(target)) return target;
+  if (target?.type !== "Identifier") return null;
+
+  const declarations = findAll(
+    root,
+    (n) =>
+      (n.type === "FunctionDeclaration" && n.id?.name === target.name) ||
+      (n.type === "VariableDeclarator" &&
+        n.id.type === "Identifier" &&
+        n.id.name === target.name &&
+        isFunction(unwrap(n.init))),
+  );
+  if (declarations.length !== 1) return null;
+  const [declaration] = declarations;
+  return declaration.type === "FunctionDeclaration"
+    ? declaration
+    : unwrap(declaration.init);
+}

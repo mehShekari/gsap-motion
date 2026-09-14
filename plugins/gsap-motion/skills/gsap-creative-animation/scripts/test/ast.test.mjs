@@ -9,10 +9,13 @@ import { describe, test } from "node:test";
 
 import {
   calleeName,
+  contains,
   dottedName,
   findAll,
+  isFunction,
   isGsapCall,
   parse,
+  resolveFunction,
   numberValue,
   ownVars,
   staticString,
@@ -112,6 +115,31 @@ describe("names", () => {
     const timeline = expr(`gsap.timeline({ repeat: -1 })`);
     assert.equal(ownVars(timeline, "timeline"), timeline.arguments[0]);
     assert.equal(ownVars(expr(`gsap.to(a, vars)`), "to"), null);
+  });
+
+  test("resolveFunction follows a name to its single declaration, and nothing else", () => {
+    const { ast } = parse(
+      `const onMove = (e) => e;\nfunction onScroll() {}\nconst dup = () => 1;\n{ const dup = () => 2; }\nconst notAFunction = 1;\n`,
+      "a.ts",
+    );
+    const name = (value) => ({ type: "Identifier", name: value });
+    assert.equal(resolveFunction(ast, name("onMove"))?.type, "ArrowFunctionExpression");
+    assert.equal(resolveFunction(ast, name("onScroll"))?.type, "FunctionDeclaration");
+    assert.equal(resolveFunction(ast, name("dup")), null);
+    assert.equal(resolveFunction(ast, name("missing")), null);
+    assert.equal(resolveFunction(ast, name("notAFunction")), null);
+
+    const arrow = expr(`(x) => x`);
+    assert.ok(isFunction(arrow));
+    assert.equal(resolveFunction(ast, arrow), arrow);
+  });
+
+  test("contains compares source ranges", () => {
+    const { ast } = parse(`gsap.to(el, { x: 1 });`, "a.js");
+    const [statement] = ast.body;
+    assert.ok(contains(ast, statement));
+    assert.ok(contains(statement, statement));
+    assert.ok(!contains(statement.expression.arguments[1], statement));
   });
 });
 
