@@ -10,6 +10,11 @@ stay in `results/`, which git ignores.
 **Updated:** 2026-09-14 · **Plugin on npm:** 3.0.0 · **Cases today:** 15 · **Planned
 by 4.0:** 44
 
+> **Paused until the roadmap is finished** (decided 2026-09-14). No case is run or
+> changed while 3.0.x through 4.0 are built. After that, the suite is first updated
+> to the finished skill — the 15 cases revised, the 29 planned ones written — and
+> then every case is run. Releases until then carry no eval scores.
+
 ## At a glance
 
 | Group | Cases | Usable result | Re-run needed | Never run |
@@ -62,24 +67,23 @@ baseline yet**, so 3.0.0 has no "before" numbers.
 
 ## What remains
 
-### Before 3.0.1 — the "before" numbers
+### After the roadmap — update, then run
 
-These are the 7 outcome cases without a usable result, each with its baseline, one run
-(`--runs 1`):
+1. **Update.** Revise the 15 existing cases against the finished skill: prompts,
+   graders, and the references a case expects to be read. Write the 29 planned cases
+   below. A case whose behaviour the roadmap removed is deleted, with the reason given
+   here.
+2. **Run.** Run every case: outcome cases 3 times with the baseline, trigger and ignore
+   cases once. Every result above is replaced, including the ones marked usable,
+   because they were measured on 2.1.0.
 
-- the 5 never run
-- the 2 that need a re-run
+### Cost of the full run
 
-That is 14 runs. The pilot cost about $0.67 per outcome case with its baseline, so
-**expect about $5**. `outcome-declines-unneeded-plugin` already has a usable pair.
-
-### At each release
-
-- Outcome cases: 3 runs with the baseline.
-- Trigger and ignore cases: 1 run each, with no baseline.
-
-At today's 15 cases that is about **$15–20**, with `--max-cost-usd 20`. The estimate
-rises with every case added.
+At 4.0 the suite has 37 outcome cases and 7 trigger and ignore cases. The pilot cost
+about $0.67 per outcome case with its baseline, so 3 runs of each is about **$75**,
+plus about $3 for the trigger and ignore cases. Run it in batches with
+`--max-cost-usd`, and record progress here after each batch, since `plugin eval` has
+no resume.
 
 ### Cases the roadmap plans
 
@@ -92,9 +96,9 @@ rises with every case added.
 | 4.0 commands | None named yet | 0 |
 | **Total new** | | **29** |
 
-Names written as descriptions are settled when their phase starts. While a phase is
-being built, each new case runs once. It joins the release runs above when the phase
-is released.
+Names written as descriptions are settled when the case is written. All of these are
+written after the roadmap is finished, against the finished skill, not while their
+phase is built. Until then a phase proves its behaviour with unit tests and fixtures.
 
 ## Release runs
 
@@ -102,6 +106,7 @@ is released.
 |---|---|---|---|---|---|
 | 2.1.0 (pilot) | 2026-09-13 | 10 of 13 | 1 each | ≈ $5.81 | `results/2026-09-13-pilot/SUMMARY.md` |
 | 3.0.0 | — | — | — | — | not run |
+| 3.0.1 | — | — | — | — | not run: evals wait for the roadmap |
 
 ## Cost so far
 
