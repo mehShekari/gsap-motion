@@ -1,6 +1,6 @@
 {
   "name": "@mehshekari/gsap-motion",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Install the gsap-creative-animation Agent Skill, and audit GSAP animation for leaks, jank and accessibility failures — with npx.",
   "keywords": [
     "gsap",
