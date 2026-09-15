@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-09-15
+
+Minor: two new commands that watch and map an animation instead of reading its
+source. No rule, level, flag or existing command changed, so nothing that passed
+3.3.0 can fail here. Both need a Chrome on the machine and install nothing; both
+say so, and do nothing, when there is none. No eval scores beyond the trigger and
+ignore groups: the outcome suite is updated and run once the roadmap is finished.
+
 ### Added
 
 - `inspect`, a new command, backed by `scripts/capture-motion.mjs`: it watches a
@@ -376,7 +384,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.3.0...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...HEAD
+[3.4.0]: https://github.com/mehShekari/gsap-motion/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/mehShekari/gsap-motion/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/mehShekari/gsap-motion/compare/v3.1.1...v3.2.0
 [3.1.1]: https://github.com/mehShekari/gsap-motion/compare/v3.1.0...v3.1.1
