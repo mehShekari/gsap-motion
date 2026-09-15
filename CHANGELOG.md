@@ -6,6 +6,52 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-09-15
+
+Minor: five new rules — four warn, one info — a device strategy, a refinement
+loop, and a hook that audits what you just wrote. Nothing reports at error level
+that did not before, and two rules now report *less*, so this release cannot
+fail a build that 3.2.0 passed. No eval scores: the eval suite is updated and
+run once the roadmap is finished.
+
+### Added
+
+- Five rules. `tween-per-frame` (warn): a tween built in `onUpdate`, the ticker,
+  an Observer callback, `useFrame` or a `requestAnimationFrame` loop.
+  `paint-property` (warn): animating `filter`, `backdropFilter` or `boxShadow`.
+  `ungated-hover` (warn): a hover animation with no `(hover: hover)` gate, which
+  a tap starts and nothing ends. `delay-chain` (warn): three or more tweens in
+  one scope sequenced by `delay`. `unowned-loop` (info): an infinite repeat that
+  nothing pauses.
+- `reference/devices.md`: layout, input and motion tier as three independent
+  axes, instead of a width breakpoint standing in for a device. Each beat
+  declares a full, a light and a static version; the device changes a beat's
+  technique, never the scene's story.
+- `reference/refine.md`: generate, audit, fix, re-run, tune — with a fixed fix
+  order, a three-round stop, and "leave what works alone". An answer now ends
+  with a **Verification** section: one line per check with its evidence, and what
+  was not checked.
+- Scene and beats in `timeline.md`: a scene is named beats, each a label, with
+  at most one emphasis, and an ambient loop handed off after the scene rather
+  than added inside it. The technique ladder in `routing.md`, and a motion
+  budget in `project-rules.md`'s ANIMATION.md template.
+- A Claude Code hook: `PostToolUse` runs the audit on every file the agent
+  edits and hands the findings back, so the loop's first step does not depend on
+  memory. It says nothing when a file is clean, and never blocks an edit.
+
+### Changed
+
+- `missing-reduced-motion` lands on the first animation a file builds itself,
+  rather than the first mention of `gsap`. A file whose only GSAP calls are
+  `registerPlugin`, `killTweensOf` or `set` is not animating, and neither is a
+  helper that adds beats to a timeline it was handed — its caller owns that
+  branch.
+- `dangling-listener` no longer reports `DOMContentLoaded`, `load` or
+  `pageshow`: those fire once and nobody removes them.
+- Precision measured again on the same 14 projects, now that single-file
+  components are read: 111 findings, every one read and labelled, all true.
+  Nine rules have measured precision, against four in 3.1.0.
+
 ## [3.2.0] - 2026-09-15
 
 Minor: lifecycle guidance is now one adapter per stack, and `unreverted-context`
@@ -308,7 +354,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.2.0...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.3.0...HEAD
+[3.3.0]: https://github.com/mehShekari/gsap-motion/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/mehShekari/gsap-motion/compare/v3.1.1...v3.2.0
 [3.1.1]: https://github.com/mehShekari/gsap-motion/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/mehShekari/gsap-motion/compare/v3.0.1...v3.1.0

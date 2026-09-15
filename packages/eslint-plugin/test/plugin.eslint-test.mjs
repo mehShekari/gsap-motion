@@ -68,9 +68,17 @@ describe("the plugin", () => {
   test("recommends every rule at the level the command line reports it", () => {
     const { plugins, rules } = plugin.configs.recommended;
     assert.equal(plugins["gsap-motion"], plugin);
+
+    /** ESLint has no info level, so an info rule warns — as `not-parsed` does. */
     for (const rule of RULES) {
-      assert.equal(rules[`gsap-motion/${rule.id}`], rule.level, rule.id);
+      const expected = rule.level === "info" ? "warn" : rule.level;
+      assert.equal(rules[`gsap-motion/${rule.id}`], expected, rule.id);
     }
+
+    assert.ok(
+      RULES.some((rule) => rule.level === "info"),
+      "an info rule exists, so that mapping is exercised",
+    );
     assert.equal(rules["gsap-motion/not-parsed"], "warn");
     assert.equal(Object.keys(rules).length, RULES.length + 1);
   });

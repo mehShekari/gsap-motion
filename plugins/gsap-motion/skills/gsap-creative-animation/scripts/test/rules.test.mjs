@@ -1346,14 +1346,14 @@ export const play = (el) => gsap.to(el, { x: 10 });`,
  * not exist yet; 3.3 adds `tween-per-frame` and `paint-property` and un-skips
  * these.
  */
-describe("parked for 3.3: rules not written yet", () => {
+describe("written in 3.3", () => {
   const PROBE = `import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Observer } from "gsap/Observer";
 gsap.registerPlugin(ScrollTrigger, Observer);
 `;
 
-  test.skip("tween-per-frame fires on onUpdate, the ticker, Observer onMove and a rAF loop", () => {
+  test("tween-per-frame fires on onUpdate, the ticker, Observer onMove and a rAF loop", () => {
     for (const body of [
       "ScrollTrigger.create({ trigger: el, onUpdate: (self) => { gsap.to(bar, { scaleX: self.progress }); } });",
       "gsap.ticker.add(() => { gsap.to(el, { x: mouse.x }); });",
@@ -1364,10 +1364,277 @@ gsap.registerPlugin(ScrollTrigger, Observer);
     }
   });
 
-  test.skip("paint-property fires on filter and boxShadow", () => {
+  test("paint-property fires on filter and boxShadow", () => {
     fires(
       "paint-property",
       `${PROBE}gsap.to(card, { filter: "blur(12px)", boxShadow: "0 30px 60px rgba(0,0,0,.4)", duration: 1 });\n`,
+      { ext: "ts" },
+    );
+  });
+});
+
+describe("what the corpus showed in 3.3", () => {
+  test("missing-reduced-motion stays quiet on a file that only registers and kills", () => {
+    quiet(
+      "missing-reduced-motion",
+      `${PLAIN}
+import { SplitText } from "gsap/SplitText";
+
+gsap.registerPlugin(SplitText);
+
+export function reset(el) {
+  gsap.killTweensOf(el);
+  gsap.set(el, { clearProps: "all" });
+}
+`,
+      { ext: "ts" },
+    );
+  });
+
+  test("missing-reduced-motion lands on the animation, not on registerPlugin", () => {
+    const source = `${PLAIN}
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
+
+export function reveal(el) {
+  gsap.from(el, { autoAlpha: 0, y: 24 });
+}
+`;
+    const [finding] = fires("missing-reduced-motion", source, { ext: "ts", count: 1 });
+    assert.equal(
+      source.slice(finding.index, finding.index + "gsap.from".length),
+      "gsap.from",
+    );
+  });
+
+  test("missing-reduced-motion stays quiet in a helper that fills a timeline it is given", () => {
+    quiet(
+      "missing-reduced-motion",
+      `import type { gsap } from "gsap";
+
+/** The caller owns the reduced-motion branch; this only adds the beats. */
+export function addIntro(tl: gsap.core.Timeline, scope: Element) {
+  tl.addLabel("intro")
+    .from("[data-heading]", { yPercent: 110, duration: 0.8 })
+    .from("[data-lead]", { autoAlpha: 0, y: 18, duration: 0.6 }, "-=0.5");
+}
+`,
+      { ext: "ts" },
+    );
+  });
+
+  test("dangling-listener stays quiet on DOMContentLoaded, which fires once", () => {
+    quiet(
+      "dangling-listener",
+      `${PLAIN}
+document.addEventListener("DOMContentLoaded", () => {
+  gsap.from("[data-item]", { autoAlpha: 0, y: 24 });
+});
+`,
+      { ext: "ts" },
+    );
+  });
+});
+
+describe("tween-per-frame, quiet", () => {
+  test("stays quiet on an onChange that belongs to something other than GSAP", () => {
+    quiet(
+      "tween-per-frame",
+      `${PLAIN}
+export function useModel(obj) {
+  useControls({
+    spread: {
+      value: 0,
+      onChange: (v) => {
+        obj.current.traverse((child) => {
+          gsap.to(child.position, { z: v, duration: 1 });
+        });
+      },
+    },
+  });
+}
+`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on a quickTo called from onUpdate, and on gsap.set", () => {
+    quiet(
+      "tween-per-frame",
+      `${PLAIN}
+const moveX = gsap.quickTo(el, "x", { duration: 0.4 });
+
+ScrollTrigger.create({
+  trigger: el,
+  onUpdate: (self) => {
+    moveX(self.progress * 100);
+    gsap.set(bar, { scaleX: self.progress });
+  },
+});
+`,
+      { ext: "ts" },
+    );
+  });
+});
+
+describe("paint-property", () => {
+  test("stays quiet on a clip-path reveal, which is the technique this skill teaches", () => {
+    quiet(
+      "paint-property",
+      `${PLAIN}
+gsap.from(image, { clipPath: "inset(0 100% 0 0)", duration: 0.9, ease: "power3.out" });
+`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on gsap.set, which animates nothing", () => {
+    quiet("paint-property", `${PLAIN}gsap.set(card, { filter: "blur(8px)" });
+`, {
+      ext: "ts",
+    });
+  });
+});
+
+describe("unowned-loop", () => {
+  test("fires on an infinite repeat nothing pauses", () => {
+    fires(
+      "unowned-loop",
+      `${PLAIN}gsap.to(mark, { rotation: 360, duration: 8, ease: "none", repeat: -1 });
+`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on a loop a context holds, which unmount reverts", () => {
+    quiet(
+      "unowned-loop",
+      `${REACT}
+export function Mark() {
+  const root = useRef(null);
+  useGSAP(() => {
+    gsap.to("[data-arc]", { rotation: 360, duration: 8, ease: "none", repeat: -1 });
+  }, { scope: root });
+  return <div ref={root} />;
+}`,
+    );
+  });
+
+  test("stays quiet when the loop is paused, observed, or owned by a ScrollTrigger", () => {
+    quiet(
+      "unowned-loop",
+      `${PLAIN}
+const spin = gsap.to(mark, { rotation: 360, duration: 8, ease: "none", repeat: -1 });
+spin.pause();
+`,
+      { ext: "ts" },
+    );
+    quiet(
+      "unowned-loop",
+      `${PLAIN}
+const io = new IntersectionObserver(() => {});
+gsap.to(mark, { rotation: 360, duration: 8, ease: "none", repeat: -1 });
+io.observe(mark);
+`,
+      { ext: "ts" },
+    );
+    quiet(
+      "unowned-loop",
+      `${PLAIN}
+gsap.to(mark, {
+  rotation: 360,
+  ease: "none",
+  repeat: -1,
+  scrollTrigger: { trigger: mark, toggleActions: "play pause resume pause" },
+});
+`,
+      { ext: "ts" },
+    );
+  });
+});
+
+describe("ungated-hover", () => {
+  test("fires on a pointerenter tween with no hover gate", () => {
+    fires(
+      "ungated-hover",
+      `${PLAIN}
+card.addEventListener("pointerenter", () => {
+  gsap.to(card, { scale: 1.05, duration: 0.3 });
+});
+`,
+      { ext: "ts" },
+    );
+  });
+
+  test("fires on a JSX onMouseEnter handler", () => {
+    fires(
+      "ungated-hover",
+      `${REACT}
+export function Card() {
+  const ref = useRef(null);
+  const onEnter = () => {
+    gsap.to(ref.current, { scale: 1.05, duration: 0.3 });
+  };
+  return <div ref={ref} onMouseEnter={onEnter} />;
+}`,
+    );
+  });
+
+  test("stays quiet when a matchMedia gates it on (hover: hover)", () => {
+    quiet(
+      "ungated-hover",
+      `${PLAIN}
+const mm = gsap.matchMedia();
+mm.add("(hover: hover)", () => {
+  card.addEventListener("pointerenter", () => {
+    gsap.to(card, { scale: 1.05, duration: 0.3 });
+  });
+});
+`,
+      { ext: "ts" },
+    );
+  });
+});
+
+describe("delay-chain", () => {
+  test("fires on three tweens sequenced by delay in one scope", () => {
+    fires(
+      "delay-chain",
+      `${PLAIN}
+export function intro() {
+  gsap.from(mark, { autoAlpha: 0, duration: 0.6 });
+  gsap.from(word, { autoAlpha: 0, duration: 0.6, delay: 0.5 });
+  gsap.from(lead, { autoAlpha: 0, duration: 0.6, delay: 1 });
+  gsap.from(cta, { autoAlpha: 0, duration: 0.6, delay: 1.4 });
+}
+`,
+      { ext: "ts", count: 1 },
+    );
+  });
+
+  test("stays quiet on two delays, and on a timeline with positions", () => {
+    quiet(
+      "delay-chain",
+      `${PLAIN}
+export function pair() {
+  gsap.from(mark, { autoAlpha: 0, delay: 0.2 });
+  gsap.from(word, { autoAlpha: 0, delay: 0.6 });
+}
+`,
+      { ext: "ts" },
+    );
+    quiet(
+      "delay-chain",
+      `${PLAIN}
+export function scene() {
+  const tl = gsap.timeline();
+  tl.from(mark, { autoAlpha: 0 })
+    .from(word, { autoAlpha: 0 }, "-=0.2")
+    .from(lead, { autoAlpha: 0 }, "<")
+    .from(cta, { autoAlpha: 0 }, "<0.1");
+}
+`,
       { ext: "ts" },
     );
   });

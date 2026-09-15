@@ -4,6 +4,46 @@ A timeline is how choreography stays editable. Five tweens with hand-tuned
 delays encode the same animation in a form nobody can retime without redoing
 the arithmetic.
 
+## Scene and beats
+
+A scene is a set of named beats, and each beat is a label in the code. Writing
+the beats down before the tweens is what stops a timeline becoming a pile of
+numbers nobody can change.
+
+Most scenes are four beats or fewer:
+
+| Beat | Says |
+|---|---|
+| Entrance | this arrived |
+| Emphasis | this is the one that matters — **at most one per scene** |
+| Pause | read this before the next thing moves |
+| Exit | this is finished, or making room |
+
+```ts
+const tl = gsap.timeline();
+
+tl.addLabel("enter")
+  .from("[data-heading]", { yPercent: 110, duration: 0.8 })
+  .from("[data-lead]", { autoAlpha: 0, y: 18, duration: 0.6 }, "-=0.5")
+  .addLabel("emphasis")
+  .add(mark())                       // a beat of its own, built elsewhere
+  .addLabel("rest");
+```
+
+Two rules follow from it:
+
+- **A beat that is more than one tween is a function returning its own
+  timeline**, added with `.add()`. The scene then reads as its beats, and the
+  beat can be retimed, reordered or dropped without touching the rest.
+- **An ambient loop is handed off after the scene, never added inside it.** An
+  infinite child makes the parent infinite, so the scene's own `onComplete`
+  never runs and anything waiting on it waits forever — the audit reports that
+  as `never-completes`. Start the loop from a `.call()` at the end, or from the
+  scene's `onComplete`.
+
+The numbered beats in an answer's Motion strategy and the labels in its code are
+the same list. If they have drifted apart, the code is not what was designed.
+
 ## Position
 
 The third argument places a child on the timeline. This is the whole API.

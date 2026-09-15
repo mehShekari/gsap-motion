@@ -47,6 +47,21 @@ the thing you can say in a sentence — "the logo writes itself, then the dot th
 drew it runs off and writes the word" — and every technique either serves that
 sentence or is cut.
 
+## The technique ladder
+
+Start at the bottom, and each rung up says why the one below is not enough:
+
+1. **A CSS transition** — one property, one state change, no sequencing.
+2. **One transform tween** — it needs an ease or a duration CSS cannot say.
+3. **A timeline** — two or more things must be ordered or overlapped.
+4. **A plugin** — the shape needs it: draw, morph, path, split. Its weight ships
+   to every visitor.
+5. **A scroll takeover** — the scroll position *is* the story. It takes the
+   visitor's control of the page, so it needs the strongest reason of all.
+
+Say the rung in Analysis: "a transition would not sequence these, so this is a
+timeline". A plugin named without that sentence is one nobody justified.
+
 ## Load map
 
 The project's own rules come first, then the size tiers in SKILL.md, setup step
@@ -69,6 +84,8 @@ single hover takes [interaction](interaction.md) and nothing else from its row.
 | Three.js / R3F | [three](../adapter/three.md) or [r3f](../adapter/r3f.md), [performance](performance.md) |
 | Audit an existing animation | [performance](performance.md), [accessibility](accessibility.md), this project's adapter |
 | Retime / re-ease | [motion-design](motion-design.md) only |
+| Hover, touch or reduced-motion branching | [devices](devices.md) |
+| Fixing what an audit found | [refine](refine.md) |
 
 Do not load a domain file "for completeness". Loading `adapter/three.md` for a
 button hover is the failure this map exists to prevent.

@@ -6,9 +6,11 @@
  * cannot — that the pieces agree with each other.
  */
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, test } from "node:test";
+import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { RULES } from "../plugins/gsap-motion/skills/gsap-creative-animation/scripts/lib/rules.mjs";
@@ -242,4 +244,87 @@ test("the vendored parser was generated from the pinned versions", () => {
       `${name} ${devDependencies[name]} in the vendored parser's header`,
     );
   }
+});
+
+/**
+ * `claude plugin validate` does not read hooks.json, so nothing else would
+ * notice a hook that no longer runs — and a hook that fails silently is worse
+ * than none, because the loop it automates looks like it happened.
+ */
+describe("audit-on-write hook", () => {
+  const hooks = json(`${PLUGIN_DIR}/hooks/hooks.json`);
+  const script = join(ROOT, PLUGIN_DIR, "hooks", "audit-on-write.mjs");
+
+  const box = mkdtempSync(join(tmpdir(), "gsap-motion-hook-"));
+  after(() => rmSync(box, { recursive: true, force: true }));
+
+  /** The shape Claude Code sends on stdin after an Edit or a Write. */
+  const run = (file) => {
+    const call = JSON.stringify({
+      tool_name: "Edit",
+      cwd: box,
+      tool_input: { file_path: join(box, file) },
+    });
+    return spawnSync(process.execPath, [script], { input: call, encoding: "utf8" });
+  };
+
+  const write = (file, source) => {
+    mkdirSync(join(box, "src"), { recursive: true });
+    writeFileSync(join(box, file), source);
+    return file;
+  };
+
+  test("asks for PostToolUse on Edit and Write, and runs the file it ships", () => {
+    const [entry] = hooks.hooks.PostToolUse;
+    assert.match(entry.matcher, /Edit/);
+    assert.match(entry.matcher, /Write/);
+
+    const [command] = entry.hooks;
+    assert.equal(command.type, "command");
+    assert.equal(command.command, "node");
+    assert.deepEqual(command.args, ["${CLAUDE_PLUGIN_ROOT}/hooks/audit-on-write.mjs"]);
+    assert.ok(existsSync(script), "the script the hook names exists");
+  });
+
+  test("hands findings back as additionalContext, without blocking the edit", () => {
+    write(
+      "src/Box.tsx",
+      `"use client";
+import gsap from "gsap";
+import { useEffect, useRef } from "react";
+
+export function Box() {
+  const ref = useRef(null);
+  useEffect(() => {
+    gsap.to(ref.current, { width: 200 });
+  }, []);
+  return <div ref={ref} />;
+}
+`,
+    );
+
+    const result = run("src/Box.tsx");
+    assert.equal(result.status, 0, "an edit is never blocked by an audit finding");
+
+    const { hookSpecificOutput } = JSON.parse(result.stdout);
+    assert.equal(hookSpecificOutput.hookEventName, "PostToolUse");
+    assert.match(hookSpecificOutput.additionalContext, /orphan-tween/);
+    assert.match(hookSpecificOutput.additionalContext, /src\/Box\.tsx/);
+  });
+
+  test("says nothing at all about a file it has no finding for", () => {
+    write("src/clean.ts", "export const ready = true;\n");
+    const result = run("src/clean.ts");
+    assert.equal(result.status, 0);
+    assert.equal(result.stdout.trim(), "", "silence is the normal case");
+  });
+
+  test("says nothing when the tool call carries no file", () => {
+    const result = spawnSync(process.execPath, [script], {
+      input: JSON.stringify({ tool_name: "Bash", tool_input: { command: "ls" } }),
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0);
+    assert.equal(result.stdout.trim(), "");
+  });
 });

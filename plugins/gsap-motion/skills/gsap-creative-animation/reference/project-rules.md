@@ -17,6 +17,18 @@ Before writing code, look for the project's animation rules, in this order:
 Read the whole file. Where it disagrees with this skill, the project wins. If a
 project rule looks wrong, say so — do not quietly follow the skill instead.
 
+## A motion budget
+
+A page gets busy one reasonable addition at a time. A budget makes the cost
+visible before the tenth one lands: how many groups may move at once, how many
+loops may be visible, how many scroll-bound and pointer effects a viewport
+carries, and which plugins a route may load.
+
+Going over is allowed — with a reason stated in the answer, not by accident.
+Before adding to a route, inventory what it already animates: that is step 2 of
+the pipeline, and it is also how you find the animation this one should replace
+rather than join.
+
 ## Deriving them when there is no file
 
 A few minutes here is cheaper than a page with two motion languages.
@@ -61,6 +73,10 @@ one is short, and each section is an instruction rather than an essay:
 | Durations | heading / body / groups |
 | Stagger | `amount` (a total) or `each` (per item) |
 | Reduced motion | what the reduced branch shows |
+
+## Motion budget
+<!-- Per viewport: groups moving at once, visible loops, scroll-bound effects,
+     pointer effects. Plugins per route. Going over is allowed, with a reason. -->
 
 ## Verify with
 <!-- The commands to run before calling it done. -->

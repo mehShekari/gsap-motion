@@ -4,7 +4,7 @@ description: Senior motion engineer for GSAP. Turns a visual or interaction idea
 license: MIT. See LICENSE; GSAP itself is licensed separately, see NOTICE.md
 compatibility: Any Agent Skills client; written for Claude Code. GSAP 3.13+, where every plugin is free. React guidance targets @gsap/react 2.x, React 18/19 and the Next.js App Router. The audit scripts need Node.js 18+ and nothing else.
 metadata:
-  version: "3.2.0"
+  version: "3.3.0"
   verified-gsap: "3.15"
   verified-gsap-react: "2.1"
 ---
@@ -18,8 +18,8 @@ Core principles:
 
 - **Motion carries meaning or it goes.** Every animation answers "what does
   this tell the visitor?" Hierarchy, causality, continuity, state, or
-  personality. An animation that answers none of those is decoration with a
-  frame cost, and the right move is to delete it.
+  personality. One that answers none of those is decoration with a frame cost:
+  delete it.
 - **A timeline, not a pile of tweens.** Five independent tweens with hand-tuned
   delays is a choreography nobody can change. One timeline with labels and
   relative positions is the same animation you can actually retime.
@@ -33,16 +33,16 @@ Core principles:
 
 ## Setup
 
-1. **Everything is free.** GSAP became 100% free, every former Club plugin
-   included, with 3.13 (April 2025). Check `package.json` for what the project
-   has — `gsap`, and `@gsap/react` for React — before writing imports. Install
-   steps for a membership, a token, an `.npmrc` or `gsap-bonus.tgz` come from
-   stale training data: stop.
+1. **Everything is free.** GSAP became 100% free with 3.13 (April 2025), every
+   former Club plugin included. Check `package.json` for what the project has —
+   `gsap`, and `@gsap/react` for React — before writing imports. Install steps
+   for a membership, a token, an `.npmrc` or `gsap-bonus.tgz` are stale
+   training data: stop.
 2. **Read the project's own animation rules first. They outrank this skill.**
-   Look for `ANIMATION.md` at the repository root, then for a file that
-   `AGENTS.md`, `CLAUDE.md` or similar points to. Open
+   Look for `ANIMATION.md` at the root, then a file `AGENTS.md`, `CLAUDE.md` or
+   similar points to. Open
    [reference/project-rules.md](reference/project-rules.md) only when there is
-   no such file, or for its RTL, colour and waiver rules.
+   none, or for its RTL, colour and waiver rules.
 3. **Load by the size of the request, and nothing "for completeness".**
    - **One element, one tween or interaction** — a hover, a fade, a retime:
      [motion-design.md](reference/motion-design.md) and the command's own
@@ -80,12 +80,11 @@ Core principles:
 Routing:
 
 - **No argument, or no target:** read [routing.md](reference/routing.md) and
-  ask what should move. A whole page or site with nothing in it named — "add
-  some animation to my homepage" — has no target. Never invent one.
-- **An explicit or clearly implied command:** load its reference and follow it.
-- **A description rather than a command** ("make this feel like Apple", "the
-  hero is boring"): that is `animate`. Classify the intent with routing.md's
-  table, then load what that classification needs.
+  ask what should move. "Add some animation to my homepage" names no target:
+  never invent one.
+- **A command, explicit or implied:** load its reference and follow it.
+- **A description** ("make this feel like Apple", "the hero is boring"): that is
+  `animate`. Classify with routing.md's table, then load what that needs.
 - **Two commands fit:** ask once. A scroll-driven text reveal is `scroll` and
   `text` together, not a coin toss.
 
@@ -113,7 +112,8 @@ intent → precedent → targets → trigger → motion language → technique
 8. **Implementation** — typed, cleaned up, responsive.
 9. **Performance** — transform and opacity; measure before defending anything else.
 10. **Accessibility** — the reduced-motion design, focus, keyboard.
-11. **Validate** — the checklist at the end of [motion-design.md](reference/motion-design.md).
+11. **Validate** — [refine.md](reference/refine.md): audit, fix in order,
+    re-run, then the checklist in [motion-design.md](reference/motion-design.md).
 
 ## Output format
 
@@ -126,16 +126,19 @@ For anything beyond a one-line tweak, answer in this shape, each part short:
 - **Implementation** — complete code. Not pseudocode, not an outline.
 - **Usage** — how to mount it.
 - **Notes** — responsive behaviour, reduced motion, cost, dev-only tooling.
+- **Verification** — one line per check with its evidence, and what you did not
+  check. Silence reads as "checked and fine".
 
-When a simpler technique does what the user asked for, **write only the
-simpler one**. Say in Analysis which technique you declined and why, and offer
-the requested version in one sentence; write it only if the user still wants it
-after that. Never quietly substitute, and never ship both.
+When a simpler technique does what was asked, **write only that one**. Say in
+Analysis what you declined and why, and offer the requested version in a
+sentence — write it only if they still want it. Never substitute quietly, and
+never ship both.
 
 ## Reference map
 
 - **Craft and core** — [motion-design](reference/motion-design.md) ·
-  [core-gsap](reference/core-gsap.md) · [timeline](reference/timeline.md)
+  [core-gsap](reference/core-gsap.md) · [timeline](reference/timeline.md) ·
+  [devices](reference/devices.md) · [refine](reference/refine.md)
 - **Domains** — [scrolltrigger](reference/scrolltrigger.md) ·
   [svg](reference/svg.md) · [text](reference/text.md) ·
   [interaction](reference/interaction.md) · [flip](reference/flip.md)
@@ -145,7 +148,7 @@ after that. Never quietly substitute, and never ship both.
 - **Constraints** — [performance](reference/performance.md) ·
   [accessibility](reference/accessibility.md) ·
   [project-rules](reference/project-rules.md)
-- **Presets**, starting points to adapt — [reveal](preset/reveal.md) ·
+- **Presets** to adapt — [reveal](preset/reveal.md) ·
   [magnetic](preset/magnetic.md) · [cursor](preset/cursor.md) ·
   [marquee](preset/marquee.md) · [card-stack](preset/card-stack.md) ·
   [loader](preset/loader.md) · [cinematic](preset/cinematic.md) ·
@@ -160,13 +163,12 @@ after that. Never quietly substitute, and never ship both.
 
 ## Tools
 
-Both scripts catch failures that are **silent**. Run them from the project
-root; `<skill-dir>` is where this skill is installed.
+Both scripts catch **silent** failures. Run them from the project root;
+`<skill-dir>` is where this skill is installed.
 
 ```bash
-# Leaks, per-event tweens, layout properties, eased loops, an onComplete that
-# never fires, shared plugin ids, unregistered plugins, dev tooling left in.
-# Exit 1 on an error.
+# Leaks, per-event and per-frame tweens, layout and paint properties, loops,
+# shared plugin ids, unregistered plugins, dev tooling. Exit 1 on an error.
 node <skill-dir>/scripts/audit-gsap.mjs [path...]     # default: src
 node <skill-dir>/scripts/audit-gsap.mjs src --quiet   # errors only
 node <skill-dir>/scripts/audit-gsap.mjs src --json    # machine-readable
@@ -177,10 +179,11 @@ node <skill-dir>/scripts/audit-svg.mjs --morph <a.svg> <b.svg>
 node <skill-dir>/scripts/audit-svg.mjs --hues <file.svg>   # also flag hue literals
 ```
 
-Run `audit-gsap` first in an `audit` and after writing any animation. A false
-finding is a bug in the script, not something to work around.
+Run `audit-gsap` first in an `audit` and after writing any animation — as a
+Claude Code plugin, a hook already runs it on every edit and hands back what it
+finds. A false finding is a bug in the script, not something to work around.
 
 `MotionPathHelper`, `GSDevTools`, `markers: true` and
-`MorphSVGPlugin.findShapeIndex()` are development-only. A static import ships
-whatever `if` surrounds it: import them dynamically behind a `NODE_ENV` check,
-and delete the block once their value is baked in.
+`MorphSVGPlugin.findShapeIndex()` are development-only, and a static import
+ships whatever `if` surrounds it. Import them dynamically behind a `NODE_ENV`
+check, and delete the block once their value is baked in.

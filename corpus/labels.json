@@ -1,15 +1,143 @@
 {
-  "careercompass|src/components/ui/dot-flow.tsx|orphan-tween|32|4667cd38cf": {
+  "astro-bento-portfolio|src/components/playground/scroll-1/scroll-1.svelte|missing-reduced-motion|24|5a4ab72b6f": {
     "verdict": "true",
-    "reason": "Width tween in a plain useEffect, outside the useGSAP context the file already has, and never reverted."
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "astro-bento-portfolio|src/components/playground/scroll-1/scroll-1.svelte|trigger-per-item|51|2c5aeeb5b1": {
+    "verdict": "true",
+    "reason": "A ScrollTrigger is created for each item of a loop where one trigger with a stagger would do."
+  },
+  "astro-bento-portfolio|src/pages/playground/morph-wipe.astro|missing-reduced-motion|140|53ba13f6f9": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "card-master|src/components/ui/ContextPlaque.tsx|layout-property|212|955d24e0a1": {
+    "verdict": "true",
+    "reason": "Tweens height over 0.4s."
+  },
+  "card-master|src/features/global-library/GlobalLibraryWorkbench.tsx|unowned-loop|245|66fe340922": {
+    "verdict": "true",
+    "reason": "An infinite repeat with nothing that pauses it: not kept under a name that is paused or killed, not held by a context, not toggled by a ScrollTrigger, and the file builds no IntersectionObserver."
+  },
+  "card-master|src/features/userscript-deck/action-animations.ts|paint-property|367|cf7af20e04": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/action-animations.ts|paint-property|376|60f2783aab": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/action-animations.ts|paint-property|385|411b389da5": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/action-animations.ts|paint-property|468|dc665471c9": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/action-animations.ts|paint-property|90|60f2783aab": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/action-animations.ts|paint-property|99|411b389da5": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|paint-property|311|979cc1ae53": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|paint-property|365|e5d30a20d4": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|paint-property|378|ef08a40121": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|paint-property|407|8e2e254a16": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|paint-property|422|ef08a40121": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|paint-property|495|ef08a40121": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|paint-property|586|60a78ab662": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|paint-property|592|ef08a40121": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/hosts/extension/gamepad-easter-egg.ts|paint-property|144|2a66fa65ac": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/hosts/extension/gamepad-easter-egg.ts|paint-property|175|ef08a40121": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/hosts/extension/gamepad-easter-egg.ts|paint-property|215|e7e52ddfe1": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/hosts/extension/gamepad-easter-egg.ts|paint-property|233|ef08a40121": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/hosts/extension/gamepad-easter-egg.ts|paint-property|254|96ae0d2c3e": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/hosts/extension/useInstallCardAnimation.ts|paint-property|158|38973fe6a6": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "card-master|src/hosts/extension/useInstallCardAnimation.ts|paint-property|168|be893b2cac": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "careercompass|src/components/ui/dot-flow.tsx|layout-property|33|ba6f3938cc": {
+    "verdict": "true",
+    "reason": "Tweens the container's width over 0.5s."
   },
   "careercompass|src/components/ui/dot-flow.tsx|missing-reduced-motion|32|4667cd38cf": {
     "verdict": "true",
     "reason": "Animates with no reduced-motion handling anywhere in the project."
   },
-  "careercompass|src/components/ui/dot-flow.tsx|layout-property|33|ba6f3938cc": {
+  "careercompass|src/components/ui/dot-flow.tsx|orphan-tween|32|4667cd38cf": {
     "verdict": "true",
-    "reason": "Tweens the container's width over 0.5s."
+    "reason": "Width tween in a plain useEffect, outside the useGSAP context the file already has, and never reverted."
+  },
+  "careercompass|src/components/ui/dot-flow.tsx|paint-property|45|b08d0bbd24": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "careercompass|src/components/ui/dot-flow.tsx|paint-property|52|d7ba6489d0": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "devfolio|components/About/About1.js|missing-reduced-motion|11|d96aca82e6": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "devfolio|components/About/About2.js|missing-reduced-motion|11|d96aca82e6": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "devfolio|components/Collaboration/Collaboration.js|missing-reduced-motion|12|50d1720f67": {
+    "verdict": "true",
+    "reason": "Animates with no reduced-motion handling anywhere in the project."
+  },
+  "devfolio|components/Contact/Contact.js|missing-reduced-motion|117|c3f51d96ba": {
+    "verdict": "true",
+    "reason": "Animates with no reduced-motion handling anywhere in the project."
   },
   "devfolio|components/Contact/Contact.js|orphan-tween|117|c3f51d96ba": {
     "verdict": "true",
@@ -22,6 +150,10 @@
   "devfolio|components/Contact/Contact.js|orphan-tween|201|c3f51d96ba": {
     "verdict": "true",
     "reason": "Click-handler tween outside any context, never reverted."
+  },
+  "devfolio|components/Cursor/Cursor.js|missing-reduced-motion|14|2bbbf05f8f": {
+    "verdict": "true",
+    "reason": "Animates with no reduced-motion handling anywhere in the project."
   },
   "devfolio|components/Cursor/Cursor.js|orphan-tween|14|2bbbf05f8f": {
     "verdict": "true",
@@ -47,6 +179,38 @@
     "verdict": "true",
     "reason": "Hover-handler tween outside any context, never reverted."
   },
+  "devfolio|components/Cursor/Cursor.js|tween-per-event|14|2bbbf05f8f": {
+    "verdict": "true",
+    "reason": "A new tween on every mousemove; the quickTo case."
+  },
+  "devfolio|components/Cursor/Cursor.js|tween-per-event|20|9ac6736d51": {
+    "verdict": "true",
+    "reason": "A new tween on every mousemove; the quickTo case."
+  },
+  "devfolio|components/Cursor/Cursor.js|ungated-hover|29|2bbbf05f8f": {
+    "verdict": "true",
+    "reason": "A custom cursor grows on `mouseenter` with no `(hover: hover)` gate, so a tap starts it on a touch device and nothing ends it."
+  },
+  "devfolio|components/Hero/Hero.js|missing-reduced-motion|27|61ba404892": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "devfolio|components/Projects/Projects.js|missing-reduced-motion|35|552389b384": {
+    "verdict": "true",
+    "reason": "Animates with no reduced-motion handling anywhere in the project."
+  },
+  "devfolio|components/Skills/Skills.js|missing-reduced-motion|13|d96aca82e6": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "devfolio|components/Work/Work.js|missing-reduced-motion|39|d96aca82e6": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "devfolio|pages/404.js|missing-reduced-motion|26|e90e480342": {
+    "verdict": "true",
+    "reason": "Animates with no reduced-motion handling anywhere in the project."
+  },
   "devfolio|pages/404.js|orphan-tween|26|e90e480342": {
     "verdict": "true",
     "reason": "A 30s tween in an effect with no cleanup outlives the page."
@@ -59,57 +223,41 @@
     "verdict": "true",
     "reason": "An infinite timeline, never killed."
   },
-  "devfolio|components/Cursor/Cursor.js|tween-per-event|14|2bbbf05f8f": {
+  "devfolio|pages/404.js|unowned-loop|36|66fe340922": {
     "verdict": "true",
-    "reason": "A new tween on every mousemove; the quickTo case."
+    "reason": "An infinite repeat with nothing that pauses it: not kept under a name that is paused or killed, not held by a context, not toggled by a ScrollTrigger, and the file builds no IntersectionObserver."
   },
-  "devfolio|components/Cursor/Cursor.js|tween-per-event|20|9ac6736d51": {
+  "devfolio|pages/404.js|unowned-loop|51|66fe340922": {
     "verdict": "true",
-    "reason": "A new tween on every mousemove; the quickTo case."
+    "reason": "An infinite repeat with nothing that pauses it: not kept under a name that is paused or killed, not held by a context, not toggled by a ScrollTrigger, and the file builds no IntersectionObserver."
   },
-  "devfolio|components/About/About1.js|missing-reduced-motion|10|be788ffa74": {
-    "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
-  },
-  "devfolio|components/About/About2.js|missing-reduced-motion|10|be788ffa74": {
+  "elemental-serenity|src/Game/World/Components/WindLines/Windlines.class.js|missing-reduced-motion|172|22abdbb23d": {
     "verdict": "true",
     "reason": "Animates with no reduced-motion handling anywhere in the project."
   },
-  "devfolio|components/Collaboration/Collaboration.js|missing-reduced-motion|12|50d1720f67": {
+  "elemental-serenity|src/Game/World/Managers/GrassManager/GrassManager.class.js|missing-reduced-motion|165|566e81efd5": {
     "verdict": "true",
     "reason": "Animates with no reduced-motion handling anywhere in the project."
   },
-  "devfolio|components/Contact/Contact.js|missing-reduced-motion|117|c3f51d96ba": {
+  "happy-birthday|script/main.js|missing-reduced-motion|168|0cb3ea6fca": {
     "verdict": "true",
     "reason": "Animates with no reduced-motion handling anywhere in the project."
   },
-  "devfolio|components/Cursor/Cursor.js|missing-reduced-motion|14|2bbbf05f8f": {
-    "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
-  },
-  "devfolio|components/Hero/Hero.js|missing-reduced-motion|26|be788ffa74": {
-    "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
-  },
-  "devfolio|components/Projects/Projects.js|missing-reduced-motion|35|552389b384": {
-    "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
-  },
-  "devfolio|components/Skills/Skills.js|missing-reduced-motion|12|be788ffa74": {
-    "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
-  },
-  "devfolio|components/Work/Work.js|missing-reduced-motion|38|be788ffa74": {
-    "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
-  },
-  "devfolio|pages/404.js|missing-reduced-motion|26|e90e480342": {
+  "nurui|src/components/nurui/draw-cursor.tsx|missing-reduced-motion|64|6f779fede4": {
     "verdict": "true",
     "reason": "Animates with no reduced-motion handling anywhere in the project."
   },
   "nurui|src/components/nurui/draw-cursor.tsx|orphan-tween|64|6f779fede4": {
     "verdict": "true",
     "reason": "A fade tween per drawn line, created in a handler outside any context."
+  },
+  "nurui|src/components/nurui/text-button.tsx|missing-reduced-motion|36|c78bb94f58": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "nurui|src/components/nurui/virus-background.tsx|missing-reduced-motion|214|1cb38d19d8": {
+    "verdict": "true",
+    "reason": "Animates with no reduced-motion handling anywhere in the project."
   },
   "nurui|src/components/nurui/virus-background.tsx|orphan-tween|214|1cb38d19d8": {
     "verdict": "true",
@@ -119,29 +267,9 @@
     "verdict": "true",
     "reason": "Tween in an onComplete outside any context, never reverted."
   },
-  "nurui|src/components/nurui/draw-cursor.tsx|missing-reduced-motion|64|6f779fede4": {
+  "sc-datav|src/App.tsx|missing-reduced-motion|17|5a4ab72b6f": {
     "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
-  },
-  "nurui|src/components/nurui/text-button.tsx|missing-reduced-motion|8|49031f6aaa": {
-    "verdict": "true",
-    "reason": "Animates SplitText with no reduced-motion handling anywhere in the project."
-  },
-  "nurui|src/components/nurui/virus-background.tsx|missing-reduced-motion|214|1cb38d19d8": {
-    "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
-  },
-  "card-master|src/components/ui/ContextPlaque.tsx|layout-property|212|955d24e0a1": {
-    "verdict": "true",
-    "reason": "Tweens height over 0.4s."
-  },
-  "sc-datav|src/pages/Demo3/model.tsx|orphan-tween|37|9270d78fb5": {
-    "verdict": "true",
-    "reason": "Tween in a leva onChange callback, outside any context, not reverted on unmount."
-  },
-  "sc-datav|src/App.tsx|missing-reduced-motion|16|be788ffa74": {
-    "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
   },
   "sc-datav|src/components/numberAnimation.tsx|missing-reduced-motion|25|275a41e72d": {
     "verdict": "true",
@@ -167,24 +295,152 @@
     "verdict": "true",
     "reason": "Animates with no reduced-motion handling anywhere in the project."
   },
-  "elemental-serenity|src/Game/World/Components/WindLines/Windlines.class.js|missing-reduced-motion|172|22abdbb23d": {
+  "sc-datav|src/pages/Demo3/model.tsx|orphan-tween|37|9270d78fb5": {
     "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
+    "reason": "Tween in a leva onChange callback, outside any context, not reverted on unmount."
   },
-  "elemental-serenity|src/Game/World/Managers/GrassManager/GrassManager.class.js|missing-reduced-motion|165|566e81efd5": {
+  "screwfast|src/components/sections/insights/InsightDetail.astro|missing-reduced-motion|167|d0738c58f0": {
     "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
   },
-  "happy-birthday|script/main.js|missing-reduced-motion|168|0cb3ea6fca": {
+  "screwfast|src/components/sections/insights/InsightDetail.astro|trigger-per-item|224|2c5aeeb5b1": {
     "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
-  },
-  "wallpaper-gallery|src/components/wallpaper/WallpaperGrid/composables/useGridAnimations.js|missing-reduced-motion|5|9ecaaad8b9": {
-    "verdict": "true",
-    "reason": "Animates with no reduced-motion handling anywhere in the project."
+    "reason": "A ScrollTrigger is created for each item of a loop where one trigger with a stagger would do."
   },
   "vivix|src/lib/animations.js|layout-property|203|d68aa5b1d8": {
     "verdict": "true",
     "reason": "Tweens height between percentages."
+  },
+  "vivix|src/lib/animations.js|paint-property|302|88447b90a0": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "vivix|src/lib/animations.js|paint-property|68|6590e12442": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "vivix|src/lib/animations.js|paint-property|77|63ec98e7ed": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "vivix|src/lib/animations.js|paint-property|95|90aab3cb35": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "vivix|src/lib/Closures.svelte|missing-reduced-motion|92|f0d3c6b03e": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "vivix|src/lib/Closures.svelte|paint-property|104|6086abeac9": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "vivix|src/lib/Home.svelte|eased-scrub|115|8384954f0e": {
+    "verdict": "true",
+    "reason": "An eased tween inside a timeline whose ScrollTrigger sets `scrub: 1.5`, so the ease fights the scrollbar."
+  },
+  "vivix|src/lib/Home.svelte|paint-property|114|896d873692": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "wallpaper-gallery|src/components/common/navigation/BackToTop.vue|missing-reduced-motion|14|5a4ab72b6f": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "wallpaper-gallery|src/components/common/ui/AnimatedNumber.vue|missing-reduced-motion|70|55328b8c9f": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "wallpaper-gallery|src/components/home/HotTagsPanel.vue|missing-reduced-motion|285|408163c8f3": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "wallpaper-gallery|src/components/layout/AppHeader.vue|layout-property|187|142d2d672b": {
+    "verdict": "true",
+    "reason": "A width or height is animated, which lays out the page on every frame of it."
+  },
+  "wallpaper-gallery|src/components/layout/AppHeader.vue|layout-property|200|a082418f93": {
+    "verdict": "true",
+    "reason": "A width or height is animated, which lays out the page on every frame of it."
+  },
+  "wallpaper-gallery|src/components/layout/AppHeader.vue|layout-property|218|82887523dc": {
+    "verdict": "true",
+    "reason": "A width or height is animated, which lays out the page on every frame of it."
+  },
+  "wallpaper-gallery|src/components/layout/AppHeader.vue|missing-reduced-motion|177|53ba13f6f9": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "wallpaper-gallery|src/components/login/AuthExperience.vue|missing-reduced-motion|337|5a4ab72b6f": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "wallpaper-gallery|src/components/login/AuthExperience.vue|paint-property|343|2f92a8c23e": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "wallpaper-gallery|src/components/login/AuthExperience.vue|paint-property|461|a2cc263be3": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "wallpaper-gallery|src/components/login/AuthExperience.vue|paint-property|486|2526a42903": {
+    "verdict": "true",
+    "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
+  },
+  "wallpaper-gallery|src/components/search/index.vue|missing-reduced-motion|58|5a4ab72b6f": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "wallpaper-gallery|src/components/wallpaper/card/index.vue|missing-reduced-motion|231|d59be53d50": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "wallpaper-gallery|src/components/wallpaper/crop/index.vue|missing-reduced-motion|583|39f2c7e90a": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "wallpaper-gallery|src/components/wallpaper/PortraitWallpaperModal/shared/PhoneFrame.vue|layout-property|104|859099da6b": {
+    "verdict": "true",
+    "reason": "A width or height is animated, which lays out the page on every frame of it."
+  },
+  "wallpaper-gallery|src/components/wallpaper/PortraitWallpaperModal/shared/PhoneFrame.vue|layout-property|105|622fabc7ea": {
+    "verdict": "true",
+    "reason": "A width or height is animated, which lays out the page on every frame of it."
+  },
+  "wallpaper-gallery|src/components/wallpaper/PortraitWallpaperModal/shared/PhoneFrame.vue|layout-property|131|bd7987109b": {
+    "verdict": "true",
+    "reason": "A width or height is animated, which lays out the page on every frame of it."
+  },
+  "wallpaper-gallery|src/components/wallpaper/PortraitWallpaperModal/shared/PhoneFrame.vue|layout-property|132|82887523dc": {
+    "verdict": "true",
+    "reason": "A width or height is animated, which lays out the page on every frame of it."
+  },
+  "wallpaper-gallery|src/components/wallpaper/PortraitWallpaperModal/shared/PhoneFrame.vue|missing-reduced-motion|102|27e3a8bb14": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "wallpaper-gallery|src/components/wallpaper/WallpaperGrid/composables/useGridAnimations.js|missing-reduced-motion|82|d0da1c9e6a": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "wallpaper-gallery|src/components/wallpaper/WallpaperModal/index.vue|missing-reduced-motion|198|27e3a8bb14": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "what-happen|app/error.vue|missing-reduced-motion|40|27e3a8bb14": {
+    "verdict": "true",
+    "reason": "The file animates and the string `prefers-reduced-motion` appears nowhere in it; checked across the whole file, not only near the tween."
+  },
+  "what-happen|app/error.vue|unowned-loop|119|66fe340922": {
+    "verdict": "true",
+    "reason": "An infinite repeat with nothing that pauses it: not kept under a name that is paused or killed, not held by a context, not toggled by a ScrollTrigger, and the file builds no IntersectionObserver."
+  },
+  "what-happen|app/error.vue|unowned-loop|128|66fe340922": {
+    "verdict": "true",
+    "reason": "An infinite repeat with nothing that pauses it: not kept under a name that is paused or killed, not held by a context, not toggled by a ScrollTrigger, and the file builds no IntersectionObserver."
+  },
+  "what-happen|app/error.vue|unowned-loop|138|66fe340922": {
+    "verdict": "true",
+    "reason": "An infinite repeat with nothing that pauses it: not kept under a name that is paused or killed, not held by a context, not toggled by a ScrollTrigger, and the file builds no IntersectionObserver."
   }
 }

@@ -86,8 +86,8 @@ radiating, start-to-end reads as reading order. In RTL, "reading order" is
 
 ## Overlap
 
-Sequential beats look like a slideshow. Real choreography overlaps, and the
-overlap is where an animation stops feeling like a list of steps.
+Sequential beats look like a slideshow. Overlap is where an animation stops
+feeling like a list of steps.
 
 ```ts
 tl.to(a, { ... })
@@ -105,14 +105,17 @@ finishing.
 - **Weight** — a large or heavy-looking element should move slower and ease
   harder than a small one. Same duration on a hero image and a caption reads as
   a bug.
-- **Anticipation** — a small counter-move before the main one. Costs 80–120ms
-  and makes a gesture feel intentional. Use on one element, not a group.
+- **Anticipation** — a small counter-move before the main one: 80–120ms, on one
+  element, not a group.
 - **Follow-through** — elements should not all stop at once. A 0.05s offset on
-  the last beat is usually the difference between mechanical and alive.
+  the last beat is the difference between mechanical and alive.
 - **Contrast** — fast against slow is what creates emphasis. If everything moves
   at 400ms, nothing is emphasised.
 - **Restraint** — the most premium-feeling motion is usually one or two things
   moving well, not six things moving at all.
+
+Technique is chosen on a ladder — transition, tween, timeline, plugin, scroll
+takeover — in [routing.md](routing.md).
 
 ## Reading a request
 

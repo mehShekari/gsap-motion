@@ -89,6 +89,11 @@ so a finding waived that way still fails `gsap-motion audit`.
 | `late-transform-origin` | warn | A `fromTo` whose origin is only in its to-vars while its from-vars scale, rotate or skew, which leaves an SVG element offset |
 | `missing-reduced-motion` | warn | An animating file with no `prefers-reduced-motion` branch |
 | `barrel-import` | warn | Importing from `gsap/all`, which pulls in every plugin |
+| `tween-per-frame` | warn | A tween created every frame — in `onUpdate`, the ticker, an Observer callback, `useFrame` or a `requestAnimationFrame` loop |
+| `paint-property` | warn | Animating `filter`, `backdropFilter` or `boxShadow`, which repaints the element every frame |
+| `ungated-hover` | warn | A hover animation with no `(hover: hover)` gate, which a tap starts and nothing ends |
+| `delay-chain` | warn | Three or more tweens in one scope sequenced by `delay`, which is a timeline nobody can retime |
+| `unowned-loop` | info | An infinite repeat that nothing pauses, which keeps the ticker busy off screen |
 | `not-parsed` | warn | A file that uses GSAP and that the audit's parser could not read, so no other rule checked it |
 
 `not-parsed` is an info finding in the command line; ESLint has no info level.

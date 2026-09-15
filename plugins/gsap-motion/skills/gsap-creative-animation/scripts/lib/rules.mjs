@@ -53,6 +53,16 @@ const HINT = {
     "Inside a context these register themselves and are reverted with it. Out here nothing is watching: move it into the useGSAP body, or keep the instance and revert/kill it from the cleanup.",
   unrevertedContext:
     "Keep it under a name and revert it when the component goes: `onUnmounted` in Vue, the function returned from `onMount` or `$effect` in Svelte, the `useEffect` cleanup in React, `astro:before-swap` in Astro. Everything created inside the context goes with it.",
+  tweenPerFrame:
+    "A tween per frame allocates an object per frame, and each one fights the last. Create a `gsap.quickTo()` or `quickSetter()` once outside the callback and call it inside — or, for scroll, scrub a timeline instead of writing values by hand.",
+  paintProperty:
+    "Filters and shadows repaint the layer every frame, and the cost grows with the painted area. Animate `opacity` on a pre-blurred or pre-shadowed copy, or move a transform instead, and measure before defending anything else.",
+  unownedLoop:
+    "An infinite repeat keeps the ticker busy while it is off screen. Pause it from an IntersectionObserver, or let a ScrollTrigger's `onToggle` own it, so it costs nothing when nobody can see it.",
+  ungatedHover:
+    "A tap fires `mouseenter` on a touch device and nothing fires the leave, so the effect sticks. Gate it with `gsap.matchMedia()` on `(hover: hover)`, and decide what a coarse pointer gets instead.",
+  delayChain:
+    "Delays are a choreography nobody can change: moving one beat means re-adding every number after it. Build a timeline and position each beat with a label or a relative offset — `\"<\"`, `\"-=0.2\"`.",
   danglingListener:
     "A listener that survives unmount keeps the component's closure — and its DOM nodes — alive. Name the handler and remove it in the cleanup, or pass `{ signal }` from an AbortController and abort it there.",
   tweenPerEvent:
@@ -87,6 +97,10 @@ const HINT = {
 /** Messages that do not vary with what was found. */
 const MESSAGE = {
   easedLoop: "An infinite repeat with an ease other than `none`.",
+  tweenPerFrame: "A tween is created here on every frame.",
+  unownedLoop: "An infinite repeat that nothing pauses.",
+  ungatedHover: "A hover animation with no `(hover: hover)` gate.",
+  delayChain: "Three or more tweens in this scope are sequenced by `delay`.",
   easedScrub: "Easing inside a scrubbed ScrollTrigger timeline.",
   neverCompletesChild:
     "An endlessly repeating child in a timeline with an `onComplete`, which therefore never fires.",
@@ -414,6 +428,13 @@ function notPerEvent(ast, handler, node) {
 }
 
 /** Listener targets that outlive every component: the window, the document and its root elements. */
+/**
+ * Events that fire once and are never removed by anyone: the document's own
+ * start-up. The corpus reported two `DOMContentLoaded` handlers in an Astro
+ * page as leaks, which is not what a leak is.
+ */
+const ONE_SHOT_EVENTS = new Set(["DOMContentLoaded", "load", "pageshow"]);
+
 const GLOBAL_TARGETS = new Set([
   "window",
   "document",
@@ -545,6 +566,119 @@ function mountHook(ast, node) {
   }
 
   return null;
+}
+
+/**
+ * Properties whose animation repaints the element rather than moving a layer
+ * the compositor already has.
+ *
+ * `clipPath` is deliberately absent. An inset or circle reveal is the technique
+ * this skill recommends for image reveals, it is cheap on a simple shape, and a
+ * rule that fires on its own guidance is noise.
+ */
+const PAINT_PROPERTIES = new Set([
+  "filter",
+  "webkitFilter",
+  "backdropFilter",
+  "boxShadow",
+]);
+
+const HOVER_EVENTS = new Set([
+  "pointerenter",
+  "pointerover",
+  "mouseenter",
+  "mouseover",
+]);
+
+/**
+ * Every function that runs once per frame: the ticker, R3F's `useFrame`, an
+ * `onUpdate`/`onMove`/`onChange` callback, and a function that schedules
+ * itself with `requestAnimationFrame`.
+ */
+function perFrameScopes(ast) {
+  const scopes = [];
+  const add = (node) => {
+    const fn = node && unwrap(node);
+    if (isFunction(fn)) scopes.push(fn);
+  };
+
+  for (const call of findAll(ast, (node) => {
+    const name = calleeName(node);
+    return name === "gsap.ticker.add" || name === "useFrame";
+  })) {
+    add(call.arguments[0]);
+  }
+
+  /**
+   * `onUpdate`, `onMove` and `onChange` are per-frame in a tween, a
+   * ScrollTrigger, an Observer or a Draggable — and nowhere else. Every control
+   * and form library in the world has an `onChange`, and the corpus duly
+   * reported a Three.js `traverse` inside one of them as a per-frame tween.
+   */
+  const PER_FRAME_KEYS = new Set(["onUpdate", "onMove", "onChange"]);
+  const GSAP_CONFIG = /^(?:gsap\.|ScrollTrigger\.|Observer\.|Draggable\.|ScrollSmoother\.|Flip\.)/;
+
+  for (const property of findAll(
+    ast,
+    (node) => node.type === "Property" && PER_FRAME_KEYS.has(keyName(node)),
+  )) {
+    const owner = ancestorsOf(ast, property).find(
+      (node) => node.type === "CallExpression",
+    );
+    if (!owner) continue;
+    const name = calleeName(owner);
+    if (tweenMethod(owner) === null && !(name && GSAP_CONFIG.test(name))) continue;
+    add(property.value);
+  }
+
+  for (const call of findAll(
+    ast,
+    (node) => calleeName(node) === "requestAnimationFrame",
+  )) {
+    const fn = resolveFunction(ast, call.arguments[0]);
+    if (isFunction(fn) && contains(fn, call)) scopes.push(fn);
+  }
+
+  return scopes;
+}
+
+/** The handlers a hover starts: a listener's callback, or a JSX `on*` prop. */
+function hoverHandlers(ast) {
+  const handlers = [];
+
+  for (const call of findAll(
+    ast,
+    (node) => listenerMethod(node) === "addEventListener",
+  )) {
+    const event = staticString(call.arguments[0]);
+    if (event === null || !HOVER_EVENTS.has(event)) continue;
+    const fn = resolveFunction(ast, call.arguments[1]);
+    if (isFunction(fn)) handlers.push(fn);
+  }
+
+  for (const attribute of findAll(
+    ast,
+    (node) => node.type === "JSXAttribute" && node.name.type === "JSXIdentifier",
+  )) {
+    if (!/^on(?:Mouse|Pointer)(?:Enter|Over)$/.test(attribute.name.name)) continue;
+    if (attribute.value?.type !== "JSXExpressionContainer") continue;
+    const fn = resolveFunction(ast, attribute.value.expression);
+    if (isFunction(fn)) handlers.push(fn);
+  }
+
+  return handlers;
+}
+
+/** Whether anything in the file pauses, kills or reverts what is kept as `name`. */
+function stopped(ast, name) {
+  if (!name) return false;
+  return (
+    findAll(ast, (node) => {
+      const method = methodName(node);
+      if (method !== "pause" && !TEARDOWN.has(method)) return false;
+      return dottedName(unwrap(node.callee).object) === name;
+    }).length > 0
+  );
 }
 
 export const RULES = [
@@ -687,6 +821,7 @@ export const RULES = [
           const event = staticString(call.arguments[0]);
           const handler = unwrap(call.arguments[1]);
           if (event === null || !/^[\w:-]+$/.test(event) || !handler) return [];
+          if (ONE_SHOT_EVENTS.has(event)) return [];
           const options = unwrap(call.arguments[2]);
           const once = unwrap(propertyOf(options, "once")?.value);
           const callee = unwrap(call.callee);
@@ -1185,29 +1320,205 @@ export const RULES = [
     },
   },
   {
+    id: "tween-per-frame",
+    level: "warn",
+    description:
+      "A tween created every frame — in `onUpdate`, the ticker, an Observer callback, `useFrame` or a `requestAnimationFrame` loop",
+    /**
+     * `gsap.set` is left out: writing a value straight to an element is what a
+     * per-frame callback is for, and `quickSetter` is the faster shape of the
+     * same thing rather than a different one. What this catches is a tween —
+     * an object with its own duration and ease — being built sixty times a
+     * second, each one overwriting the last before it can finish.
+     */
+    test(file) {
+      const scopes = perFrameScopes(file.ast);
+      if (scopes.length === 0) return [];
+
+      const tweens = findAll(file.ast, (node) => {
+        const method = tweenMethod(node);
+        return method !== null && method !== "set";
+      });
+
+      const reported = new Set();
+      const findings = [];
+      for (const scope of scopes) {
+        for (const tween of tweens) {
+          if (!contains(scope, tween) || reported.has(tween.start)) continue;
+          reported.add(tween.start);
+          findings.push({
+            index: tween.start,
+            message: MESSAGE.tweenPerFrame,
+            hint: HINT.tweenPerFrame,
+          });
+        }
+      }
+      return findings;
+    },
+  },
+  {
+    id: "paint-property",
+    level: "warn",
+    description:
+      "Animating `filter`, `backdropFilter` or `boxShadow`, which repaints the element every frame",
+    /** Read exactly as layout-property reads its own keys, and `set` is skipped too. */
+    test(file) {
+      const animates = (node) => {
+        const method = tweenMethod(node);
+        return method !== null && method !== "set";
+      };
+
+      return findAll(file.ast, animates).flatMap((call) => {
+        const seen = new Set();
+        return varsObjects(call, tweenMethod(call))
+          .flatMap((vars) => vars.properties)
+          .filter((property) => {
+            const key = keyName(property);
+            if (!PAINT_PROPERTIES.has(key) || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+          .map((property) => ({
+            index: property.start,
+            message: `Animating \`${keyName(property)}\` repaints on every frame.`,
+            hint: HINT.paintProperty,
+          }));
+      });
+    },
+  },
+  {
+    id: "unowned-loop",
+    level: "info",
+    description:
+      "An infinite repeat that nothing pauses, which keeps the ticker busy off screen",
+    /**
+     * Info, because "nothing pauses it" is read from one file and a loop can be
+     * owned from elsewhere. A loop is taken as owned when its name is paused,
+     * killed or reverted anywhere here, when the file builds an
+     * IntersectionObserver, when the tween carries a `scrollTrigger` that
+     * toggles it, or when a context holds it — unmount reverts that one.
+     *
+     * The last of those came from a real site's loader, where three loops sit
+     * in a `useGSAP` body inside `matchMedia`. Reporting them would have meant
+     * "nothing stops this" about an animation the component's own unmount stops.
+     * What is left — a loop running while it is off screen but still mounted —
+     * is a measurement, and 3.4's `inspect` is where that belongs.
+     */
+    test(file) {
+      const observed = findAll(
+        file.ast,
+        (node) =>
+          node.type === "NewExpression" &&
+          dottedName(node.callee) === "IntersectionObserver",
+      ).length > 0;
+      if (observed) return [];
+
+      const inside = gsapContexts(file.ast);
+
+      return findAll(file.ast, (node) => tweenMethod(node) !== null).flatMap((call) => {
+        if (inside(call)) return [];
+        const vars = ownVars(call, tweenMethod(call));
+        if (!vars) return [];
+        const repeat = propertyOf(vars, "repeat");
+        if (!repeat || numberValue(repeat.value) !== -1) return [];
+        if (propertyOf(vars, "scrollTrigger")) return [];
+        if (stopped(file.ast, keptUnder(file.ast, call)?.name)) return [];
+        return [
+          {
+            index: repeat.start,
+            message: MESSAGE.unownedLoop,
+            hint: HINT.unownedLoop,
+          },
+        ];
+      });
+    },
+  },
+  {
+    id: "ungated-hover",
+    level: "warn",
+    description:
+      "A hover animation with no `(hover: hover)` gate, which a tap starts and nothing ends",
+    /**
+     * The gate is looked for as text, anywhere in the file: a `matchMedia`
+     * condition, a CSS string, a constant. One finding per handler, on its first
+     * tween, because the handler is what needs the gate.
+     */
+    test(file) {
+      if (/\(\s*(?:any-)?hover\s*:\s*hover\s*\)/.test(file.code)) return [];
+
+      return hoverHandlers(file.ast).flatMap((handler) => {
+        const [tween] = findAll(file.ast, (node) => tweenMethod(node) !== null).filter(
+          (node) => contains(handler, node),
+        );
+        if (!tween) return [];
+        return [
+          { index: tween.start, message: MESSAGE.ungatedHover, hint: HINT.ungatedHover },
+        ];
+      });
+    },
+  },
+  {
+    id: "delay-chain",
+    level: "warn",
+    description:
+      "Three or more tweens in one scope sequenced by `delay`, which is a timeline nobody can retime",
+    /**
+     * Three is the threshold because two tweens with delays are a pair, and a
+     * pair is still readable. Counted per scope — the function they share — so
+     * three components each with one delayed tween are not a chain. A tween on a
+     * timeline is not counted: a timeline already has positions.
+     */
+    test(file) {
+      const scopes = new Map();
+
+      for (const call of findAll(file.ast, (node) => tweenMethod(node) !== null)) {
+        if (chainStart(call) !== call) continue;
+        const vars = ownVars(call, tweenMethod(call));
+        const delay = vars && propertyOf(vars, "delay");
+        if (!delay || !(numberValue(delay.value) > 0)) continue;
+        const scope = scopeOf(file.ast, call) ?? file.ast;
+        if (!scopes.has(scope)) scopes.set(scope, []);
+        scopes.get(scope).push(call);
+      }
+
+      return [...scopes.values()]
+        .filter((calls) => calls.length >= 3)
+        .map((calls) => ({
+          index: calls[0].start,
+          message: MESSAGE.delayChain,
+          hint: HINT.delayChain,
+        }));
+    },
+  },
+  {
     id: "missing-reduced-motion",
     level: "warn",
     description:
       "An animating file with no `prefers-reduced-motion` branch",
     /**
      * A branch is the query written in code — a string, a template or JSX
-     * text. A comment that mentions it is not a branch. A file that only sets
-     * values is not animating anything.
+     * text. A comment that mentions it is not a branch.
+     *
+     * Only a file that builds an animation of its own is reported, and the
+     * finding lands on the first one. Three things are not that:
+     * `registerPlugin` and `killTweensOf`, which animate nothing; `set`, which
+     * has no duration; and a method called on a timeline the file was handed,
+     * because a helper that adds beats to its caller's timeline does not own
+     * the reduced-motion decision — the caller does.
      */
     test(file) {
       if (!file.usesGsap) return [];
       if (findAll(file.ast, (node) => spells(node, "prefers-reduced-motion")).length) {
         return [];
       }
-      if (!findAll(file.ast, (node) => isGsapCall(node)).length) return [];
 
-      const first = findAll(
-        file.ast,
-        (node) =>
-          node.type === "MemberExpression" &&
-          unwrap(node.object)?.type === "Identifier" &&
-          unwrap(node.object).name === "gsap",
-      ).sort((a, b) => a.start - b.start)[0];
+      const [first] = findAll(file.ast, (node) => {
+        const method = tweenMethod(node);
+        if (method === null || method === "set") return false;
+        /** Built here, rather than added to something passed in. */
+        return calleeName(node)?.startsWith("gsap.") === true;
+      }).sort((a, b) => a.start - b.start);
+      if (!first) return [];
 
       return [
         {

@@ -48,7 +48,7 @@ This skill gives the agent two things it lacks:
   They load only when a request needs them.
 - **Presets and worked examples** for reveals, marquees, card stacks, loaders,
   site intros, page transitions and scroll storytelling.
-- **`audit-gsap`**: 17 rules for leaks, per-frame cost, eased loops, shared
+- **`audit-gsap`**: 22 rules for leaks, per-frame cost, eased loops, shared
   plugin ids, unregistered plugins and shipped dev tooling — from the command
   line, or in your editor as an ESLint plugin.
 - **`audit-svg`**: what an SVG can do before you animate it — what DrawSVG can
@@ -261,7 +261,7 @@ can gate a build. Pin the version, so a new rule cannot fail your build without
 warning:
 
 ```json
-"lint": "eslint && npx @mehshekari/gsap-motion@3.2.0 audit src --quiet"
+"lint": "eslint && npx @mehshekari/gsap-motion@3.3.0 audit src --quiet"
 ```
 
 Or install it with `npm install --save-dev --save-exact @mehshekari/gsap-motion`;
@@ -290,6 +290,11 @@ With the skill installed, the same scripts are in its folder:
 | `late-transform-origin` | warn | A `fromTo` whose origin is only in its to-vars while its from-vars scale, rotate or skew, which leaves an SVG element offset |
 | `missing-reduced-motion` | warn | An animating file with no `prefers-reduced-motion` branch |
 | `barrel-import` | warn | Importing from `gsap/all`, which pulls in every plugin |
+| `tween-per-frame` | warn | A tween created every frame — in `onUpdate`, the ticker, an Observer callback, `useFrame` or a `requestAnimationFrame` loop |
+| `paint-property` | warn | Animating `filter`, `backdropFilter` or `boxShadow`, which repaints the element every frame |
+| `ungated-hover` | warn | A hover animation with no `(hover: hover)` gate, which a tap starts and nothing ends |
+| `delay-chain` | warn | Three or more tweens in one scope sequenced by `delay`, which is a timeline nobody can retime |
+| `unowned-loop` | info | An infinite repeat that nothing pauses, which keeps the ticker busy off screen |
 
 ### Waiving a finding
 
@@ -407,18 +412,30 @@ source and labelled true or false with a reason in
 
 | Rule | Level | Findings | True | False | Precision |
 |---|---|---|---|---|---|
-| `layout-property` | warn | 3 | 3 | 0 | 100% |
-| `missing-reduced-motion` | warn | 25 | 25 | 0 | 100% |
+| `eased-scrub` | warn | 1 | 1 | 0 | 100% |
+| `layout-property` | warn | 10 | 10 | 0 | 100% |
+| `missing-reduced-motion` | warn | 40 | 40 | 0 | 100% |
 | `orphan-tween` | error | 17 | 17 | 0 | 100% |
+| `paint-property` | warn | 32 | 32 | 0 | 100% |
+| `trigger-per-item` | warn | 2 | 2 | 0 | 100% |
 | `tween-per-event` | error | 2 | 2 | 0 | 100% |
+| `ungated-hover` | warn | 1 | 1 | 0 | 100% |
+| `unowned-loop` | info | 6 | 6 | 0 | 100% |
 
 - The first measurement found 80 findings, 33 of them false. Each false one
   became a test fixture and then a fix — a manual `kill()` in a cleanup, a
   plugin registered in another file, `gsap.set`, an in-flight guard, a setter
   given a constant, a listener on an element the code creates.
+- 3.2 and 3.3 measured it again: 111 findings across the same 14 projects, every
+  one read and labelled, all true. Three more false patterns became fixtures and
+  fixes — a `DOMContentLoaded` handler is not a leak, a file whose only GSAP
+  call registers a plugin is not animating, a helper that fills a timeline it
+  was handed does not own the reduced-motion branch, and `onChange` belongs to
+  every control library in the world, not only to GSAP.
 - A rule missing from the table reports nothing on this corpus, so its precision
   is not measured here: `unregistered-plugin`, `unmanaged-instance`,
-  `state-per-event` and `dangling-listener`, and the rules that never fired.
+  `state-per-event`, `dangling-listener`, `unreverted-context`,
+  `tween-per-frame`, `delay-chain` and the rules that never fired.
 - The samples are small, and one project supplies half of them. Treat the
   numbers as evidence, not as a guarantee.
 - Recall is not measured: a failure nobody found cannot be counted.
