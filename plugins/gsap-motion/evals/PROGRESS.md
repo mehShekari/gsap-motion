@@ -7,29 +7,38 @@ Scores here are working numbers, not published ones. A single run is noisy. A sc
 reaches the release notes only after 3 runs with the no-plugin baseline. Raw results
 stay in `results/`, which git ignores.
 
-**Updated:** 2026-09-14 · **Plugin on npm:** 3.0.0 · **Cases today:** 15 · **Planned
+**Updated:** 2026-09-15 · **Plugin on npm:** 3.3.0 · **Cases today:** 15 · **Planned
 by 4.0:** 44
 
-> **Paused until the roadmap is finished** (decided 2026-09-14). No case is run or
-> changed while 3.0.x through 4.0 are built. After that, the suite is first updated
-> to the finished skill — the 15 cases revised, the 29 planned ones written — and
-> then every case is run. Releases until then carry no eval scores.
+> **The expensive half waits for the roadmap** (decided 2026-09-14, refined
+> 2026-09-15). Outcome cases and baselines are not run while 3.0.x through 4.0 are
+> built: they grade guidance that each phase still changes, three runs with a
+> baseline cost about $75, and any number bought early is discarded. After the
+> roadmap the suite is updated to the finished skill — the 15 cases revised, the 29
+> planned ones written — and then every case is run. Releases until then carry no
+> eval scores.
+>
+> **The cheap half runs every release.** The seven `trigger-` and `ignore-` cases
+> cost about $3 and ten minutes, and they catch the one failure that is both
+> catastrophic and invisible: a skill that silently stops firing, or starts firing
+> on work it should ignore. One edit to SKILL.md's description can cause either.
 
 ## At a glance
 
 | Group | Cases | Usable result | Re-run needed | Never run |
 |---|---|---|---|---|
-| `trigger-` | 4 | 4, on 2.1.0 | — | — |
-| `ignore-` | 3 | 3, on 2.1.0 | — | — |
-| `outcome-` | 8 | 1 | 2 | 5 |
+| `trigger-` | 4 | 4, on 3.3.0 | — | — |
+| `ignore-` | 3 | 3, on 3.3.0 | — | — |
+| `outcome-` | 8 | 1, on 2.1.0 | 2 | 5 |
 | **Total** | **15** | **8** | **2** | **5** |
 
 - **Usable result:** it ran on the case as it is now.
 - **Re-run needed:** the prompt or graders changed after the run, so the old score
   no longer describes the case.
 
-Every result so far comes from plugin 2.1.0, one run each. **No release has a full
-baseline yet**, so 3.0.0 has no "before" numbers.
+The trigger and ignore groups were re-run on 3.3.0; every outcome result still comes
+from 2.1.0, one run each. **No release has a full baseline yet**, so no release has
+"before" numbers.
 
 ## Every case
 
@@ -39,18 +48,18 @@ baseline yet**, so 3.0.0 has no "before" numbers.
 
 | Case | Measures | Added | Last run | Runs | Score | Next |
 |---|---|---|---|---|---|---|
-| `trigger-audit` | A debugging question about existing GSAP code | 2.1.0 | 2026-09-13 on 2.1.0 | 1 | 1.00 | Run at the next release |
-| `trigger-feeling` | A request about how motion should feel, naming no library | 2.1.0 | 2026-09-13 on 2.1.0 | 1 | 1.00 | Run at the next release |
-| `trigger-persian` | A request in Persian | 2.1.0 | 2026-09-13 on 2.1.0 | 1 | 1.00 | Run at the next release |
-| `trigger-scroll-reveal` | A plain reveal request in a Next.js project | 2.1.0 | 2026-09-13 on 2.1.0 | 1 | 1.00 | Run at the next release |
+| `trigger-audit` | A debugging question about existing GSAP code | 2.1.0 | 2026-09-15 on 3.3.0 | 1 | 1.00 | Run at the next release |
+| `trigger-feeling` | A request about how motion should feel, naming no library | 2.1.0 | 2026-09-15 on 3.3.0 | 1 | 1.00 | Run at the next release |
+| `trigger-persian` | A request in Persian | 2.1.0 | 2026-09-15 on 3.3.0 | 1 | 1.00 | Run at the next release |
+| `trigger-scroll-reveal` | A plain reveal request in a Next.js project | 2.1.0 | 2026-09-15 on 3.3.0 | 1 | 1.00 | Run at the next release |
 
 ### `ignore-` — the skill stays out of unrelated work
 
 | Case | Measures | Added | Last run | Runs | Score | Next |
 |---|---|---|---|---|---|---|
-| `ignore-backend` | Backend work | 2.1.0 | 2026-09-13 on 2.1.0 | 1 | 1.00 | Run at the next release |
-| `ignore-framer-motion` | An animation request naming another library | 2.1.0 | 2026-09-13 on 2.1.0 | 1 | 1.00 | Run at the next release |
-| `ignore-tailwind-colour` | A styling change with no motion | 2.1.0 | 2026-09-13 on 2.1.0 | 1 | 1.00 | Run at the next release |
+| `ignore-backend` | Backend work | 2.1.0 | 2026-09-15 on 3.3.0 | 1 | 1.00 | Run at the next release |
+| `ignore-framer-motion` | An animation request naming another library | 2.1.0 | 2026-09-15 on 3.3.0 | 1 | 1.00 | Run at the next release |
+| `ignore-tailwind-colour` | A styling change with no motion | 2.1.0 | 2026-09-15 on 3.3.0 | 1 | 1.00 | Run at the next release |
 
 ### `outcome-` — the answer has the property the skill teaches
 
@@ -105,6 +114,7 @@ phase is built. Until then a phase proves its behaviour with unit tests and fixt
 | Release | Date | Cases | Runs | Cost | Result |
 |---|---|---|---|---|---|
 | 2.1.0 (pilot) | 2026-09-13 | 10 of 13 | 1 each | ≈ $5.81 | `results/2026-09-13-pilot/SUMMARY.md` |
+| 3.3.0 | 2026-09-15 | 7 of 15 (`trigger-` and `ignore-`) | 1 each, no baseline | $2.70 | 7 of 7 at 1.00 — firing survived the adapter split, Persian included |
 | 3.0.0 | — | — | — | — | not run |
 | 3.0.1 | — | — | — | — | not run: evals wait for the roadmap |
 

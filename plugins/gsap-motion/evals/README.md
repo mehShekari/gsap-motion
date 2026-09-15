@@ -19,7 +19,7 @@ Every run is a model call billed to whoever runs it.
 
 ```bash
 # From the repository root. One case, one run, no baseline: cheapest.
-claude plugin eval plugins/gsap-motion --case trigger-scroll-reveal --runs 1 --ablation none
+claude plugin eval plugins/gsap-motion --case trigger-scroll-reveal --runs 1 --ablation none --trust-plugin
 
 # The whole suite, with the no-plugin baseline.
 claude plugin eval plugins/gsap-motion --max-cost-usd 15
