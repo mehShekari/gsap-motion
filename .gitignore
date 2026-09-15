@@ -12,10 +12,13 @@ corpus/.cache/
 plugins/*/evals/results/
 results.json
 
-# Copied into the npm package at pack time; the source lives in plugins/.
+# Copied into the npm packages at pack time; the source lives in plugins/.
 packages/cli/skill/
 packages/cli/LICENSE
 packages/cli/NOTICE.md
+packages/eslint-plugin/lib/
+packages/eslint-plugin/LICENSE
+packages/eslint-plugin/NOTICE.md
 *.tgz
 
 .DS_Store

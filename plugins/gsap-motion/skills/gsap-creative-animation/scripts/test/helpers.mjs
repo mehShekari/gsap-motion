@@ -21,6 +21,14 @@ after(() => rmSync(ROOT, { recursive: true, force: true }));
 let counter = 0;
 
 /**
+ * When set, every fixture is also written here, with the rule it belongs to:
+ * the ESLint plugin's parity test lints each one through ESLint and compares
+ * what comes back with what the audit reports on it.
+ */
+const DUMP = process.env.GSAP_MOTION_FIXTURES;
+let dumped = 0;
+
+/**
  * Writes `files` — `{ "relative/path.tsx": source }` — into a fresh project
  * directory and returns that directory.
  */
@@ -48,6 +56,17 @@ function findings(ruleId, source, ext, registered = []) {
   const dir = project({ [`fixture.${ext}`]: source });
   const file = load(join(dir, `fixture.${ext}`), dir);
   file.registeredElsewhere = new Set(registered);
+
+  if (DUMP) {
+    const name = `fixture-${String(dumped).padStart(3, "0")}`;
+    dumped += 1;
+    mkdirSync(DUMP, { recursive: true });
+    writeFileSync(join(DUMP, `${name}.${ext}`), source);
+    writeFileSync(
+      join(DUMP, `${name}.json`),
+      JSON.stringify({ rule: ruleId, ext, registered }),
+    );
+  }
 
   /** A fixture that does not parse would pass every quiet case silently. */
   assert.equal(

@@ -1,11 +1,12 @@
 name: Release to npm
 
-# Publishes packages/cli when a GitHub Release is published.
+# Publishes packages/cli and packages/eslint-plugin when a GitHub Release is
+# published. The two share one version, so they are released together.
 #
 # It uses npm trusted publishing: npm verifies this workflow run through OIDC,
 # so no npm token is stored in the repository, and every version carries
 # provenance linking it to the commit and run that built it. The trusted
-# publisher (this repository and release.yml) must be configured on the
+# publisher (this repository and release.yml) must be configured on each
 # package's settings page on npmjs.com first.
 
 on:
@@ -29,18 +30,28 @@ jobs:
       # Trusted publishing needs a recent npm.
       - run: npm install --global npm@latest
 
-      - name: The release tag matches the package version
+      - name: The release tag matches both package versions
         env:
           TAG: ${{ github.event.release.tag_name }}
         run: |
-          VERSION="v$(node -p "require('./packages/cli/package.json').version")"
-          if [ "$TAG" != "$VERSION" ]; then
-            echo "Release tag $TAG does not match package version $VERSION"
+          CLI="v$(node -p "require('./packages/cli/package.json').version")"
+          PLUGIN="v$(node -p "require('./packages/eslint-plugin/package.json').version")"
+          if [ "$TAG" != "$CLI" ] || [ "$TAG" != "$PLUGIN" ]; then
+            echo "Release tag $TAG does not match the packages: cli $CLI, eslint-plugin $PLUGIN"
             exit 1
           fi
 
       - run: node scripts/test.mjs
       - run: node packages/cli/scripts/check-pack.mjs
 
+      - run: npm ci
+        working-directory: packages/eslint-plugin
+      - run: npm test
+        working-directory: packages/eslint-plugin
+      - run: node scripts/check-pack.mjs
+        working-directory: packages/eslint-plugin
+
       - run: npm publish --provenance --access public
         working-directory: packages/cli
+      - run: npm publish --provenance --access public
+        working-directory: packages/eslint-plugin

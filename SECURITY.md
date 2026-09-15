@@ -4,7 +4,7 @@
 
 | Version | Supported |
 | --- | --- |
-| 2.x (latest minor) | Yes |
+| 3.x (latest minor) | Yes |
 | Older | No — please upgrade |
 
 ## What this project can and cannot do on your machine
@@ -15,6 +15,10 @@ it ships, and both are deliberately narrow:
 - `audit-gsap.mjs` and `audit-svg.mjs` **only read** the files and folders you
   pass them. They never import, require or execute that code, never write to
   disk, make no network requests, and have no dependencies.
+- The ESLint plugin, `@mehshekari/eslint-plugin-gsap-motion`, runs the same
+  rules on the text ESLint hands it. It reads no other file, never executes the
+  code, writes nothing, makes no network requests, and needs nothing but
+  ESLint.
 - `scripts/check-freshness.mjs` and the GitHub workflows are repository tooling,
   not part of the plugin. The freshness check makes one request per package to
   the public npm registry.

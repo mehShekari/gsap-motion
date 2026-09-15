@@ -125,6 +125,50 @@ describe("npm package", () => {
   });
 });
 
+describe("ESLint plugin package", () => {
+  const pkg = json("packages/eslint-plugin/package.json");
+
+  test("is @mehshekari/eslint-plugin-gsap-motion, in lockstep with the command line", () => {
+    // One version for both, so the plugin at 3.x.y and the audit at 3.x.y are the same rules.
+    assert.equal(pkg.name, "@mehshekari/eslint-plugin-gsap-motion");
+    assert.equal(pkg.version, plugin.version);
+    assert.equal(pkg.publishConfig?.access, "public", "a scoped package is private by default");
+  });
+
+  test("points at this repository", () => {
+    assert.equal(pkg.repository.url, `git+${plugin.repository}.git`);
+    assert.equal(pkg.repository.directory, "packages/eslint-plugin");
+  });
+
+  test("depends on nothing but ESLint itself, and installs nothing", () => {
+    assert.equal(pkg.dependencies, undefined, "dependencies");
+    assert.equal(pkg.optionalDependencies, undefined, "optionalDependencies");
+    assert.deepEqual(Object.keys(pkg.peerDependencies), ["eslint"]);
+    for (const script of ["preinstall", "install", "postinstall"]) {
+      assert.equal(pkg.scripts?.[script], undefined, script);
+    }
+  });
+
+  test("ships the audit it copies at pack time, which git ignores", () => {
+    assert.ok(pkg.files.includes("lib/"), "files includes lib/");
+    assert.equal(pkg.scripts.prepack, "node scripts/bundle-audit.mjs");
+    assert.match(read(".gitignore"), /^packages\/eslint-plugin\/lib\/$/m);
+  });
+});
+
+test("both READMEs list every rule with its level and what it catches", () => {
+  // The rule's `description` is what ESLint shows; the README row is what people read.
+  for (const doc of ["README.md", "packages/eslint-plugin/README.md"]) {
+    const text = read(doc);
+    for (const rule of RULES) {
+      assert.ok(
+        text.includes(`| \`${rule.id}\` | ${rule.level} | ${rule.description} |`),
+        `${doc} has no row for ${rule.id} matching its level and description`,
+      );
+    }
+  }
+});
+
 describe("evals", () => {
   const PREFIXES = ["trigger-", "ignore-", "outcome-"];
   const GRADER_TYPES = [

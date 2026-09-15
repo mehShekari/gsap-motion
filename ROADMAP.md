@@ -54,9 +54,10 @@ so. Every rule after this phase is written once, on a syntax tree.
   counts as inside it. A call into another file is reported as not followed,
   never guessed.
 - **One set of rules, two entry points.** Rules are written against ESTree and
-  run from the CLI and from an ESLint plugin, which reuses the project's own
-  parser. Findings appear in the editor and in any lint pipeline, with no agent
-  involved.
+  run from the CLI and from an ESLint plugin. The plugin runs the audit's own
+  parser inside ESLint rather than reading the project parser's tree, so the
+  editor and the CLI report the same findings on the same lines. Findings appear
+  in the editor and in any lint pipeline, with no agent involved.
 - **Measured precision.**
   - A public corpus of real GSAP projects, each pinned to a commit.
   - Every finding labelled true or false by hand. Precision per rule is

@@ -28,7 +28,7 @@ The audit needs no install. Pin the version, so a new rule cannot fail your
 build without warning:
 
 ```json
-"lint": "eslint && npx @mehshekari/gsap-motion@3.1.0 audit src --quiet"
+"lint": "eslint && npx @mehshekari/gsap-motion@3.1.1 audit src --quiet"
 ```
 
 Or install it with `npm install --save-dev --save-exact @mehshekari/gsap-motion`.
@@ -37,6 +37,9 @@ The command it adds is `gsap-motion`:
 ```json
 "lint": "eslint && gsap-motion audit src --quiet"
 ```
+
+The same rules also run inside ESLint, so findings appear in your editor:
+[`@mehshekari/eslint-plugin-gsap-motion`](https://www.npmjs.com/package/@mehshekari/eslint-plugin-gsap-motion).
 
 ## Claude Code plugin
 

@@ -42,7 +42,13 @@ const check = (ok, message) => {
 
 try {
   const output = run(`npm pack --json --pack-destination "${work}"`, PACKAGE_ROOT);
-  const [pack] = JSON.parse(output.slice(output.indexOf("[")));
+  /** npm 11 prints an array of packs; npm 12 prints an object keyed by package name. */
+  const parsed = JSON.parse(output.slice(output.search(/^[[{]/m)));
+  const [pack] = Array.isArray(parsed)
+    ? parsed
+    : parsed.files
+      ? [parsed]
+      : Object.values(parsed);
   const files = pack.files.map((file) => file.path.replace(/\\/g, "/"));
 
   console.log(
@@ -75,6 +81,7 @@ try {
     "skill/scripts/lib/rules.mjs",
     "skill/scripts/lib/source.mjs",
     "skill/scripts/lib/ast.mjs",
+    "skill/scripts/lib/audit.mjs",
     "skill/scripts/lib/vendor/parser.mjs",
   ]) {
     check(files.includes(required), `ships ${required}`);

@@ -1,7 +1,8 @@
 version: 2
 
 updates:
-  # Only the example app has dependencies. The skill and its scripts have none.
+  # The example app, and the pinned tools that build the vendored parser. The
+  # skill and its scripts have no dependencies.
   - package-ecosystem: npm
     directory: "/"
     schedule:
@@ -9,6 +10,19 @@ updates:
     groups:
       example-app:
         patterns: ["*"]
+
+  # The ESLint plugin's test tools. At run time it needs only ESLint, as a peer.
+  - package-ecosystem: npm
+    directory: "/packages/eslint-plugin"
+    schedule:
+      interval: weekly
+    groups:
+      eslint-plugin:
+        patterns: ["*"]
+    ignore:
+      # typescript-eslint supports TypeScript below 6.1. Move once it supports more.
+      - dependency-name: typescript
+        versions: [">=6.1.0"]
 
   - package-ecosystem: github-actions
     directory: "/"
