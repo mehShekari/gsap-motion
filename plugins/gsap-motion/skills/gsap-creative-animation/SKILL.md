@@ -178,16 +178,16 @@ node <skill-dir>/scripts/audit-svg.mjs <file.svg>
 node <skill-dir>/scripts/audit-svg.mjs --morph <a.svg> <b.svg>
 node <skill-dir>/scripts/audit-svg.mjs --hues <file.svg>
 
-# Watch a page animate: frames, timeline, browser work.
-# Needs a Chrome; observations, not verdicts.
+# Both need a Chrome. Watch a page animate; then measure what it did:
+# first motion, screen share, seams, motion over text.
 node <skill-dir>/scripts/capture-motion.mjs <url> --at 0,300,900
+node <skill-dir>/scripts/review-motion.mjs <url> --scroll 2000
 ```
 
-Run `audit-gsap` first in an `audit` and after writing animation — as a plugin,
-a hook already runs it on every edit. A false finding is a bug in the script,
-not something to work around.
+Run `audit-gsap` in an `audit` and after writing animation; as a plugin, a hook
+runs it on each edit. A false finding is a bug in the script, never something to
+work around.
 
 `MotionPathHelper`, `GSDevTools`, `markers: true` and
-`MorphSVGPlugin.findShapeIndex()` are development-only, and a static import
-ships whatever `if` surrounds it. Import them dynamically behind a `NODE_ENV`
-check, and delete it once its value is baked in.
+`MorphSVGPlugin.findShapeIndex()` are development-only, and a static import ships
+whatever `if` surrounds it. Import them dynamically behind a `NODE_ENV` check.

@@ -246,6 +246,7 @@ This exact component is built in CI as part of the
 | `audit [target]` | Check existing animation for leaks, cost and accessibility |
 | `inspect <url>` | Watch a page animate: a filmstrip, the running timeline, measured browser work |
 | `explain [target]` | Map an existing animation: scopes, branches, beats, triggers, and what the audit says |
+| `review <url>` | Measure what the motion did: time to first motion, how much of the screen moves at once, loop seams, motion over text |
 | `tune [target]` | Retime, re-ease and fix rhythm, adding no new motion |
 | `strip [target]` | Remove motion that is not earning its place |
 
