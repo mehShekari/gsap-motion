@@ -4,7 +4,7 @@ import { TimelineDemo } from "./TimelineDemo";
 
 /**
  * A Server Component. Each demo is a client leaf, which is the boundary the
- * skill's React reference recommends.
+ * skill's Next adapter recommends.
  */
 export default function Page() {
   return (

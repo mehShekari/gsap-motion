@@ -106,9 +106,12 @@ its own.
   - `three`: the renderer's loop and disposal, on the vanilla lifecycle.
   - `vue`, `svelte`, `astro` and `vanilla`: today's sections of `frameworks.md`,
     each with its own server-rendering and page-swap rules.
-- **Budgets.** Next's component tier — SKILL.md, `motion-design.md`, `react` and
-  `next` — stays under today's 4,000 words. Every other stack loads less. The
-  budget test gains a tier per stack.
+- **Budgets.** The budget test gains a tier per stack. Measured after the split:
+  Next's component tier — SKILL.md, `motion-design.md`, `react` and `next` —
+  costs about 4,100 words against 3,873 before, because it is the one stack that
+  loads two adapters and answers the contract in both. Every other stack falls
+  from 3,873 to between 2,980 and 3,300, which is what the split was for. The
+  component budget rises to 4,150 to match.
 - **The audit follows the adapters.**
   - It reads the `<script>` of `.vue`, `.svelte` and `.astro` files, with
     offsets kept so reported lines stay right.

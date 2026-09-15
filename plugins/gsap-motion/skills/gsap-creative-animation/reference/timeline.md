@@ -103,7 +103,7 @@ onMouseLeave = () => hover.reverse();
 
 `reverse()` uses the same easing backwards, so the return matches the arrival
 without a second definition. In React, anything built outside the `useGSAP`
-body must go through `contextSafe` — see [react-nextjs.md](react-nextjs.md).
+body must go through `contextSafe` — see [react.md](../adapter/react.md).
 
 ## Holds
 

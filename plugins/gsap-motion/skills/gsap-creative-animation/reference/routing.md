@@ -63,14 +63,14 @@ single hover takes [interaction](interaction.md) and nothing else from its row.
 | Magnetic, cursor, hover | [interaction](interaction.md), [performance](performance.md) |
 | Drag, flick, inertia | [interaction](interaction.md) |
 | Layout / shared element / modal | [flip](flip.md) |
-| Page or route transition | [flip](flip.md), [page-transition](../preset/page-transition.md), [react-nextjs](react-nextjs.md) or [frameworks](frameworks.md) |
+| Page or route transition | [flip](flip.md), [page-transition](../preset/page-transition.md), this project's adapter |
 | Loader, splash, intro | [svg](svg.md), [timeline](timeline.md), [accessibility](accessibility.md) |
 | Marquee, orbit, ambient | [timeline](timeline.md), [performance](performance.md) |
-| Three.js / R3F | [three-r3f](three-r3f.md), [performance](performance.md) |
-| Audit an existing animation | [performance](performance.md), [accessibility](accessibility.md), [react-nextjs](react-nextjs.md) or [frameworks](frameworks.md) |
+| Three.js / R3F | [three](../adapter/three.md) or [r3f](../adapter/r3f.md), [performance](performance.md) |
+| Audit an existing animation | [performance](performance.md), [accessibility](accessibility.md), this project's adapter |
 | Retime / re-ease | [motion-design](motion-design.md) only |
 
-Do not load a domain file "for completeness". Loading `three-r3f.md` for a
+Do not load a domain file "for completeness". Loading `adapter/three.md` for a
 button hover is the failure this map exists to prevent.
 
 ## `audit`
@@ -97,7 +97,7 @@ real bugs live:
 
 1. **Lifecycle** — is every animation inside a `useGSAP`/`gsap.context` scope?
    Are ScrollTriggers killed? Are listeners removed? Does a `matchMedia` get
-   reverted? See [react-nextjs](react-nextjs.md).
+   reverted? See this project's adapter.
 2. **Cost** — layout-triggering properties, per-frame React state, filters on
    large areas, one ScrollTrigger per item where one would do. See
    [performance](performance.md).

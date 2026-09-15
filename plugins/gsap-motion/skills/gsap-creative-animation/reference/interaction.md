@@ -91,7 +91,7 @@ const obs = Observer.create({
   preventDefault: true,
 });
 
-obs.kill();   // only needed outside a useGSAP body — see react-nextjs.md
+obs.kill();   // only needed outside a useGSAP body — see adapter/react.md
 ```
 
 This is how full-screen section-snapping and swipe carousels are built without
@@ -135,7 +135,7 @@ onLeave = () => hover.reverse();
 ```
 
 In React, if the timeline is built inside `useGSAP` and only *played* from the
-handler, no `contextSafe` is needed — see [react-nextjs.md](react-nextjs.md).
+handler, no `contextSafe` is needed — see [react.md](../adapter/react.md).
 
 ## `overwrite: "auto"`
 

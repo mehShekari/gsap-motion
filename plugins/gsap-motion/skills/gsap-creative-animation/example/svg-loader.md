@@ -177,4 +177,4 @@ project's messages itself could bundle every locale.
 ## Related
 
 [preset/loader.md](../preset/loader.md) · [reference/svg.md](../reference/svg.md)
-· [reference/react-nextjs.md](../reference/react-nextjs.md)
+· [adapter/react.md](../adapter/react.md)

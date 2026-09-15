@@ -24,7 +24,7 @@ as JSX.
 
 Without them you end up at `querySelectorAll("path")[3]`, which breaks on the
 next export. Prefix them, and namespace per instance — see
-[react-nextjs.md](react-nextjs.md). For a set animated together, one
+[react.md](../adapter/react.md). For a set animated together, one
 `data-*` attribute beats a run of ids:
 
 ```tsx

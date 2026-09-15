@@ -369,7 +369,7 @@ setup and the animation already in the codebase, and tells you what it assumed.
 | `@gsap/react` | 2.x | Verified against 2.1 |
 | React | 18 and 19 | Lifecycle rules in the audit target React |
 | Next.js | App Router | Includes Server Component boundaries |
-| Vue 3 and Nuxt, Svelte, Astro, vanilla JS | Guidance | See [`frameworks.md`](plugins/gsap-motion/skills/gsap-creative-animation/reference/frameworks.md) |
+| Vue 3 and Nuxt, Svelte 4 and 5, Astro, vanilla JS, Three.js, R3F | One adapter each | [`adapter/`](plugins/gsap-motion/skills/gsap-creative-animation/adapter) — lifecycle, scope, SSR, teardown |
 | Node.js, for the scripts | 18 and later | Tested in CI on 18, 20, 22 and 24 |
 | ESLint, for the plugin | 9 and 10, flat config | Tested in CI: ESLint 9 on Node 18, ESLint 10 on Node 24 |
 | Clients | Claude Code, as a plugin; any Agent Skills client, as a folder | |
@@ -475,10 +475,12 @@ one notable restriction.
 
 **Is this project affiliated with GSAP or Webflow?** No.
 
-**Does it work without React?** The design guidance is framework-free, and
-[`frameworks.md`](plugins/gsap-motion/skills/gsap-creative-animation/reference/frameworks.md)
-covers the lifecycle in vanilla JavaScript, Vue, Svelte and Astro. The audit's
-React-specific rules only apply to React files.
+**Does it work without React?** The design guidance is framework-free, and each
+stack has its own adapter in
+[`adapter/`](plugins/gsap-motion/skills/gsap-creative-animation/adapter) —
+vanilla JavaScript, Vue and Nuxt, Svelte, Astro, Three.js and React Three Fiber
+— covering where an animation is created, torn down and scoped on that stack.
+The audit's React-specific rules only apply to React files.
 
 **Why did it refuse the plugin I asked for?** When a transform does the job, the
 skill says so and uses the transform. It always tells you when it declines

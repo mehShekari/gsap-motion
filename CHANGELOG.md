@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `adapter/`, one file per stack: `react`, `next`, `vue`, `svelte`, `astro`,
+  `vanilla`, `three` and `r3f`. Each answers the same questions — where an
+  animation is created and torn down, scope, server rendering and hydration,
+  reaching the element, values that change every frame, page and route changes,
+  failures, what the audit covers, and the versions it was written against — and
+  a test holds every adapter to that contract.
+- Setup step 3 picks the adapter from `package.json` and composes it: `next`
+  loads react and next, `@react-three/fiber` loads react and r3f, `nuxt` loads
+  vue, `astro` loads astro plus the adapter of an island being animated, and a
+  project with none of them loads vanilla.
+
+### Changed
+
+- `reference/react-nextjs.md`, `reference/frameworks.md` and
+  `reference/three-r3f.md` are replaced by the adapters, and every link to them
+  now points at one. Vue, Svelte, Astro, Three and R3F gained the sections they
+  never had: teardown, hydration, per-frame values and route changes, each
+  written for that stack.
+- The context budget has a tier per stack. Next's component tier costs about
+  4,100 words, against 3,873 before, because it is the one stack that loads two
+  adapters; every other stack falls to between 2,980 and 3,300. The component
+  budget is 4,150 and the largest build tier 5,200.
+
 ## [3.1.1] - 2026-09-15
 
 Patch: no rule id, level, command or flag changed, and the command line reports

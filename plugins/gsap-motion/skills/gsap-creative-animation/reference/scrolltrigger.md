@@ -176,7 +176,7 @@ useGSAP(() => {
 
 After a route change in the App Router, the new page's layout is measured before
 images settle. `ScrollTrigger.refresh()` on mount is usually needed. See
-[react-nextjs.md](react-nextjs.md).
+[react.md](../adapter/react.md).
 
 ## Failures
 

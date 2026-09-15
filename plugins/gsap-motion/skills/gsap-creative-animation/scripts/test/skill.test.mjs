@@ -49,23 +49,41 @@ const EXTENSIONS = [];
  * own reference. Raise a budget only on purpose, in the same change as the
  * content that needs the room.
  */
+const ALWAYS = ["SKILL.md", "reference/motion-design.md"];
+
 const BUDGET = {
   "SKILL.md": 1500,
-  always: ["SKILL.md", "reference/motion-design.md"],
+  always: ALWAYS,
   alwaysWords: 2600,
-  component: [
-    "SKILL.md",
-    "reference/motion-design.md",
-    "reference/react-nextjs.md",
-  ],
-  componentWords: 4000,
-  reactBuild: [
-    "SKILL.md",
-    "reference/motion-design.md",
-    "reference/react-nextjs.md",
-    "reference/core-gsap.md",
-  ],
-  reactBuildWords: 5000,
+  /**
+   * One tier per stack, because setup step 3 picks the adapter from
+   * package.json and composes it: `next` loads react and next,
+   * `@react-three/fiber` loads react and r3f, and every other stack loads one.
+   *
+   * 4,150 from 3.2, up from 4,000. Next is the one stack that loads two
+   * adapters, and answering the contract in both costs it about 230 words.
+   * Every other stack fell from 3,873 to between 2,980 and 3,300, which is what
+   * the split was for: a Vue project no longer reads past React and Svelte to
+   * find its own lifecycle.
+   */
+  componentWords: 4150,
+  component: {
+    next: [...ALWAYS, "adapter/react.md", "adapter/next.md"],
+    react: [...ALWAYS, "adapter/react.md"],
+    r3f: [...ALWAYS, "adapter/react.md", "adapter/r3f.md"],
+    three: [...ALWAYS, "adapter/three.md"],
+    vue: [...ALWAYS, "adapter/vue.md"],
+    svelte: [...ALWAYS, "adapter/svelte.md"],
+    astro: [...ALWAYS, "adapter/astro.md"],
+    vanilla: [...ALWAYS, "adapter/vanilla.md"],
+  },
+  /**
+   * The largest request on the largest stack. It rose from 5,000 in 3.2, when
+   * the adapter split gave this tier two files where it had one: the same
+   * guidance, in a shape that lets every other stack load less.
+   */
+  build: [...ALWAYS, "adapter/react.md", "adapter/next.md", "reference/core-gsap.md"],
+  buildWords: 5200,
 };
 
 /** Strings that only ever mean the project this skill was developed in. */
@@ -154,14 +172,16 @@ describe("context budget", () => {
     assert.ok(total <= BUDGET.alwaysWords, `${total} words`);
   });
 
-  test(`a React component loads under ${BUDGET.componentWords} words`, () => {
-    const total = count(BUDGET.component);
-    assert.ok(total <= BUDGET.componentWords, `${total} words`);
-  });
+  for (const [stack, files] of Object.entries(BUDGET.component)) {
+    test(`a ${stack} component loads under ${BUDGET.componentWords} words`, () => {
+      const total = count(files);
+      assert.ok(total <= BUDGET.componentWords, `${total} words`);
+    });
+  }
 
-  test(`a React sequence or scene loads under ${BUDGET.reactBuildWords} words`, () => {
-    const total = count(BUDGET.reactBuild);
-    assert.ok(total <= BUDGET.reactBuildWords, `${total} words`);
+  test(`a Next sequence or scene loads under ${BUDGET.buildWords} words`, () => {
+    const total = count(BUDGET.build);
+    assert.ok(total <= BUDGET.buildWords, `${total} words`);
   });
 });
 
@@ -190,12 +210,73 @@ describe("links", () => {
     );
     const companions = walk(SKILL)
       .map(rel)
-      .filter((file) => /^(?:reference|preset|example|template)\//.test(file));
+      .filter((file) =>
+        /^(?:adapter|reference|preset|example|template)\//.test(file),
+      );
     assert.deepEqual(
       companions.filter((file) => !linked.has(file)),
       [],
     );
   });
+});
+
+/**
+ * One adapter per stack, each answering the same questions under the same
+ * headings. A reader who knows one knows where to look in any of them, and a
+ * stack whose adapter is silent about teardown or hydration is a gap, not a
+ * style choice. Extra sections are allowed — Three has a division of labour to
+ * explain that React does not.
+ */
+describe("adapters", () => {
+  const CONTRACT = [
+    "Where it is created",
+    "Where it is torn down",
+    "Scope",
+    "Server rendering and hydration",
+    "Reaching the element",
+    "Every frame",
+    "Page and route changes",
+    "Failures",
+    "What the audit covers",
+    "Versions",
+  ];
+
+  const adapters = walk(SKILL)
+    .map(rel)
+    .filter((file) => file.startsWith("adapter/"))
+    .sort();
+
+  test("there is one per stack, and nothing else", () => {
+    assert.deepEqual(adapters, [
+      "adapter/astro.md",
+      "adapter/next.md",
+      "adapter/r3f.md",
+      "adapter/react.md",
+      "adapter/svelte.md",
+      "adapter/three.md",
+      "adapter/vanilla.md",
+      "adapter/vue.md",
+    ]);
+  });
+
+  for (const file of adapters) {
+    test(`${file} answers the contract, in order`, () => {
+      const headings = [...read(file).matchAll(/^## (.+)$/gm)]
+        .map(([, heading]) => heading)
+        .filter((heading) => CONTRACT.includes(heading));
+      assert.deepEqual(headings, CONTRACT);
+    });
+
+    test(`${file} names the versions it was written against`, () => {
+      const versions = read(file).split("## Versions")[1] ?? "";
+      assert.match(versions, /`gsap@\d+\.\d+`/, "its GSAP version");
+      assert.match(
+        versions,
+        /`[@\w./-]+@[\d.]+`/,
+        "at least one package@version, for check-freshness",
+      );
+    });
+  }
 });
 
 test("nothing from the project the skill was developed in leaks into it", () => {

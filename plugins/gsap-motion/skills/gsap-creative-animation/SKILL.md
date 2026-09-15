@@ -47,9 +47,13 @@ Core principles:
    - **One element, one tween or interaction** — a hover, a fade, a retime:
      [motion-design.md](reference/motion-design.md) and the command's own
      reference. Nothing else.
-   - **A component or section:** also
-     [react-nextjs.md](reference/react-nextjs.md) if `package.json` has
-     `react`, or [frameworks.md](reference/frameworks.md) if it does not.
+   - **A component or section:** also this project's adapter, from
+     `package.json`: `next` → [react](adapter/react.md) +
+     [next](adapter/next.md); `@react-three/fiber` → react +
+     [r3f](adapter/r3f.md); `three` → [three](adapter/three.md); `nuxt` →
+     [vue](adapter/vue.md); `svelte` → [svelte](adapter/svelte.md); `astro` →
+     [astro](adapter/astro.md) plus any island's own; nothing detected →
+     [vanilla](adapter/vanilla.md).
    - **A sequence, scroll scene, intro, transition or audit:** also
      [core-gsap.md](reference/core-gsap.md), and what
      [routing.md](reference/routing.md) adds for that request.
@@ -68,7 +72,7 @@ Core principles:
 | `transition [target]` | Build | Page, route, modal and layout transitions | [reference/flip.md](reference/flip.md) |
 | `loader` | Build | Loading and progress animation | [preset/loader.md](preset/loader.md) |
 | `intro` | Build | Site or section entry sequence | [preset/cinematic.md](preset/cinematic.md) |
-| `three [target]` | Build | GSAP orchestrating Three.js / R3F | [reference/three-r3f.md](reference/three-r3f.md) |
+| `three [target]` | Build | GSAP orchestrating Three.js / R3F | [adapter/three.md](adapter/three.md) |
 | `audit [target]` | Evaluate | Check an existing animation: leaks, cost, a11y | [reference/performance.md](reference/performance.md) |
 | `tune [target]` | Refine | Retime, re-ease, fix rhythm — no new motion | [reference/motion-design.md](reference/motion-design.md) |
 | `strip [target]` | Fix | Remove motion that is not earning its place | [reference/motion-design.md](reference/motion-design.md) |
@@ -134,11 +138,11 @@ after that. Never quietly substitute, and never ship both.
   [core-gsap](reference/core-gsap.md) · [timeline](reference/timeline.md)
 - **Domains** — [scrolltrigger](reference/scrolltrigger.md) ·
   [svg](reference/svg.md) · [text](reference/text.md) ·
-  [interaction](reference/interaction.md) · [flip](reference/flip.md) ·
-  [three-r3f](reference/three-r3f.md)
-- **Constraints** — [react-nextjs](reference/react-nextjs.md) ·
-  [frameworks](reference/frameworks.md) ·
-  [performance](reference/performance.md) ·
+  [interaction](reference/interaction.md) · [flip](reference/flip.md)
+- **Adapters**, one per stack, chosen in setup step 3 — the same questions for
+  each: lifecycle, scope, server rendering, per-frame values, routes, failures,
+  audit.
+- **Constraints** — [performance](reference/performance.md) ·
   [accessibility](reference/accessibility.md) ·
   [project-rules](reference/project-rules.md)
 - **Presets**, starting points to adapt — [reveal](preset/reveal.md) ·

@@ -180,7 +180,7 @@ that context** — `MatchMedia`'s constructor registers with whatever context is
 active (verified against gsap 3.15), and `Context.add` makes itself active while your
 function runs. An explicit `mm.revert()` there is redundant, not wrong. Created
 outside one — module scope, a plain `useEffect` — it is yours to revert. See
-[react-nextjs.md](react-nextjs.md).
+[react.md](../adapter/react.md).
 
 ## `context`
 
