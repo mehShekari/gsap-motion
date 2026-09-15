@@ -163,27 +163,31 @@ never ship both.
 
 ## Tools
 
-Both scripts catch **silent** failures. Run them from the project root;
-`<skill-dir>` is where this skill is installed.
+These catch what is **silent**. Run them from the project root; `<skill-dir>`
+is the skill's folder.
 
 ```bash
 # Leaks, per-event and per-frame tweens, layout and paint properties, loops,
-# shared plugin ids, unregistered plugins, dev tooling. Exit 1 on an error.
+# plugin ids, unregistered plugins, dev tooling. Exit 1 on an error.
 node <skill-dir>/scripts/audit-gsap.mjs [path...]     # default: src
 node <skill-dir>/scripts/audit-gsap.mjs src --quiet   # errors only
-node <skill-dir>/scripts/audit-gsap.mjs src --json    # machine-readable
+node <skill-dir>/scripts/audit-gsap.mjs src --json
 
-# What an SVG can actually do, before any animation is written.
+# What an SVG can do, before any animation is written.
 node <skill-dir>/scripts/audit-svg.mjs <file.svg>
 node <skill-dir>/scripts/audit-svg.mjs --morph <a.svg> <b.svg>
-node <skill-dir>/scripts/audit-svg.mjs --hues <file.svg>   # also flag hue literals
+node <skill-dir>/scripts/audit-svg.mjs --hues <file.svg>
+
+# Watch a page animate: frames, timeline, browser work.
+# Needs a Chrome; observations, not verdicts.
+node <skill-dir>/scripts/capture-motion.mjs <url> --at 0,300,900
 ```
 
-Run `audit-gsap` first in an `audit` and after writing any animation — as a
-Claude Code plugin, a hook already runs it on every edit and hands back what it
-finds. A false finding is a bug in the script, not something to work around.
+Run `audit-gsap` first in an `audit` and after writing animation — as a plugin,
+a hook already runs it on every edit. A false finding is a bug in the script,
+not something to work around.
 
 `MotionPathHelper`, `GSDevTools`, `markers: true` and
 `MorphSVGPlugin.findShapeIndex()` are development-only, and a static import
 ships whatever `if` surrounds it. Import them dynamically behind a `NODE_ENV`
-check, and delete the block once their value is baked in.
+check, and delete it once its value is baked in.

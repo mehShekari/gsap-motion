@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `inspect`, a new command, backed by `scripts/capture-motion.mjs`: it watches a
+  page animate in whatever Chrome the machine has and reports what it saw — a
+  filmstrip at given times, the timeline GSAP is actually running, and the
+  layouts, style recalculations and frames the browser did. It gives no
+  verdicts. `--scroll`, `--hover` and `--click` reach the state an animation
+  needs first, in the order written; `--reduced`, `--dark`, `--mobile` and
+  `--cpu` change the conditions. It drives Chrome over the DevTools Protocol
+  through a pipe rather than a WebSocket, so it installs nothing and runs on
+  Node 18.
+- The refinement loop in `refine.md` gains its visual stage, and says to report
+  that stage as not run when there is no browser — rather than as fine.
+
 ## [3.3.0] - 2026-09-15
 
 Minor: five new rules — four warn, one info — a device strategy, a refinement

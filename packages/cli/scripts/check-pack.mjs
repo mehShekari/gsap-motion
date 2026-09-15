@@ -78,6 +78,7 @@ try {
     "skill/reference/routing.md",
     "skill/scripts/audit-gsap.mjs",
     "skill/scripts/audit-svg.mjs",
+    "skill/scripts/capture-motion.mjs",
     "skill/scripts/lib/rules.mjs",
     "skill/scripts/lib/source.mjs",
     "skill/scripts/lib/ast.mjs",

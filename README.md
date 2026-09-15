@@ -53,6 +53,8 @@ This skill gives the agent two things it lacks:
   line, or in your editor as an ESLint plugin.
 - **`audit-svg`**: what an SVG can do before you animate it — what DrawSVG can
   draw, what MorphSVG can morph, and what will fail silently.
+- **`inspect`**: watches a page animate in your own Chrome — a filmstrip, the
+  timeline GSAP is running, and the browser work it cost. It installs nothing.
 - **Typed templates** for a component timeline and a scroll scene, compiled in
   CI.
 
@@ -242,6 +244,7 @@ This exact component is built in CI as part of the
 | `intro` | A site or section entry sequence |
 | `three [target]` | GSAP orchestrating Three.js or React Three Fiber |
 | `audit [target]` | Check existing animation for leaks, cost and accessibility |
+| `inspect <url>` | Watch a page animate: a filmstrip, the running timeline, measured browser work |
 | `tune [target]` | Retime, re-ease and fix rhythm, adding no new motion |
 | `strip [target]` | Remove motion that is not earning its place |
 

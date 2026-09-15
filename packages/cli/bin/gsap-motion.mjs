@@ -7,6 +7,7 @@
  *   npx @mehshekari/gsap-motion remove [--global | --dir <skills-dir>]
  *   npx @mehshekari/gsap-motion audit [path...] [--quiet] [--json]
  *   npx @mehshekari/gsap-motion audit-svg <file.svg...> [--morph] [--hues]
+ *   npx @mehshekari/gsap-motion inspect <url> [--at ...] [--hover ...] [--reduced]
  *   npx @mehshekari/gsap-motion doctor
  *
  * Installed as a dependency, the same commands run as `gsap-motion <command>`.
@@ -69,6 +70,16 @@ Commands
   audit-svg <file...>   What an SVG can do before you animate it
     --morph <a> <b>     Compare a morph pair
     --hues              Also report hard-coded hues
+  inspect <url>         Watch a page animate and report what it did
+    --at 0,300,900      When to capture, in ms after the page settles
+    --scroll <px|sel>   Scroll before capturing
+    --hover <selector>  Move the pointer onto an element
+    --click <selector>  Click an element
+    --reduced --dark    Emulate a preference
+    --mobile            390x844 with touch input
+    --cpu 4             Throttle the CPU by this factor
+    --out <dir>         Where frames go. Default .gsap-motion/inspect
+    --json              Machine-readable output
   doctor                Check Node, the installed skill and your project's GSAP
   --version             Print the version
 
@@ -300,6 +311,9 @@ switch (command) {
     break;
   case "audit-svg":
     runScript("audit-svg.mjs", args);
+    break;
+  case "inspect":
+    runScript("capture-motion.mjs", args);
     break;
   case "doctor":
     doctor();

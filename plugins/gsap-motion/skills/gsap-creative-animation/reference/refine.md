@@ -50,6 +50,31 @@ at a time, and read what actually happened in the DOM.
 A fix built on a guess usually works by accident, and the comment above it is
 then wrong for everyone who reads it next.
 
+## Watch it, when you can
+
+A checker reads code. It cannot see a seam, a slideshow, or a hero that starts
+so late the visitor has already scrolled past it. When a browser is on the
+machine, run the page:
+
+```bash
+node <skill-dir>/scripts/capture-motion.mjs http://localhost:3000 --at 0,300,900
+```
+
+It reports a filmstrip, the timeline GSAP is actually running — which is not
+always the one in the source — and the layouts, style recalculations and frames
+the browser did. All observations; the judgement is yours.
+
+Reach the state first, and change the conditions that usually break things:
+
+- `--scroll <px|selector>`, `--hover <selector>`, `--click <selector>` run in
+  the order written, before the first capture. A hover effect or a mid-page
+  ScrollTrigger is invisible without them.
+- `--reduced`, `--dark`, `--mobile`, `--cpu 4`. `--mobile` makes input touch,
+  so it cannot be combined with `--hover`: a coarse pointer has no hover, which
+  is the thing worth knowing.
+
+**Without a browser, report the stage as not run.** Not "fine".
+
 ## When to stop
 
 Stop when every check is clean, or after **three rounds**, reporting what is
