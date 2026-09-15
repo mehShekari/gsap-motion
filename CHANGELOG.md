@@ -6,6 +6,49 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-09-15
+
+Minor: the maturity model, and `patterns check` to enforce it. A project can now
+record the shapes it has proven, and the record is checked rather than trusted.
+No rule, level, flag or existing command changed.
+
+The reason it is a check and not a convention: a skill that writes down whatever
+it just invented teaches itself its own mistakes. A pattern loaded as guidance
+repeats in every session after it, so a wrong one is not one mistake, it is
+every future mistake. Standing therefore comes from evidence — `validated` is
+counted from recorded uses rather than asserted, and `canonical` needs a named
+person — because those are exactly the two an eager assistant would otherwise
+grant itself.
+
+### Added
+
+- **`patterns check [file]`**, backed by `scripts/patterns.mjs`: it reads the
+  Patterns section of a project's `ANIMATION.md` and reports what the evidence
+  does not support. Five statuses — `experimental`, `candidate`, `validated`,
+  `canonical`, `retired` — each with what it must carry.
+  - `validated` requires uses in **separate components**, each with its file and
+    commit. Two commits to one file is one use.
+  - `canonical` requires a reviewer's name.
+  - An entry verified against an older GSAP than the installed one is marked for
+    re-verification, as a warning: it does not stop working because a minor
+    version shipped, but the claim behind it was checked against something else.
+  - `experimental` in the file is a warning, because experimental means offered
+    in an answer and not yet written down.
+  - It exits 1 on an unsupported claim, so it belongs in `lint` beside `audit`;
+    `--quiet` prints nothing when there is nothing to fail on. A project with no
+    Patterns section passes and says so.
+  - It only ever reads. Where a candidate has earned `validated` it says so, with
+    the uses behind it, and leaves the promotion to a person.
+- **The maturity model and the entry format**, in `reference/project-rules.md`:
+  the five statuses and what each is loaded as, who may move an entry and on
+  what evidence, how an entry moves back down, and the `Patterns` heading in the
+  `ANIMATION.md` template.
+
+### Changed
+
+- The `ANIMATION.md` template gains a `Patterns` section, marked optional. Empty
+  is the honest state for a project that has not proven anything yet.
+
 ## [3.5.0] - 2026-09-15
 
 Minor: `review`, the visual audit. It measures what an animation actually did —
@@ -472,6 +515,7 @@ production website.
 - The date GSAP became free: version 3.13, in April 2025.
 
 [Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...HEAD
+[3.6.0]: https://github.com/mehShekari/gsap-motion/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/mehShekari/gsap-motion/compare/v3.4.1...v3.5.0
 [3.4.1]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...v3.4.1
 [3.4.0]: https://github.com/mehShekari/gsap-motion/compare/v3.3.0...v3.4.0

@@ -83,7 +83,73 @@ one is short, and each section is an instruction rather than an essay:
 
 ## Precedents
 <!-- Files that already do this well, by path, and what each one taught. -->
+
+## Patterns
+<!-- Shapes this project has proven. Format and statuses below; `patterns
+     check` validates this section. Omit the section until there is one. -->
 ````
+
+---
+
+## Patterns: what the project has proven
+
+A pattern is a shape of animation this project has used and can use again. The
+section is optional, and empty is the honest state for a new project.
+
+**Nothing becomes guidance by having been written.** A pattern loaded as
+guidance repeats in every session after it, so a wrong one is not one mistake,
+it is every future mistake. That is why a status is evidence, not a claim.
+
+| Status | Reached when | Loaded as |
+|---|---|---|
+| `experimental` | Built for one request, its claims verified, the audit clean. **Offered in the answer, never written to the file.** | Nothing |
+| `candidate` | The user accepts it into ANIMATION.md. That acceptance is its first use. | An option to mention, never a default |
+| `validated` | Used again in a **different component** — two uses by default — each recorded with its file and commit, and each audit clean | The house way, unless the request gives a reason not to |
+| `canonical` | A **named person** has reviewed it | A precedent, followed like the house motion language |
+| `retired` | Disproved. Kept, with the reason, so it is not reinvented | A warning only |
+
+**Who moves an entry.** The skill offers entries and proposes promotions with
+their evidence; it never changes a status on its own. `candidate` needs your
+yes. `validated` is counted by `patterns check` from the recorded uses, never
+asserted by the entry. `canonical` needs a reviewer's name.
+
+**Moving down is evidence too.** A bug traced to a pattern returns it to
+`candidate` with the failure recorded. A GSAP release past its verified version
+marks it for re-verification — it stays loaded, marked. A use later reverted
+does not count.
+
+### The format
+
+```markdown
+### Ink behind a moving pen
+
+- **Status:** candidate
+- **Concept:** a mask shares the pen's duration and ease, so ink appears only
+  where the nib has already been.
+- **Fixed:** the mask and the path share one duration and one ease.
+- **Parameters:** duration, ease, nib radius.
+- **Not when:** the stroke crosses itself — the mask reveals the crossing early.
+- **Reduced motion:** the finished stroke is set, and no tween runs.
+- **Verified against:** gsap 3.15, DrawSVGPlugin
+- **Uses:**
+  - `src/components/Signature.tsx` — `a1b2c3d` — audit clean
+  - `src/components/Hero.tsx` — `e4f5a6b` — audit clean, review: no seams
+- **Reviewed by:** <!-- a name, for canonical only -->
+```
+
+`Concept`, `Not when`, `Reduced motion` and `Verified against` are required of
+every entry that is in the file. A `retired` entry needs only **Why**. Two uses
+in the same file count once: one component is one use.
+
+Run it with the rest of the checks:
+
+```bash
+gsap-motion patterns check          # or: patterns check path/to/ANIMATION.md
+```
+
+It exits 1 on a claim the evidence does not support, so it belongs in `lint`
+beside `audit`. Where a candidate has earned `validated`, it says so and leaves
+the promotion to you.
 
 ---
 

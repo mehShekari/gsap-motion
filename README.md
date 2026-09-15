@@ -247,6 +247,7 @@ This exact component is built in CI as part of the
 | `inspect <url>` | Watch a page animate: a filmstrip, the running timeline, measured browser work |
 | `explain [target]` | Map an existing animation: scopes, branches, beats, triggers, and what the audit says |
 | `review <url>` | Measure what the motion did: time to first motion, how much of the screen moves at once, loop seams, motion over text |
+| `patterns` | What this project has proven, by status, and what has earned a promotion |
 | `tune [target]` | Retime, re-ease and fix rhythm, adding no new motion |
 | `strip [target]` | Remove motion that is not earning its place |
 
@@ -266,7 +267,7 @@ can gate a build. Pin the version, so a new rule cannot fail your build without
 warning:
 
 ```json
-"lint": "eslint && npx @mehshekari/gsap-motion@3.5.0 audit src --quiet"
+"lint": "eslint && npx @mehshekari/gsap-motion@3.6.0 audit src --quiet"
 ```
 
 Or install it with `npm install --save-dev --save-exact @mehshekari/gsap-motion`;

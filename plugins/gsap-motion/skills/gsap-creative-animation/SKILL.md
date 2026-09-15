@@ -4,7 +4,7 @@ description: Senior motion engineer for GSAP. Turns a visual or interaction idea
 license: MIT. See LICENSE; GSAP itself is licensed separately, see NOTICE.md
 compatibility: Any Agent Skills client; written for Claude Code. GSAP 3.13+, where every plugin is free. React guidance targets @gsap/react 2.x, React 18/19 and the Next.js App Router. The audit scripts need Node.js 18+ and nothing else.
 metadata:
-  version: "3.5.0"
+  version: "3.6.0"
   verified-gsap: "3.15"
   verified-gsap-react: "2.1"
 ---
@@ -101,8 +101,8 @@ intent → precedent → targets → trigger → motion language → technique
 2. **Precedent** — grep for the animation this codebase already has. Its
    trigger point, easing, durations, stagger shape and attribute naming are the
    house language: match them, and differ only for a reason you can state.
-   Nothing downstream catches a skipped precedent — the code compiles, the
-   audit passes, and the page reads as two different sites.
+   Nothing downstream catches a skipped precedent: the code compiles, the audit
+   passes, and the page reads as two different sites.
 3. **Targets** — which elements move, and can they be reached without a
    positional selector that breaks when the markup moves?
 4. **Trigger** — mount, in-view, scroll position, pointer, click, route, loop.
@@ -112,8 +112,8 @@ intent → precedent → targets → trigger → motion language → technique
 8. **Implementation** — typed, cleaned up, responsive.
 9. **Performance** — transform and opacity; measure before defending anything else.
 10. **Accessibility** — the reduced-motion design, focus, keyboard.
-11. **Validate** — [refine.md](reference/refine.md): audit, fix in order,
-    re-run, then the checklist in [motion-design.md](reference/motion-design.md).
+11. **Validate** — [refine.md](reference/refine.md): audit, fix in order, re-run,
+    then the checklist in [motion-design.md](reference/motion-design.md).
 
 ## Output format
 

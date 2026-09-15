@@ -23,6 +23,7 @@ No dependencies, no install scripts, Node.js 18 or later.
 | `inspect <url>` | Watches a page animate over the DevTools Protocol and reports what it saw: a filmstrip, the timeline GSAP is running, and the layouts, style recalculations and frames the browser did. `--scroll`, `--hover` and `--click` reach the state first; `--reduced`, `--dark`, `--mobile` and `--cpu` change the conditions. Needs a Chrome on the machine; installs nothing. |
 | `explain <file...|url>` | Maps an animation and changes nothing: where it lives, its preference branches, its beats in order with the reasons their comments give, its scroll configuration, and what the audit says. Given a URL it reads the running page instead, where the timeline is the one GSAP actually built. |
 | `review <url>` | Measures what the motion actually did, by sampling the DOM every frame rather than by reading GSAP's timeline — which a bundled app never exposes, and which would make it work on demo pages and fail on real ones. Reports time to first motion, the share of the screen moving at its busiest, loop seams, and motion over text being read. Sampling forces layout, so it does not report layout counts; `inspect` measures those. Takes the same `--scroll`, `--reduced`, `--dark`, `--mobile` and `--cpu`. |
+| `patterns check [file]` | Validates the Patterns section of your `ANIMATION.md`: the fields each status needs, the recorded uses behind `validated`, the named reviewer behind `canonical`, and entries verified against an older GSAP than the one installed. Exits 1 on a claim the evidence does not support, so it belongs in `lint` beside `audit`. A project with no Patterns section passes. |
 | `doctor` | Checks Node.js, the installed skill's version for this project and your user, your project's `gsap` and `@gsap/react`, and whether an `ANIMATION.md` exists. |
 
 ## In CI
@@ -31,7 +32,7 @@ The audit needs no install. Pin the version, so a new rule cannot fail your
 build without warning:
 
 ```json
-"lint": "eslint && npx @mehshekari/gsap-motion@3.5.0 audit src --quiet"
+"lint": "eslint && npx @mehshekari/gsap-motion@3.6.0 audit src --quiet"
 ```
 
 Or install it with `npm install --save-dev --save-exact @mehshekari/gsap-motion`.

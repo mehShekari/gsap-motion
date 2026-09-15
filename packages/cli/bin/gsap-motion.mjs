@@ -10,6 +10,7 @@
  *   npx @mehshekari/gsap-motion inspect <url> [--at ...] [--hover ...] [--reduced]
  *   npx @mehshekari/gsap-motion explain <file...|url>
  *   npx @mehshekari/gsap-motion review <url> [--scroll ...] [--mobile]
+ *   npx @mehshekari/gsap-motion patterns check [ANIMATION.md]
  *   npx @mehshekari/gsap-motion doctor
  *
  * Installed as a dependency, the same commands run as `gsap-motion <command>`.
@@ -93,6 +94,10 @@ Commands
     --mobile            390x844 with touch input
     --cpu 4             Throttle the CPU by this factor
     --out <dir>         Save a frame alongside the measurements
+    --json              Machine-readable output
+  patterns check [file] Check the Patterns section of your ANIMATION.md:
+                        the fields each status needs, the uses behind
+                        validated, the reviewer behind canonical
     --json              Machine-readable output
   doctor                Check Node, the installed skill and your project's GSAP
   --version             Print the version
@@ -334,6 +339,9 @@ switch (command) {
     break;
   case "review":
     runScript("review-motion.mjs", args);
+    break;
+  case "patterns":
+    runScript("patterns.mjs", args);
     break;
   case "doctor":
     doctor();
