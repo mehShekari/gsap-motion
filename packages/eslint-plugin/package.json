@@ -1,6 +1,6 @@
 {
   "name": "@mehshekari/eslint-plugin-gsap-motion",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "The gsap-motion audit as ESLint rules: GSAP tweens that outlive their component, per-event allocations and missing reduced-motion branches, reported in your editor.",
   "keywords": [
     "eslint",

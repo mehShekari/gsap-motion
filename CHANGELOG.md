@@ -6,8 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-The audit's rules as an ESLint plugin. The command line's findings are
-unchanged. No eval scores: the eval suite is updated and run once the roadmap is
+## [3.1.1] - 2026-09-15
+
+Patch: no rule id, level, command or flag changed, and the command line reports
+what 3.1.0 reported. The audit's rules also run as an ESLint plugin, a new
+package that starts at this version and moves in lockstep with the command
+line. No eval scores: the eval suite is updated and run once the roadmap is
 finished.
 
 ### Added
@@ -252,7 +256,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.1.1...HEAD
+[3.1.1]: https://github.com/mehShekari/gsap-motion/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/mehShekari/gsap-motion/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/mehShekari/gsap-motion/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/mehShekari/gsap-motion/compare/v2.1.0...v3.0.0
