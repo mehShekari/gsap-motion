@@ -6,6 +6,50 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-09-15
+
+Minor: `review`, the visual audit. It measures what an animation actually did —
+time to first motion, how much of the screen moves at once, loop seams, and
+motion over text being read — and gives no verdict on taste. No rule, level,
+flag or existing command changed, so nothing that passed 3.4.1 can fail here.
+
+This is the part of 3.4 that was left unbuilt, and it is deliberately not built
+the way 3.4's plan described it. That plan had it diff the written plan against
+`gsap.globalTimeline` and find loop seams by comparing frames. 3.4.1 established
+that a bundled app never publishes `gsap` to the page, which rules out the
+first; and sampling the DOM answers the second more precisely than a pixel diff,
+for none of the cost. Both departures are recorded with their evidence.
+
+No eval scores: the planned planted-defect cases belong to phase 8, and this
+release changes no guidance a model reads beyond one reference page.
+
+### Added
+
+- `review <url>`, backed by `scripts/review-motion.mjs`: it records the box,
+  opacity and transform of every element that can move, every frame, and diffs
+  consecutive frames. From that it reports the first moment anything moved, the
+  share of the viewport in motion at its busiest, loop seams, motion over text,
+  and the frame rate. Takes `--watch`, `--scroll`, `--reduced`, `--dark`,
+  `--mobile`, `--cpu`, `--out` and `--json`.
+  - **It sees motion the source audit cannot.** On a real site, 219 of the 348
+    moving elements were not GSAP's: CSS and Web Animations, which no static
+    rule reaches.
+  - **It does not report layout cost**, because reading every box every frame is
+    what forces layout — on a real page, sampling quadrupled the count. `inspect`
+    measures that without sampling, and says so where a reader will ask.
+  - **It does not report a seam a scroll caused.** Jumping the scrollbar is how
+    it reaches a scene further down, and a scrubbed animation answers an instant
+    scroll by moving instantly, which is correct.
+- The refinement loop's visual stage, in `reference/refine.md`: what each number
+  is good for, the three things the tool deliberately does not do, and a
+  `Verification` line that states the window and the viewport it watched.
+
+### Changed
+
+- SKILL.md names both browser scripts under one Chrome caveat. It stood at
+  exactly 1500 words, its budget, so the room for the new command was made by
+  trimming rather than by raising the budget. It is still exactly 1500.
+
 ## [3.4.1] - 2026-09-15
 
 Patch: four fixes, every one of them found by running 3.4.0's own two new
@@ -428,6 +472,7 @@ production website.
 - The date GSAP became free: version 3.13, in April 2025.
 
 [Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...HEAD
+[3.5.0]: https://github.com/mehShekari/gsap-motion/compare/v3.4.1...v3.5.0
 [3.4.1]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...v3.4.1
 [3.4.0]: https://github.com/mehShekari/gsap-motion/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/mehShekari/gsap-motion/compare/v3.2.0...v3.3.0

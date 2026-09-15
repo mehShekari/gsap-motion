@@ -78,6 +78,41 @@ Reach the state first, and change the conditions that usually break things:
 
 **Without a browser, report the stage as not run.** Not "fine".
 
+## Measure it, once you have watched it
+
+`capture-motion.mjs` shows you frames. `review-motion.mjs` measures what the
+motion did, and is where the visual stage of this loop gets its evidence:
+
+```bash
+node <skill-dir>/scripts/review-motion.mjs http://localhost:3000 --scroll 2000
+```
+
+It samples the DOM every frame rather than reading `gsap.globalTimeline`,
+because a bundled app never publishes `gsap` to the page — so it works on a real
+Next, Vite, Nuxt, Astro or Svelte app, and it sees CSS and Web Animations motion
+that no source rule can reach.
+
+| It says | Read it as |
+| --- | --- |
+| **first motion at N ms** | How long the page is still. Late enough and the visitor has scrolled past the thing you built. |
+| **N elements moved, M of them GSAP's** | The gap is motion the audit never sees. A surprise there is worth chasing. |
+| **X% of the screen in motion** | Everything moving at once reads as noise, not as choreography. |
+| **seams** | A step far larger than that motion's own rhythm: a loop put back by hand instead of carried. |
+| **motion over text** | Something painted over a line a reader is in the middle of. Hit-tested, so it is what is really on top. |
+
+Three things it deliberately does not do, so you do not read them into it:
+
+- **It does not report layout cost.** Reading every box every frame is what
+  forces layout, so its numbers would be partly its own doing. `inspect`
+  measures that without sampling; use it for cost.
+- **It does not judge taste.** Composition, rhythm and whether the thing is any
+  good are yours, with the filmstrip in front of you.
+- **It does not report a seam a scroll caused.** Jumping the scrollbar is how it
+  reaches a scene, and a scrubbed animation answers instantly and correctly.
+
+A clean report is evidence, not proof: it watched one window, on one machine, at
+one size. Say which.
+
 ## When to stop
 
 Stop when every check is clean, or after **three rounds**, reporting what is
@@ -103,6 +138,8 @@ The answer's **Verification** section is one line per check, with its evidence:
 ```text
 Verification
 - audit-gsap: clean (3 warns waived: layout-property on the grid, with reasons)
+- review: first motion 410ms, 38% of the screen at its busiest, no seams,
+  nothing over text (1280x800, one 3s window)
 - reduced motion: emulated, the static branch sets the end state
 - StrictMode: mounted twice in dev, no doubled tweens
 - not checked: frame cost on a real phone — no device to hand
