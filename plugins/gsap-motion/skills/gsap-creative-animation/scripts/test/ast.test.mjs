@@ -27,7 +27,7 @@ import {
   varsObjects,
   walk,
 } from "../lib/ast.mjs";
-import { lineAt, load } from "../lib/source.mjs";
+import { fromText, lineAt, load } from "../lib/source.mjs";
 import { project } from "./helpers.mjs";
 
 describe("parse", () => {
@@ -197,5 +197,52 @@ function b() {
       timelineLinks(ast, first).map((call) => methodName(call)),
       ["to", "addLabel", "from"],
     );
+  });
+});
+
+describe("single-file components", () => {
+  test("keeps every offset, so a finding lands on its real line", () => {
+    const vue = [
+      "<template>",
+      "  <p>Don't panic — 3 < 4</p>",
+      "</template>",
+      "",
+      '<script setup lang="ts">',
+      'import gsap from "gsap";',
+      "",
+      'gsap.to(el, { width: 100 });',
+      "</script>",
+      "",
+    ].join("\n");
+
+    const file = fromText(vue, "Panel.vue");
+    assert.equal(file.parseError, null);
+    assert.equal(file.usesGsap, true);
+    assert.equal(file.isReact, false);
+
+    const [tween] = findAll(file.ast, (node) => isGsapCall(node));
+    assert.equal(lineAt(vue, tween.start), 8, "the tween's real line in the file");
+  });
+
+  test("reads only scripts that hold JavaScript", () => {
+    const astro = [
+      '<script type="application/ld+json">{"@type":"Thing"}</script>',
+      "<script>",
+      '  import gsap from "gsap";',
+      "  gsap.to(el, { x: 1 });",
+      "</script>",
+      "",
+    ].join("\n");
+
+    const file = fromText(astro, "Page.astro");
+    assert.equal(file.parseError, null, "the JSON block is not parsed as code");
+    assert.equal(findAll(file.ast, (node) => isGsapCall(node)).length, 1);
+  });
+
+  test("a template is not code, so what it says never counts", () => {
+    const svelte = ['<section>gsap.to is only text here</section>', ""].join("\n");
+    const file = fromText(svelte, "Card.svelte");
+    assert.equal(file.usesGsap, false);
+    assert.equal(file.code.trim(), "");
   });
 });

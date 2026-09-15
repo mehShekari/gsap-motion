@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-09-15
+
+Minor: lifecycle guidance is now one adapter per stack, and `unreverted-context`
+is a new warn rule. No rule id, level, command or flag changed — but
+`state-per-event` reads `useFrame` as a per-frame scope, so an error-level rule
+catches a case it used to miss and a build that gates on errors can fail on code
+that passed 3.1.1: pin the exact version. No eval scores: the eval suite is
+updated and run once the roadmap is finished.
+
 ### Added
 
 - `adapter/`, one file per stack: `react`, `next`, `vue`, `svelte`, `astro`,
@@ -18,6 +27,20 @@ All notable changes to this project are documented here. The format follows
   loads react and next, `@react-three/fiber` loads react and r3f, `nuxt` loads
   vue, `astro` loads astro plus the adapter of an island being animated, and a
   project with none of them loads vanilla.
+- The audit reads `.vue`, `.svelte` and `.astro` files. Their `<script>` blocks
+  are read as code and everything else — template, styles, Astro's server-side
+  `---` frontmatter, and any `<script>` that is not JavaScript — is blanked,
+  keeping every offset, so a finding's line is the line in the file.
+- `unreverted-context` (warn): a `gsap.context` created in a mount hook —
+  `onMounted`, `onMount`, `$effect`, `useEffect`, or an `astro:page-load`
+  listener — that nothing reverts. Every adapter's teardown rule in one shape. A
+  context a module hands to its caller is not reported: this file cannot see
+  whether the caller tears it down.
+- `gsap-motion doctor` names the adapters a project gets, read from
+  `package.json` exactly as the skill reads it.
+- The freshness check reads the versions each adapter names, so Next, Vue, Nuxt,
+  Svelte, Astro, Three and React Three Fiber moving on is reported too, not only
+  GSAP and `@gsap/react`.
 
 ### Changed
 
@@ -30,6 +53,10 @@ All notable changes to this project are documented here. The format follows
   4,100 words, against 3,873 before, because it is the one stack that loads two
   adapters; every other stack falls to between 2,980 and 3,300. The component
   budget is 4,150 and the largest build tier 5,200.
+- `state-per-event` reads React Three Fiber's `useFrame` callback as a per-frame
+  scope, so React state set inside it is reported. It is an error-level rule
+  catching a case it used to miss, so a build that gates on errors can fail on
+  code that passed 3.1.1: pin the exact version.
 
 ## [3.1.1] - 2026-09-15
 
@@ -281,7 +308,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.1.1...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/mehShekari/gsap-motion/compare/v3.1.1...v3.2.0
 [3.1.1]: https://github.com/mehShekari/gsap-motion/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/mehShekari/gsap-motion/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/mehShekari/gsap-motion/compare/v3.0.0...v3.0.1

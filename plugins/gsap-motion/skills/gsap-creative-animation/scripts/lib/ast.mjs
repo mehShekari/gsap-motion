@@ -21,9 +21,15 @@ const OPTIONS = {
  * `.ts` is read without JSX, because there `<T>(x) => x` is a generic and
  * `<Type>value` a cast; every other extension is read with it. A `.js` file
  * with JSX is common enough, and JSX never changes how plain JavaScript parses.
+ *
+ * A single-file component's `<script>` is read without JSX too: it is
+ * TypeScript as often as not, and the template where the angle brackets live is
+ * blanked out before it reaches here.
  */
 const TYPESCRIPT = Parser.extend(tsPlugin());
 const TYPESCRIPT_JSX = Parser.extend(tsPlugin({ jsx: true }));
+
+const WITHOUT_JSX = /\.(?:[mc]?ts|vue|svelte|astro)$/;
 
 /**
  * Parses `source` as the grammar its `path` implies.
@@ -34,7 +40,7 @@ const TYPESCRIPT_JSX = Parser.extend(tsPlugin({ jsx: true }));
  */
 export function parse(source, path) {
   const comments = [];
-  const parser = /\.[mc]?ts$/.test(path) ? TYPESCRIPT : TYPESCRIPT_JSX;
+  const parser = WITHOUT_JSX.test(path) ? TYPESCRIPT : TYPESCRIPT_JSX;
   const ast = parser.parse(source, { ...OPTIONS, onComment: comments });
   return { ast, comments };
 }

@@ -190,6 +190,27 @@ describe("doctor", () => {
     assert.match(result.stdout, /✓ gsap \^3\.15\.0/);
     assert.match(result.stdout, /✓ ANIMATION\.md found/);
   });
+
+  test("names the adapters the stack gets, composed as SKILL.md composes them", () => {
+    const next = sandbox({
+      "package.json": JSON.stringify({
+        dependencies: { gsap: "^3.15.0", next: "^16.0.0", react: "^19.0.0" },
+      }),
+    });
+    assert.match(run(next, "doctor").stdout, /Adapters: react, next/);
+
+    const scene = sandbox({
+      "package.json": JSON.stringify({
+        dependencies: { gsap: "^3.15.0", react: "^19.0.0", "@react-three/fiber": "^9.0.0" },
+      }),
+    });
+    assert.match(run(scene, "doctor").stdout, /Adapters: react, r3f/);
+
+    const plain = sandbox({
+      "package.json": JSON.stringify({ dependencies: { gsap: "^3.15.0" } }),
+    });
+    assert.match(run(plain, "doctor").stdout, /Adapters: vanilla/);
+  });
 });
 
 describe("bundle-skill.mjs", () => {

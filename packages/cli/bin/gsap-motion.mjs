@@ -257,6 +257,23 @@ function doctor() {
     );
   }
 
+  /**
+   * Which adapters the skill loads here, read the way SKILL.md's setup step 3
+   * describes. Deterministic, so the stack is looked up rather than guessed.
+   */
+  const picked = new Set();
+  if (deps.next) picked.add("react").add("next");
+  if (deps["@react-three/fiber"]) picked.add("react").add("r3f");
+  else if (deps.three) picked.add("three");
+  if (deps.react) picked.add("react");
+  if (deps.vue || deps.nuxt) picked.add("vue");
+  if (deps.svelte || deps["@sveltejs/kit"]) picked.add("svelte");
+  if (deps.astro) picked.add("astro");
+  if (picked.size === 0) picked.add("vanilla");
+
+  const ORDER = ["react", "next", "r3f", "three", "vue", "svelte", "astro", "vanilla"];
+  report("ok", `Adapters: ${ORDER.filter((name) => picked.has(name)).join(", ")}`);
+
   const rules = existsSync(join(process.cwd(), "ANIMATION.md"));
   report(
     rules ? "ok" : "info",

@@ -12,7 +12,19 @@ import { extname, join, relative } from "node:path";
 
 import { parse } from "./ast.mjs";
 
-const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
+const SOURCE_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".vue",
+  ".svelte",
+  ".astro",
+]);
+
+/** A single-file component: only its `<script>` blocks are code. */
+const SINGLE_FILE = /\.(?:vue|svelte|astro)$/;
 const SKIP_DIRECTORIES = new Set([
   "node_modules",
   ".next",
@@ -132,6 +144,41 @@ export function lineAt(source, index) {
 }
 
 /**
+ * A single-file component with everything outside its `<script>` blocks blanked
+ * out, keeping every newline and every offset — so what reaches the parser is
+ * JavaScript, and a finding still points at the right line of the `.vue`,
+ * `.svelte` or `.astro` file.
+ *
+ * A `<script>` whose `type` is not JavaScript — JSON-LD, an import map, a
+ * template — is blanked with the markup. Astro's `---` frontmatter runs on the
+ * server and animates nothing, so it is left out too; the client `<script>` is
+ * what this reads.
+ */
+export function scriptsOnly(raw) {
+  const blank = (text) => text.replace(/[^\n]/g, " ");
+  const JAVASCRIPT = /^(?:module|text\/javascript|application\/javascript|ts|tsx)$/i;
+  const open = /<script\b([^>]*)>/gi;
+
+  let out = "";
+  let index = 0;
+
+  for (let tag = open.exec(raw); tag; tag = open.exec(raw)) {
+    const start = tag.index + tag[0].length;
+    const close = raw.indexOf("</script", start);
+    const end = close === -1 ? raw.length : close;
+    const type = tag[1].match(/\btype\s*=\s*["']([^"']*)["']/i)?.[1];
+    const code = !type || JAVASCRIPT.test(type.trim());
+
+    out += blank(raw.slice(index, start));
+    out += code ? raw.slice(start, end) : blank(raw.slice(start, end));
+    index = end;
+    open.lastIndex = end;
+  }
+
+  return out + blank(raw.slice(index));
+}
+
+/**
  * A file plus everything the rules need, from its text.
  *
  * The command line reads the text from disk, through `load`. The ESLint plugin
@@ -139,7 +186,8 @@ export function lineAt(source, index) {
  * points run the rules on the same parse of the same characters.
  */
 export function fromText(raw, path, display = path) {
-  const code = stripComments(raw);
+  const source = SINGLE_FILE.test(path) ? scriptsOnly(raw) : raw;
+  const code = stripComments(source);
 
   /**
    * Parsed on first use, and once. Most files in a project never mention GSAP,
@@ -151,7 +199,7 @@ export function fromText(raw, path, display = path) {
   const tree = () => {
     if (parsed === undefined) {
       try {
-        parsed = { ...parse(raw, path), error: null };
+        parsed = { ...parse(source, path), error: null };
       } catch (error) {
         parsed = {
           ast: null,

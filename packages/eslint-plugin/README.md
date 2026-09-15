@@ -75,6 +75,7 @@ so a finding waived that way still fails `gsap-motion audit`.
 | `orphan-tween` | error | A tween created outside `useGSAP`, `gsap.context` or `contextSafe` in React — never reverted, and doubled by StrictMode |
 | `unmanaged-instance` | error | `matchMedia`, `Observer`, `Draggable`, `ScrollSmoother` or `SplitText` created outside a context and never torn down |
 | `tween-per-event` | error | A new tween allocated on every pointer, scroll or wheel event |
+| `unreverted-context` | warn | A `gsap.context` created on mount — `onMounted`, `onMount`, `useEffect`, `astro:page-load` — that nothing reverts |
 | `state-per-event` | error | React state set in a high-frequency handler — a re-render per frame |
 | `shared-plugin-id` | error | A hardcoded `#id` in MotionPath or MorphSVG config, which two instances of a component will share |
 | `unregistered-plugin` | error | A plugin imported and never registered, whose properties are silently ignored |

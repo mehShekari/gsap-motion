@@ -1373,6 +1373,178 @@ gsap.registerPlugin(ScrollTrigger, Observer);
   });
 });
 
+describe("unreverted-context", () => {
+  test("fires on a Vue context built on mount that nothing reverts", () => {
+    fires(
+      "unreverted-context",
+      `<template>
+  <section ref="root"><p>Don't wait</p></section>
+</template>
+
+<script setup lang="ts">
+import gsap from "gsap";
+import { onMounted, ref } from "vue";
+
+const root = ref<HTMLElement | null>(null);
+
+onMounted(() => {
+  gsap.context(() => {
+    gsap.from("[data-item]", { autoAlpha: 0, y: 24, stagger: 0.06 });
+  }, root.value);
+});
+</script>`,
+      { ext: "vue" },
+    );
+  });
+
+  test("stays quiet when onUnmounted reverts the context it was assigned to", () => {
+    quiet(
+      "unreverted-context",
+      `<script setup>
+import gsap from "gsap";
+import { onMounted, onUnmounted, ref } from "vue";
+
+const root = ref(null);
+let ctx;
+
+onMounted(() => {
+  ctx = gsap.context(() => {
+    gsap.from("[data-item]", { autoAlpha: 0, y: 24 });
+  }, root.value);
+});
+
+onUnmounted(() => ctx?.revert());
+</script>`,
+      { ext: "vue" },
+    );
+  });
+
+  test("fires on an Astro page-load context with no swap teardown", () => {
+    fires(
+      "unreverted-context",
+      `<script>
+import gsap from "gsap";
+
+document.addEventListener("astro:page-load", () => {
+  gsap.context(() => {
+    gsap.from("[data-item]", { autoAlpha: 0, y: 24 });
+  });
+});
+</script>`,
+      { ext: "astro" },
+    );
+  });
+
+  test("stays quiet on an Astro context reverted before the swap", () => {
+    quiet(
+      "unreverted-context",
+      `<script>
+import gsap from "gsap";
+
+let ctx;
+
+document.addEventListener("astro:page-load", () => {
+  ctx = gsap.context(() => {
+    gsap.from("[data-item]", { autoAlpha: 0, y: 24 });
+  });
+});
+
+document.addEventListener("astro:before-swap", () => ctx?.revert());
+</script>`,
+      { ext: "astro" },
+    );
+  });
+
+  test("stays quiet on a Svelte effect that returns its own revert", () => {
+    quiet(
+      "unreverted-context",
+      `<script>
+  import gsap from "gsap";
+
+  let root;
+
+  $effect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from("[data-item]", { autoAlpha: 0, y: 24 });
+    }, root);
+
+    return () => ctx.revert();
+  });
+</script>
+
+<section bind:this={root}>a</section>`,
+      { ext: "svelte" },
+    );
+  });
+
+  test("fires on a React useEffect context with no cleanup", () => {
+    fires(
+      "unreverted-context",
+      `${REACT}
+export function Box() {
+  const root = useRef(null);
+  useEffect(() => {
+    gsap.context(() => {
+      gsap.from("[data-item]", { y: 20 });
+    }, root.current);
+  }, []);
+  return <div ref={root} />;
+}`,
+    );
+  });
+
+  test("stays quiet on a context the module hands to its caller", () => {
+    quiet(
+      "unreverted-context",
+      `${PLAIN}
+export function mountReveal(root) {
+  const ctx = gsap.context(() => {
+    gsap.from("[data-item]", { autoAlpha: 0, y: 24 });
+  }, root);
+
+  return () => ctx.revert();
+}`,
+      { ext: "ts" },
+    );
+  });
+});
+
+describe("state-per-event, per frame", () => {
+  test("fires on React state set inside useFrame", () => {
+    fires(
+      "state-per-event",
+      `"use client";
+import { useFrame } from "@react-three/fiber";
+import { useState } from "react";
+
+export function Rig() {
+  const [spin, setSpin] = useState(0);
+  useFrame((state) => {
+    setSpin(state.clock.elapsedTime);
+  });
+  return null;
+}`,
+    );
+  });
+
+  test("stays quiet when useFrame writes a ref", () => {
+    quiet(
+      "state-per-event",
+      `"use client";
+import { useFrame } from "@react-three/fiber";
+import { useRef } from "react";
+
+export function Rig() {
+  const mesh = useRef(null);
+  useFrame((state) => {
+    mesh.current.rotation.y = state.clock.elapsedTime;
+  });
+  return null;
+}`,
+    );
+  });
+});
+
 test("every rule is shown to fire and to stay quiet", () => {
   const ids = RULES.map((rule) => rule.id);
   assert.deepEqual(

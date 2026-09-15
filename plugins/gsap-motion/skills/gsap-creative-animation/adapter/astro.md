@@ -107,5 +107,5 @@ is not React-specific.
 
 ## Versions
 
-Verified against `gsap@3.15`. Written for `astro@5` and later, whose swap events
-these are.
+Verified against `gsap@3.15`. Written for `astro@7`; the swap events are the
+same in Astro 5 and later, though the router component was renamed.

@@ -51,6 +51,8 @@ const HINT = {
     "Nothing reverts it on unmount, and React StrictMode runs it twice in development. Move it into the useGSAP body, or wrap the handler in contextSafe. A helper counts as inside only when every use of it is a call from inside a context.",
   unmanagedInstance:
     "Inside a context these register themselves and are reverted with it. Out here nothing is watching: move it into the useGSAP body, or keep the instance and revert/kill it from the cleanup.",
+  unrevertedContext:
+    "Keep it under a name and revert it when the component goes: `onUnmounted` in Vue, the function returned from `onMount` or `$effect` in Svelte, the `useEffect` cleanup in React, `astro:before-swap` in Astro. Everything created inside the context goes with it.",
   danglingListener:
     "A listener that survives unmount keeps the component's closure — and its DOM nodes — alive. Name the handler and remove it in the cleanup, or pass `{ signal }` from an AbortController and abort it there.",
   tweenPerEvent:
@@ -212,7 +214,7 @@ function listenerMethod(node) {
  * `followNames`, a handler passed by name is followed to its declaration when
  * the file declares exactly one function of that name.
  */
-function handlersFor(ast, events, { followNames = true } = {}) {
+function handlersFor(ast, events, { followNames = true, perFrame = false } = {}) {
   const handler = (expression) => {
     const node = unwrap(expression);
     if (node?.type === "CallExpression") return node;
@@ -240,6 +242,17 @@ function handlersFor(ast, events, { followNames = true } = {}) {
     if (attribute.value?.type !== "JSXExpressionContainer") continue;
     const node = handler(attribute.value.expression);
     if (node) handlers.push({ name: `on${prop[1]}`, node });
+  }
+
+  /**
+   * R3F's `useFrame(callback)` is a per-frame scope of its own: what is inside
+   * runs on every rendered frame, whatever the pointer is doing.
+   */
+  if (perFrame) {
+    for (const call of findAll(ast, (node) => calleeName(node) === "useFrame")) {
+      const node = handler(call.arguments[0]);
+      if (node) handlers.push({ name: "useFrame", node });
+    }
   }
 
   return handlers;
@@ -493,6 +506,47 @@ export function pluginRegistrations(file) {
   return names;
 }
 
+/**
+ * The mount hooks each adapter uses. A context created in one of them lives as
+ * long as the component does, so something has to revert it when the component
+ * goes.
+ */
+const MOUNT_HOOKS = new Set([
+  "onMounted",
+  "onMount",
+  "onActivated",
+  "useEffect",
+  "useLayoutEffect",
+  "$effect",
+]);
+
+/**
+ * Which mount hook `node` was created in, or null. Astro has no hook: its
+ * equivalent is a listener for `astro:page-load`, which fires on the first load
+ * and after every view transition.
+ */
+function mountHook(ast, node) {
+  /** Nearest first, so a function's own parent is the entry after it. */
+  const ancestors = ancestorsOf(ast, node);
+
+  for (let i = 0; i < ancestors.length; i += 1) {
+    if (!isFunction(ancestors[i])) continue;
+    const parent = ancestors[i + 1];
+    if (parent?.type !== "CallExpression") continue;
+
+    const name = calleeName(parent);
+    if (MOUNT_HOOKS.has(name)) return `\`${name}\``;
+    if (
+      name?.endsWith("addEventListener") &&
+      staticString(parent.arguments[0]) === "astro:page-load"
+    ) {
+      return "the `astro:page-load` handler";
+    }
+  }
+
+  return null;
+}
+
 export const RULES = [
   // --- Lifecycle ------------------------------------------------------------
   {
@@ -573,6 +627,40 @@ export const RULES = [
           message: `\`${label(node)}\` is created outside any useGSAP/gsap.context scope and never torn down.`,
           hint: HINT.unmanagedInstance,
         }));
+    },
+  },
+  {
+    id: "unreverted-context",
+    level: "warn",
+    description:
+      "A `gsap.context` created on mount — `onMounted`, `onMount`, `useEffect`, `astro:page-load` — that nothing reverts",
+    /**
+     * Every adapter's teardown rule, in one shape: a context built when the
+     * component mounts holds every tween, ScrollTrigger and matchMedia made
+     * inside it, and reverting it is the whole cleanup. Nothing reverts it here.
+     *
+     * Only contexts created in a mount hook are read. A context built in a
+     * function the module exports — the vanilla `mountReveal(root)` shape — hands
+     * its teardown to the caller, and this file cannot see whether the caller
+     * calls it.
+     */
+    test(file) {
+      const contexts = findAll(
+        file.ast,
+        (node) => calleeName(node) === "gsap.context",
+      );
+
+      return contexts.flatMap((call) => {
+        const hook = mountHook(file.ast, call);
+        if (!hook || tornDown(file.ast, call)) return [];
+        return [
+          {
+            index: call.start,
+            message: `The \`gsap.context\` created in ${hook} is never reverted.`,
+            hint: HINT.unrevertedContext,
+          },
+        ];
+      });
     },
   },
   {
@@ -699,14 +787,20 @@ export const RULES = [
         );
       });
 
-      return handlersFor(file.ast, STATE_HOT_EVENTS, { followNames: false }).flatMap(
+      return handlersFor(file.ast, STATE_HOT_EVENTS, {
+        followNames: false,
+        perFrame: true,
+      }).flatMap(
         (handler) =>
           setters
             .filter((setter) => contains(handler.node, setter))
             .filter((setter) => !debounced(handler, setter))
             .map((setter) => ({
               index: setter.start,
-              message: `React state setter inside a ${handler.name} handler.`,
+              message:
+                handler.name === "useFrame"
+                  ? "React state setter inside a `useFrame` callback, which runs every frame."
+                  : `React state setter inside a ${handler.name} handler.`,
               hint: HINT.statePerEvent,
             })),
       );

@@ -9,7 +9,8 @@
  * else in the repository would notice.
  *
  * Reads `metadata.verified-gsap` and `metadata.verified-gsap-react` from
- * SKILL.md and compares their major.minor with what npm publishes now.
+ * SKILL.md, and the versions each adapter names in its own Versions section,
+ * and compares their major.minor with what npm publishes now.
  *
  *   node scripts/check-freshness.mjs            # report, always exit 0
  *   node scripts/check-freshness.mjs --strict   # exit 1 when re-verification is due
@@ -17,20 +18,14 @@
  * An unreachable registry is reported and never fails the run: this is a
  * reminder, and a network blip is not a reason to re-verify anything.
  */
-import { appendFileSync, readFileSync } from "node:fs";
+import { appendFileSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SKILL = fileURLToPath(
-  new URL(
-    "../plugins/gsap-motion/skills/gsap-creative-animation/SKILL.md",
-    import.meta.url,
-  ),
+const SKILL_DIR = fileURLToPath(
+  new URL("../plugins/gsap-motion/skills/gsap-creative-animation/", import.meta.url),
 );
-
-const PACKAGES = [
-  { name: "gsap", key: "verified-gsap" },
-  { name: "@gsap/react", key: "verified-gsap-react" },
-];
+const SKILL = join(SKILL_DIR, "SKILL.md");
 
 const strict = process.argv.includes("--strict");
 const inActions = process.env.GITHUB_ACTIONS === "true";
@@ -38,6 +33,35 @@ const source = readFileSync(SKILL, "utf8");
 
 const verified = (key) =>
   source.match(new RegExp(`^\\s+${key}:\\s*"?([\\d.]+)"?`, "m"))?.[1];
+
+/**
+ * What each adapter names in its Versions section, as `package@major.minor`.
+ * An adapter is written against one stack, and that stack moving is the moment
+ * its lifecycle, hydration and route guidance might have gone stale — which
+ * SKILL.md's two GSAP keys would never show.
+ *
+ * The highest version named for a package wins, so "written for `react@18` and
+ * `react@19`" is checked against 19.
+ */
+function fromAdapters() {
+  const highest = new Map();
+
+  for (const file of readdirSync(join(SKILL_DIR, "adapter"))) {
+    const text = readFileSync(join(SKILL_DIR, "adapter", file), "utf8");
+    const versions = text.split("## Versions")[1] ?? "";
+
+    for (const [, name, base] of versions.matchAll(/`([@\w./-]+)@([\d.]+)`/g)) {
+      // gsap and @gsap/react are SKILL.md's to state, once, for the whole skill.
+      if (name === "gsap" || name === "@gsap/react") continue;
+      const held = highest.get(name);
+      if (!held || isNewer(base, held.base)) {
+        highest.set(name, { name, base, where: `adapter/${file}` });
+      }
+    }
+  }
+
+  return [...highest.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
 
 const majorMinor = (version) => version.split(".").slice(0, 2).map(Number);
 
@@ -49,10 +73,16 @@ const isNewer = (latest, base) => {
 
 const due = [];
 
+const PACKAGES = [
+  { name: "gsap", base: verified("verified-gsap"), where: "SKILL.md" },
+  { name: "@gsap/react", base: verified("verified-gsap-react"), where: "SKILL.md" },
+  ...fromAdapters(),
+];
+
 for (const pkg of PACKAGES) {
-  const base = verified(pkg.key);
+  const { base } = pkg;
   if (!base) {
-    console.error(`SKILL.md has no metadata.${pkg.key}.`);
+    console.error(`SKILL.md has no verified version for ${pkg.name}.`);
     process.exit(1);
   }
 
@@ -69,11 +99,11 @@ for (const pkg of PACKAGES) {
   }
 
   if (!isNewer(latest, base)) {
-    console.log(`✓ ${pkg.name} ${latest} — verified against ${base}`);
+    console.log(`✓ ${pkg.name} ${latest} — ${pkg.where} says ${base}`);
     continue;
   }
 
-  const message = `${pkg.name} ${latest} is out; the skill was verified against ${base}. Re-check every claim marked "verified against", then update metadata.${pkg.key} in SKILL.md.`;
+  const message = `${pkg.name} ${latest} is out; ${pkg.where} says ${base}. Re-check what that file claims, then update the version it names.`;
   due.push(message);
   console.log(
     inActions ? `::warning title=${pkg.name} ${latest}::${message}` : `! ${message}`,

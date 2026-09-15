@@ -54,6 +54,42 @@ export function Box() {
 `;
 
 describe("audit-gsap.mjs", () => {
+  test("reads a single-file component's script, and reports its real line", () => {
+    const vue = `<template>
+  <section ref="root"><p>Don't wait</p></section>
+</template>
+
+<script setup lang="ts">
+import gsap from "gsap";
+import { onMounted, ref } from "vue";
+
+const root = ref<HTMLElement | null>(null);
+
+onMounted(() => {
+  gsap.context(() => {
+    gsap.from("[data-item]", { autoAlpha: 0, height: 0 });
+  }, root.value);
+});
+</script>
+`;
+    const dir = project({ "src/Panel.vue": vue });
+    const findings = json(run("audit-gsap.mjs", ["src", "--json"], dir));
+
+    /** The line the reader sees in the `.vue` file, not the line of its script. */
+    const lineOf = (text) =>
+      vue.split("\n").findIndex((line) => line.includes(text)) + 1;
+    const reported = findings.map((finding) => [finding.rule, finding.line]);
+
+    assert.deepEqual(
+      reported.filter(([rule]) => rule === "unreverted-context"),
+      [["unreverted-context", lineOf("gsap.context(")]],
+    );
+    assert.deepEqual(
+      reported.filter(([rule]) => rule === "layout-property"),
+      [["layout-property", lineOf("height: 0")]],
+    );
+  });
+
   test("resolves the default path from the working directory", () => {
     const dir = project({ "src/Box.tsx": ORPHAN });
     const result = run("audit-gsap.mjs", ["--json"], dir);

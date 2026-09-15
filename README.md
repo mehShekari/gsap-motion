@@ -48,7 +48,7 @@ This skill gives the agent two things it lacks:
   They load only when a request needs them.
 - **Presets and worked examples** for reveals, marquees, card stacks, loaders,
   site intros, page transitions and scroll storytelling.
-- **`audit-gsap`**: 16 rules for leaks, per-frame cost, eased loops, shared
+- **`audit-gsap`**: 17 rules for leaks, per-frame cost, eased loops, shared
   plugin ids, unregistered plugins and shipped dev tooling — from the command
   line, or in your editor as an ESLint plugin.
 - **`audit-svg`**: what an SVG can do before you animate it — what DrawSVG can
@@ -261,7 +261,7 @@ can gate a build. Pin the version, so a new rule cannot fail your build without
 warning:
 
 ```json
-"lint": "eslint && npx @mehshekari/gsap-motion@3.1.1 audit src --quiet"
+"lint": "eslint && npx @mehshekari/gsap-motion@3.2.0 audit src --quiet"
 ```
 
 Or install it with `npm install --save-dev --save-exact @mehshekari/gsap-motion`;
@@ -276,6 +276,7 @@ With the skill installed, the same scripts are in its folder:
 | `orphan-tween` | error | A tween created outside `useGSAP`, `gsap.context` or `contextSafe` in React — never reverted, and doubled by StrictMode |
 | `unmanaged-instance` | error | `matchMedia`, `Observer`, `Draggable`, `ScrollSmoother` or `SplitText` created outside a context and never torn down |
 | `tween-per-event` | error | A new tween allocated on every pointer, scroll or wheel event |
+| `unreverted-context` | warn | A `gsap.context` created on mount — `onMounted`, `onMount`, `useEffect`, `astro:page-load` — that nothing reverts |
 | `state-per-event` | error | React state set in a high-frequency handler — a re-render per frame |
 | `shared-plugin-id` | error | A hardcoded `#id` in MotionPath or MorphSVG config, which two instances of a component will share |
 | `unregistered-plugin` | error | A plugin imported and never registered, whose properties are silently ignored |
@@ -435,8 +436,10 @@ report fails on any finding without a label.
   still conservative and can be wrong; its precision per rule is
   [measured](#measured-precision) on a public corpus. The ESLint plugin sees less
   still: not even which plugins another file registers, so you name those.
-- **`.vue`, `.svelte` and `.astro` files are not scanned.** Keep animation logic
-  in a `.ts` module if you want it checked.
+- **In `.vue`, `.svelte` and `.astro` files, only `<script>` is read.** The
+  template and the styles are not code, and Astro's `---` frontmatter runs on
+  the server, so none of them is scanned. Offsets are kept, so a finding's line
+  is the line in the file.
 - **The audit judges no craft.** Rhythm and easing choices are the skill's job,
   not the script's.
 - **Code inside the Markdown references is not compiled.** The templates and the

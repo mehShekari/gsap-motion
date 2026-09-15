@@ -137,5 +137,5 @@ cost: those are read by hand, and measured with
 
 ## Versions
 
-Verified against `gsap@3.15`. Written for `three@0.150` and later, whose
-disposal and uniform shapes these are.
+Verified against `gsap@3.15`. Written for `three@0.186`, whose disposal and
+uniform shapes it shares with earlier versions.

@@ -86,13 +86,22 @@ test("every fixture of the audit's tests reports the same through ESLint", async
   );
   assert.equal(run.status, 0, `the audit's rule tests failed:\n${run.stdout}${run.stderr}`);
 
+  /**
+   * ESLint needs a parser per language and the plugin requires none, so a
+   * `.vue`, `.svelte` or `.astro` fixture would fail to parse here while the
+   * audit reads its `<script>` happily. Those are the audit's own tests to run;
+   * what this proves is that the two agree wherever ESLint can read the file.
+   */
+  const PARSES_UNAIDED = new Set(["js", "jsx", "mjs", "ts", "tsx"]);
+
   const cases = readdirSync(fixtures)
     .filter((name) => name.endsWith(".json"))
     .sort()
     .map((name) => ({
       name: name.slice(0, -".json".length),
       ...JSON.parse(readFileSync(join(fixtures, name), "utf8")),
-    }));
+    }))
+    .filter((fixture) => PARSES_UNAIDED.has(fixture.ext));
   /** The audit's tests show every rule firing and staying quiet: two fixtures each, at least. */
   for (const rule of RULES) {
     assert.ok(
