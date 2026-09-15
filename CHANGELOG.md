@@ -19,6 +19,14 @@ All notable changes to this project are documented here. The format follows
   Node 18.
 - The refinement loop in `refine.md` gains its visual stage, and says to report
   that stage as not run when there is no browser — rather than as fine.
+- `explain`, a second new command, backed by `scripts/explain-motion.mjs`: a
+  read-only map of an animation — where it lives and what scopes it, its
+  preference branches, its beats in order with positions, eases and the reasons
+  their own comments give, its scroll configuration, and what the audit says,
+  cited by rule. Every line names its source, because a map that cannot be told
+  from a guess is a guess. Given a URL it reads the running page, where the
+  timeline is the one GSAP actually built rather than the one the source
+  implies.
 
 ## [3.3.0] - 2026-09-15
 

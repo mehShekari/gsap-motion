@@ -58,11 +58,12 @@ try {
   /**
    * The skill folder is copied into every project that installs it, so its
    * size is a cost users carry. Measured at 487 kB in 3.1.0, when the vendored
-   * parser (229 kB) arrived; the ceiling leaves room for growth without letting
-   * a second bundle slip in unnoticed. Raise it on purpose, in the change that
-   * needs the room.
+   * parser (229 kB) arrived, and at 606 kB in 3.4, when capture-motion.mjs and
+   * explain-motion.mjs added a browser to the toolkit — both plain source, no
+   * second bundle. The ceiling leaves room for growth without letting one slip
+   * in unnoticed. Raise it on purpose, in the change that needs the room.
    */
-  const UNPACKED_CEILING_KB = 600;
+  const UNPACKED_CEILING_KB = 700;
   check(
     pack.unpackedSize / 1024 <= UNPACKED_CEILING_KB,
     `unpacked size within ${UNPACKED_CEILING_KB} kB`,
@@ -79,6 +80,7 @@ try {
     "skill/scripts/audit-gsap.mjs",
     "skill/scripts/audit-svg.mjs",
     "skill/scripts/capture-motion.mjs",
+    "skill/scripts/explain-motion.mjs",
     "skill/scripts/lib/rules.mjs",
     "skill/scripts/lib/source.mjs",
     "skill/scripts/lib/ast.mjs",

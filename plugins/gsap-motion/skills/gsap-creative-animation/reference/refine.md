@@ -25,6 +25,9 @@ script.
 A finding you believe is wrong is a bug in the script. Report it; do not work
 around it with a waiver.
 
+When what the code says and what the page does disagree, `explain-motion.mjs`
+reads both: the file's map, or — given a URL — the timeline GSAP actually built.
+
 ## Fix in this order
 
 The order is not taste. A fix further down the list can be undone by a fix

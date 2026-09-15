@@ -46,7 +46,7 @@ import { fileURLToPath } from "node:url";
 // --- The browser -------------------------------------------------------------
 
 /** Where a Chrome usually is, per platform. `CHROME_PATH` wins over all of it. */
-function findChrome(override) {
+export function findChrome(override) {
   const candidates = [
     override,
     process.env.GSAP_MOTION_CHROME,
@@ -80,7 +80,7 @@ function findChrome(override) {
  * A CDP connection over Chrome's pipe transport: commands into file descriptor
  * 3, replies and events out of 4, each message a JSON object followed by a NUL.
  */
-function connect(executable, { headless = true } = {}) {
+export function connect(executable, { headless = true } = {}) {
   const profile = join(tmpdir(), `gsap-motion-inspect-${process.pid}`);
   const chrome = spawn(
     executable,

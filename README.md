@@ -245,6 +245,7 @@ This exact component is built in CI as part of the
 | `three [target]` | GSAP orchestrating Three.js or React Three Fiber |
 | `audit [target]` | Check existing animation for leaks, cost and accessibility |
 | `inspect <url>` | Watch a page animate: a filmstrip, the running timeline, measured browser work |
+| `explain [target]` | Map an existing animation: scopes, branches, beats, triggers, and what the audit says |
 | `tune [target]` | Retime, re-ease and fix rhythm, adding no new motion |
 | `strip [target]` | Remove motion that is not earning its place |
 

@@ -8,6 +8,7 @@
  *   npx @mehshekari/gsap-motion audit [path...] [--quiet] [--json]
  *   npx @mehshekari/gsap-motion audit-svg <file.svg...> [--morph] [--hues]
  *   npx @mehshekari/gsap-motion inspect <url> [--at ...] [--hover ...] [--reduced]
+ *   npx @mehshekari/gsap-motion explain <file...|url>
  *   npx @mehshekari/gsap-motion doctor
  *
  * Installed as a dependency, the same commands run as `gsap-motion <command>`.
@@ -79,6 +80,9 @@ Commands
     --mobile            390x844 with touch input
     --cpu 4             Throttle the CPU by this factor
     --out <dir>         Where frames go. Default .gsap-motion/inspect
+    --json              Machine-readable output
+  explain <file...>     Map an animation: scopes, branches, beats, triggers
+                        Give it a URL instead to read the running page
     --json              Machine-readable output
   doctor                Check Node, the installed skill and your project's GSAP
   --version             Print the version
@@ -314,6 +318,9 @@ switch (command) {
     break;
   case "inspect":
     runScript("capture-motion.mjs", args);
+    break;
+  case "explain":
+    runScript("explain-motion.mjs", args);
     break;
   case "doctor":
     doctor();

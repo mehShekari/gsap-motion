@@ -99,6 +99,18 @@ the mechanical failures before you spend attention on them:
 node .claude/skills/gsap-creative-animation/scripts/audit-gsap.mjs <path>
 ```
 
+**Read the map before reading the code.** `explain-motion.mjs` prints what a
+file animates — scopes, preference branches, beats in order with the reasons
+their comments give, and the scroll configuration — and cites the audit rather
+than judging. Given a URL it reads the running page instead, which is the only
+way to see the timeline GSAP actually built, after every branch and early
+return:
+
+```bash
+node <skill-dir>/scripts/explain-motion.mjs src/hooks/useHero.ts
+node <skill-dir>/scripts/explain-motion.mjs http://localhost:3000
+```
+
 **When an animation is not visible, ask whether it was ever built.** Before
 touching timings or transforms, check that the code which creates it actually
 runs. Animation is routinely built behind a condition — an image decode race, a

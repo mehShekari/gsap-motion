@@ -21,6 +21,7 @@ No dependencies, no install scripts, Node.js 18 or later.
 | `audit [path...]` | Scans for leaks, per-frame cost, eased loops, shared plugin ids, unregistered plugins and shipped dev tooling. Default path `src`. `--quiet` for errors only, `--json` for scripts. |
 | `audit-svg <file...>` | Reports what DrawSVG can draw, what MorphSVG can morph, and what will fail silently. `--morph a.svg b.svg` compares a pair; `--hues` also reports hard-coded hues. |
 | `inspect <url>` | Watches a page animate over the DevTools Protocol and reports what it saw: a filmstrip, the timeline GSAP is running, and the layouts, style recalculations and frames the browser did. `--scroll`, `--hover` and `--click` reach the state first; `--reduced`, `--dark`, `--mobile` and `--cpu` change the conditions. Needs a Chrome on the machine; installs nothing. |
+| `explain <file...|url>` | Maps an animation and changes nothing: where it lives, its preference branches, its beats in order with the reasons their comments give, its scroll configuration, and what the audit says. Given a URL it reads the running page instead, where the timeline is the one GSAP actually built. |
 | `doctor` | Checks Node.js, the installed skill's version for this project and your user, your project's `gsap` and `@gsap/react`, and whether an `ANIMATION.md` exists. |
 
 ## In CI
