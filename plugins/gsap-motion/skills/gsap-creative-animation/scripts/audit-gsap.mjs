@@ -20,6 +20,10 @@
  * `not-parsed`, never passed as clean. A wrong finding is a bug in this script;
  * report it rather than working around it.
  *
+ * What happens to each file — the rules, waivers, `not-parsed` — is in
+ * lib/audit.mjs, which the ESLint plugin runs too. This file finds the files,
+ * collects what they register between them, and prints.
+ *
  * Usage — paths resolve from the current directory, so run it from the project
  * root, wherever the skill itself is installed:
  *   node <skill-dir>/scripts/audit-gsap.mjs [path...]     # default: src
@@ -31,8 +35,9 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { check, mentionsGsap, notParsed } from "./lib/audit.mjs";
 import { pluginRegistrations, RULES } from "./lib/rules.mjs";
-import { collect, lineAt, load } from "./lib/source.mjs";
+import { collect, load } from "./lib/source.mjs";
 
 /**
  * The project being audited is wherever this is run from, not wherever the
@@ -57,62 +62,29 @@ for (const path of paths) {
   }
 }
 
-// --- Escape hatch ------------------------------------------------------------
-
-/**
- * The same shape many repos already use for their own lint waivers, on
- * purpose: one way to say "yes, and here is why", not two.
- *
- * A hatch is the rule's own id plus `-ok`, on the flagged line or in the eight
- * above it, and it waives that rule and nothing else — silencing a shared id
- * cannot also silence a layout property on the same line. The lookback is eight
- * because a reason usually stands above a whole declaration rather than beside
- * one line of it.
- *
- * Every hatch must carry its reason. A bare token with no sentence after it is
- * a rule someone turned off rather than answered, and once this gates a build
- * that distinction has to stay visible in review.
- */
-const LOOKBACK = 8;
-
-function waived(source, line, ruleId) {
-  const lines = source.split("\n");
-  const from = Math.max(0, line - 1 - LOOKBACK);
-  return lines.slice(from, line).join("\n").includes(`${ruleId}-ok`);
-}
-
 // --- Run ---------------------------------------------------------------------
 
 const findings = [];
 const sources = [];
 
+/** A finding as the report shows it: under the file's display path, no column. */
+const reported = (source, finding) => ({
+  rule: finding.rule,
+  level: finding.level,
+  file: source.display,
+  line: finding.line,
+  message: finding.message,
+  hint: finding.hint,
+});
+
 for (const path of paths) {
   for (const file of collect(path)) {
     const source = load(file, ROOT);
+    if (!mentionsGsap(source)) continue;
 
-    /**
-     * A file that never mentions GSAP has nothing these rules can say. Checked
-     * once here rather than in every rule.
-     */
-    if (!source.usesGsap && !/\bgsap\./.test(source.code)) continue;
-
-    /**
-     * What was not checked is reported as not checked. A file that uses GSAP
-     * and does not parse gets no rule's verdict — a silent skip would read as
-     * clean.
-     */
     if (source.parseError) {
-      const { line, message } = source.parseError;
-      if (!waived(source.raw, line, "not-parsed")) {
-        findings.push({
-          rule: "not-parsed",
-          level: "info",
-          file: source.display,
-          line,
-          message: `Not checked: the file could not be parsed (${message}).`,
-          hint: "No rule ran on this file. If it is valid JavaScript or TypeScript, the audit's parser is wrong — report it with this line.",
-        });
-      }
+      const finding = notParsed(source);
+      if (finding) findings.push(reported(source, finding));
       continue;
     }
 
@@ -132,18 +104,8 @@ for (const source of sources) {
   source.registeredElsewhere = registered;
 
   for (const rule of RULES) {
-    for (const hit of rule.test(source)) {
-      const line = lineAt(source.raw, hit.index);
-      if (waived(source.raw, line, rule.id)) continue;
-
-      findings.push({
-        rule: rule.id,
-        level: rule.level,
-        file: source.display,
-        line,
-        message: hit.message,
-        hint: hit.hint,
-      });
+    for (const finding of check(rule, source)) {
+      findings.push(reported(source, finding));
     }
   }
 }

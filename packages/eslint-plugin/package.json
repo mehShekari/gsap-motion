@@ -1,0 +1,58 @@
+{
+  "name": "@mehshekari/eslint-plugin-gsap-motion",
+  "version": "3.1.0",
+  "description": "The gsap-motion audit as ESLint rules: GSAP tweens that outlive their component, per-event allocations and missing reduced-motion branches, reported in your editor.",
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "gsap",
+    "animation",
+    "scrolltrigger",
+    "react",
+    "nextjs",
+    "audit"
+  ],
+  "homepage": "https://github.com/mehShekari/gsap-motion#readme",
+  "bugs": {
+    "url": "https://github.com/mehShekari/gsap-motion/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mehShekari/gsap-motion.git",
+    "directory": "packages/eslint-plugin"
+  },
+  "license": "MIT",
+  "author": "mehran.shekari (https://github.com/mehShekari)",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.mjs",
+    "lib/",
+    "NOTICE.md"
+  ],
+  "engines": {
+    "node": ">=18.18"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0 || ^10.0.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "8.70.0",
+    "eslint": "10.10.0",
+    "typescript": "6.0.3"
+  },
+  "scripts": {
+    "bundle": "node scripts/bundle-audit.mjs",
+    "prepack": "node scripts/bundle-audit.mjs",
+    "test": "node scripts/bundle-audit.mjs && node --test test/plugin.eslint-test.mjs test/parity.eslint-test.mjs",
+    "check-pack": "node scripts/check-pack.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

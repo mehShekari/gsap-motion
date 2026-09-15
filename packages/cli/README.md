@@ -38,6 +38,9 @@ The command it adds is `gsap-motion`:
 "lint": "eslint && gsap-motion audit src --quiet"
 ```
 
+The same rules also run inside ESLint, so findings appear in your editor:
+[`@mehshekari/eslint-plugin-gsap-motion`](https://www.npmjs.com/package/@mehshekari/eslint-plugin-gsap-motion).
+
 ## Claude Code plugin
 
 The same skill is also a Claude Code plugin:

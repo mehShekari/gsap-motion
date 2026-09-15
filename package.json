@@ -1,7 +1,7 @@
 {
   "name": "gsap-creative-animation-repo",
   "private": true,
-  "description": "Development tooling for the gsap-motion Claude Code plugin. Only packages/cli is published to npm, as @mehshekari/gsap-motion.",
+  "description": "Development tooling for the gsap-motion Claude Code plugin. packages/cli and packages/eslint-plugin are published to npm, as @mehshekari/gsap-motion and @mehshekari/eslint-plugin-gsap-motion.",
   "license": "MIT",
   "workspaces": [
     "examples/*"

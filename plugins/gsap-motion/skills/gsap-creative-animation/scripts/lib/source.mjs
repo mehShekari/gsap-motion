@@ -131,9 +131,14 @@ export function lineAt(source, index) {
   return line;
 }
 
-/** A file plus everything the rules need, read once. */
-export function load(path, root) {
-  const raw = readFileSync(path, "utf8");
+/**
+ * A file plus everything the rules need, from its text.
+ *
+ * The command line reads the text from disk, through `load`. The ESLint plugin
+ * passes the text ESLint already holds, with the file's path, so both entry
+ * points run the rules on the same parse of the same characters.
+ */
+export function fromText(raw, path, display = path) {
   const code = stripComments(raw);
 
   /**
@@ -151,7 +156,11 @@ export function load(path, root) {
         parsed = {
           ast: null,
           comments: [],
-          error: { message: error.message, line: error.loc?.line ?? 1 },
+          error: {
+            message: error.message,
+            line: error.loc?.line ?? 1,
+            column: error.loc?.column ?? 0,
+          },
         };
       }
     }
@@ -169,7 +178,7 @@ export function load(path, root) {
       return tree().error;
     },
     path,
-    display: relative(root, path).replace(/\\/g, "/"),
+    display,
     raw,
     code,
     /**
@@ -186,4 +195,18 @@ export function load(path, root) {
     isClient: /^\s*["']use client["']/m.test(code),
     usesGsap: /\bfrom ["']gsap(?:\/|["'])/.test(code),
   };
+}
+
+/** A file on disk, read once, shown by its path from `root`. */
+export function load(path, root) {
+  return fromText(
+    readFileSync(path, "utf8"),
+    path,
+    relative(root, path).replace(/\\/g, "/"),
+  );
+}
+
+/** Whether `collect` reads files with this path's extension. */
+export function hasSourceExtension(path) {
+  return SOURCE_EXTENSIONS.has(extname(path));
 }

@@ -498,6 +498,8 @@ export const RULES = [
   {
     id: "orphan-tween",
     level: "error",
+    description:
+      "A tween created outside `useGSAP`, `gsap.context` or `contextSafe` in React — never reverted, and doubled by StrictMode",
     /**
      * A GSAP tween call inside a function but outside every context — module
      * scope is not the target. Contexts are recognised under the names the file
@@ -537,6 +539,8 @@ export const RULES = [
   {
     id: "unmanaged-instance",
     level: "error",
+    description:
+      "`matchMedia`, `Observer`, `Draggable`, `ScrollSmoother` or `SplitText` created outside a context and never torn down",
     /**
      * Torn down as `tornDown` reads it: kept under a name — through any chain
      * called on it, or a helper's return — that has `.revert()` or `.kill()`
@@ -574,6 +578,8 @@ export const RULES = [
   {
     id: "dangling-listener",
     level: "warn",
+    description:
+      "An event listener that is never removed, including inline handlers that cannot be",
     /**
      * Adds and removes are paired by event and by the handler's name as
      * written, across the file — not by counting calls. A handler that is not a
@@ -636,6 +642,8 @@ export const RULES = [
   {
     id: "tween-per-event",
     level: "error",
+    description:
+      "A new tween allocated on every pointer, scroll or wheel event",
     /**
      * A GSAP tween call inside a high-frequency handler, followed by name when
      * it can be. A debounced one, one in a completion callback, and one behind
@@ -660,6 +668,8 @@ export const RULES = [
   {
     id: "state-per-event",
     level: "error",
+    description:
+      "React state set in a high-frequency handler — a re-render per frame",
     /**
      * A bare `setX(…)` call — not a member call such as `el.style.setProperty`,
      * which is exactly what a pointer handler should do, and not a timer —
@@ -705,6 +715,8 @@ export const RULES = [
   {
     id: "layout-property",
     level: "warn",
+    description:
+      "Animating `width`, `height`, `top`, `left`, margins or padding, which forces layout every frame",
     /**
      * The layout keys of every vars object a tween carries — both of a
      * `fromTo`'s — on any receiver, so a timeline child counts. One finding per
@@ -747,6 +759,8 @@ export const RULES = [
   {
     id: "trigger-per-item",
     level: "warn",
+    description:
+      "A ScrollTrigger created per item in a loop",
     /**
      * A `scrollTrigger` property inside a loop body: the callback of `.forEach`
      * or `.map`, or a `for`, `for…of` or `for…in` statement. One finding per
@@ -788,6 +802,8 @@ export const RULES = [
   {
     id: "eased-loop",
     level: "warn",
+    description:
+      "An infinite repeat with an ease, which makes its own seam visible",
     /**
      * The tween's own vars — a `fromTo`'s to-vars — on any receiver, so a
      * timeline child counts. Keys at the top level only: a `stagger` object's
@@ -815,6 +831,8 @@ export const RULES = [
   {
     id: "eased-scrub",
     level: "warn",
+    description:
+      "Easing inside a scrubbed ScrollTrigger, which fights the scrollbar",
     /**
      * A GSAP call scrubbed anywhere in its arguments — `scrub: false` aside —
      * with a string ease other than `"none"` in those arguments or, for a
@@ -870,6 +888,8 @@ export const RULES = [
   {
     id: "never-completes",
     level: "error",
+    description:
+      "An `onComplete` that can never run: on a timeline holding a `repeat: -1` child, or on a tween or timeline that repeats forever",
     /**
      * `onComplete` and `repeat: -1` anywhere in a GSAP call's arguments; for a
      * timeline, its children and any `eventCallback("onComplete", …)` from
@@ -939,6 +959,8 @@ export const RULES = [
   {
     id: "late-transform-origin",
     level: "warn",
+    description:
+      "A `fromTo` whose origin is only in its to-vars while its from-vars scale, rotate or skew, which leaves an SVG element offset",
     /**
      * Any `.fromTo(target, fromVars, toVars)` whose two vars are object
      * literals. Keys are read at the top level of each, and a transform's
@@ -986,6 +1008,8 @@ export const RULES = [
   {
     id: "shared-plugin-id",
     level: "error",
+    description:
+      "A hardcoded `#id` in MotionPath or MorphSVG config, which two instances of a component will share",
     /**
      * Any property naming a target geometry whose value is a fixed `#id`: a
      * string or a template literal with nothing interpolated, including the
@@ -1014,6 +1038,8 @@ export const RULES = [
   {
     id: "unregistered-plugin",
     level: "error",
+    description:
+      "A plugin imported and never registered, whose properties are silently ignored",
     /**
      * Registered means named anywhere inside the arguments of a
      * `registerPlugin` call — not mentioned anywhere after one, and under its
@@ -1067,6 +1093,8 @@ export const RULES = [
   {
     id: "missing-reduced-motion",
     level: "warn",
+    description:
+      "An animating file with no `prefers-reduced-motion` branch",
     /**
      * A branch is the query written in code — a string, a template or JSX
      * text. A comment that mentions it is not a branch. A file that only sets
@@ -1101,6 +1129,8 @@ export const RULES = [
   {
     id: "dev-tool-shipped",
     level: "error",
+    description:
+      "`GSDevTools` or `MotionPathHelper` imported statically, or unconditional `markers: true`",
     /**
      * A static import declaration that brings in a dev tool, by a specifier's
      * name or, for a bare or default import, by its path. A type-only import
@@ -1149,6 +1179,8 @@ export const RULES = [
   {
     id: "barrel-import",
     level: "warn",
+    description:
+      "Importing from `gsap/all`, which pulls in every plugin",
     /** An import or re-export whose module is `gsap/all`. */
     test(file) {
       return file.ast.body

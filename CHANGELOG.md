@@ -6,6 +6,43 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+The audit's rules as an ESLint plugin. The command line's findings are
+unchanged. No eval scores: the eval suite is updated and run once the roadmap is
+finished.
+
+### Added
+
+- `@mehshekari/eslint-plugin-gsap-motion`, a new npm package from
+  `packages/eslint-plugin`: the 16 audit rules and `not-parsed` as ESLint rules,
+  for ESLint 9 and 10 with flat config, and a `recommended` config at the
+  audit's levels. Each rule runs the audit's own rule on the audit's own parse
+  of the file, so the editor and `gsap-motion audit` report the same findings on
+  the same lines, and a waiver means the same in both. Its version moves in
+  lockstep with the command line's.
+- In ESLint, `unregistered-plugin` takes a `registered` option naming plugins
+  registered in another file, because ESLint reads one file at a time.
+- Every rule has a `description`, which ESLint shows. A test holds it to the
+  rule's row in both READMEs.
+- CI: an `eslint` job runs the plugin's tests on ESLint 9 with Node 18 and on
+  ESLint 10 with Node 24, then installs the packed plugin into an empty project
+  and lints a file there. Its parity test runs every fixture of the audit's rule
+  tests through ESLint and compares each finding's rule, line, column and
+  message.
+
+### Changed
+
+- What happens to one file — skipping a file that never mentions GSAP,
+  `not-parsed`, waivers, line and column — moved from `audit-gsap.mjs` into
+  `scripts/lib/audit.mjs`, which both entry points run. `source.mjs` gains
+  `fromText`, which reads a file from text already in memory.
+
+### Fixed
+
+- The README's Limitations still said precision per rule was not published; it
+  has been since 3.1.0. SECURITY.md still listed 2.x as the supported version.
+- `check-pack` failed on npm 12, which prints `npm pack --json` as an object
+  keyed by package name rather than an array. It reads both.
+
 ## [3.1.0] - 2026-09-14
 
 Minor: no rule id, level, command or flag changed. The audit now reads a syntax

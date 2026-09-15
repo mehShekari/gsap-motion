@@ -25,6 +25,8 @@ Optional, depending on what you change:
 | Your change in Claude Code itself | `claude --plugin-dir ./plugins/gsap-motion`, then `/reload-plugins` after each edit |
 | Whether GSAP has moved on | `npm run freshness` |
 | The npm package, exactly as users download it | `npm run pack:check` |
+| The ESLint plugin, and that it reports what the audit reports | `npm ci`, then `npm test`, in `packages/eslint-plugin` |
+| The ESLint plugin, exactly as users download it | `node scripts/check-pack.mjs` in `packages/eslint-plugin`, which needs the network |
 
 ## Repository layout
 
@@ -40,6 +42,7 @@ plugins/gsap-motion/
 └── evals/                              behaviour tests for `claude plugin eval`
 examples/next-app/                      a Next.js app that compiles the templates
 packages/cli/                           the npm package: `npx @mehshekari/gsap-motion`
+packages/eslint-plugin/                 the npm package: `@mehshekari/eslint-plugin-gsap-motion`
 scripts/                                repository tooling: test runner, freshness check
 tests/                                  checks that the manifests and versions agree
 ```
@@ -69,6 +72,11 @@ scope: no rule judges an ease or a rhythm.
    - an `id` in kebab-case. It is permanent, because users' waivers name it.
    - a `level`: `error` only for a real bug. See [Versioning](#versioning).
    - a `message` saying what is wrong, and a `hint` saying what to do instead.
+   - a `description` of what it catches. It is also the rule's row in the rule
+     tables of `README.md` and `packages/eslint-plugin/README.md`, word for
+     word: ESLint shows it, and a test compares the three.
+
+   The ESLint plugin picks the rule up with no change of its own.
 
 ### Add or change a reference, preset or example
 
@@ -135,14 +143,17 @@ Semantic versioning, applied to what users depend on:
 
 For maintainers:
 
-1. Set the same version in three places: `plugins/gsap-motion/.claude-plugin/plugin.json`,
-   SKILL.md's `metadata.version`, and `packages/cli/package.json`. The tests
-   fail if they differ, and the npm package refuses to pack.
+1. Set the same version in four places: `plugins/gsap-motion/.claude-plugin/plugin.json`,
+   SKILL.md's `metadata.version`, `packages/cli/package.json` and
+   `packages/eslint-plugin/package.json`. The tests fail if they differ, and
+   neither npm package will pack.
 2. In `CHANGELOG.md`, move the **Unreleased** entries under the new version,
    with today's date.
-3. Run `node scripts/test.mjs` and `npm run pack:check`, then merge.
+3. Run `node scripts/test.mjs` and `npm run pack:check`; then, in
+   `packages/eslint-plugin`, `npm test` and `node scripts/check-pack.mjs`. Then
+   merge.
 4. Publish a GitHub Release tagged `vX.Y.Z`, with that changelog section. The
-   **Release to npm** workflow then publishes the package, with provenance.
+   **Release to npm** workflow then publishes both packages, with provenance.
 
 Marketplace users receive an update only when `plugin.json`'s version changes;
 npm users with `npx @mehshekari/gsap-motion@latest`.

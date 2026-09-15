@@ -49,7 +49,8 @@ This skill gives the agent two things it lacks:
 - **Presets and worked examples** for reveals, marquees, card stacks, loaders,
   site intros, page transitions and scroll storytelling.
 - **`audit-gsap`**: 16 rules for leaks, per-frame cost, eased loops, shared
-  plugin ids, unregistered plugins and shipped dev tooling.
+  plugin ids, unregistered plugins and shipped dev tooling — from the command
+  line, or in your editor as an ESLint plugin.
 - **`audit-svg`**: what an SVG can do before you animate it — what DrawSVG can
   draw, what MorphSVG can morph, and what will fail silently.
 - **Typed templates** for a component timeline and a scroll scene, compiled in
@@ -304,6 +305,30 @@ A waiver without a reason is a rule switched off, not answered. If you believe a
 finding is simply wrong, that is a bug —
 [report it](https://github.com/mehShekari/gsap-motion/issues/new?template=1-wrong-audit-finding.yml).
 
+### In your editor, with ESLint
+
+The same rules run as an ESLint plugin, so findings appear as you type and in
+any lint run. It reads each file with the audit's own parser, so it reports what
+the command line reports, on the same lines, and honours the same waivers.
+
+```bash
+npm install --save-dev --save-exact @mehshekari/eslint-plugin-gsap-motion
+```
+
+```js
+// eslint.config.mjs
+import gsapMotion from "@mehshekari/eslint-plugin-gsap-motion";
+
+export default [
+  // …your own config
+  { files: ["**/*.{js,jsx,mjs,ts,tsx}"], ...gsapMotion.configs.recommended },
+];
+```
+
+ESLint reads one file at a time, so a GSAP plugin your app registers in another
+file is named in `unregistered-plugin`'s options. The
+[plugin's README](packages/eslint-plugin/README.md) has the details.
+
 ### Checking an SVG
 
 ```bash
@@ -346,6 +371,7 @@ setup and the animation already in the codebase, and tells you what it assumed.
 | Next.js | App Router | Includes Server Component boundaries |
 | Vue 3 and Nuxt, Svelte, Astro, vanilla JS | Guidance | See [`frameworks.md`](plugins/gsap-motion/skills/gsap-creative-animation/reference/frameworks.md) |
 | Node.js, for the scripts | 18 and later | Tested in CI on 18, 20, 22 and 24 |
+| ESLint, for the plugin | 9 and 10, flat config | Tested in CI: ESLint 9 on Node 18, ESLint 10 on Node 24 |
 | Clients | Claude Code, as a plugin; any Agent Skills client, as a folder | |
 
 A weekly workflow warns when GSAP publishes a version newer than the one the
@@ -406,8 +432,9 @@ report fails on any finding without a label.
   it can inside it — an aliased `useGSAP`, a helper called only from a context,
   a timeline kept under a name — but not calls into other files. A file it
   cannot parse is reported as `not-parsed` (info), never passed as clean. It is
-  still conservative and can be wrong, and its precision per rule is not yet
-  published.
+  still conservative and can be wrong; its precision per rule is
+  [measured](#measured-precision) on a public corpus. The ESLint plugin sees less
+  still: not even which plugins another file registers, so you name those.
 - **`.vue`, `.svelte` and `.astro` files are not scanned.** Keep animation logic
   in a `.ts` module if you want it checked.
 - **The audit judges no craft.** Rhythm and easing choices are the skill's job,
