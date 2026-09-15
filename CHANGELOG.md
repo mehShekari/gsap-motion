@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.4.1] - 2026-09-15
+
+Patch: four fixes, every one of them found by running 3.4.0's own two new
+commands against a real site rather than against a fixture. No rule, level,
+flag or command changed, and no skill guidance changed, so nothing that passed
+3.4.0 can fail here and the model's behaviour is untouched — as in 3.0.1, there
+are no eval scores, because there is nothing for a model to read differently.
+
+The first fix is the reason this is not waiting for the rest of 3.4.1: on 3.4.0,
+`inspect` reports that a working page never animated, on every app built by a
+bundler.
+
 ### Fixed
 
 - `inspect` called a page full of animation dead. It looked for a `gsap` global,
@@ -416,6 +428,7 @@ production website.
 - The date GSAP became free: version 3.13, in April 2025.
 
 [Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...HEAD
+[3.4.1]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...v3.4.1
 [3.4.0]: https://github.com/mehShekari/gsap-motion/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/mehShekari/gsap-motion/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/mehShekari/gsap-motion/compare/v3.1.1...v3.2.0
