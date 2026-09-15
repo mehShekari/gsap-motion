@@ -29,10 +29,12 @@ import { connect, findChrome } from "./capture-motion.mjs";
 import { check, mentionsGsap } from "./lib/audit.mjs";
 import {
   calleeName,
+  contains,
   dottedName,
   findAll,
   keptUnder,
   methodName,
+  scopeOf,
   propertyOf,
   staticString,
   timelineLinks,
@@ -185,6 +187,8 @@ function readFile(file) {
   // Scenes: a timeline, and the beats on it in order.
   const timelines = findAll(file.ast, (node) => calleeName(node) === "gsap.timeline");
   const claimed = new Set();
+  /** Which function holds each scene, since a file often has two called `tl`. */
+  const owners = new Map();
 
   for (const timeline of timelines) {
     const beats = [];
@@ -192,7 +196,9 @@ function readFile(file) {
       claimed.add(link);
       const method = methodName(link);
       if (method === "addLabel") {
-        beats.push({ label: staticString(link.arguments[0]) ?? "(label)" });
+        beats.push({
+          label: staticString(link.arguments[0]) ?? textOf(file, link.arguments[0], 24) ?? "(label)",
+        });
         continue;
       }
       if (!["to", "from", "fromTo", "set", "call", "add"].includes(method)) continue;
@@ -209,19 +215,31 @@ function readFile(file) {
       });
     }
 
-    map.scenes.push({
+    const scene = {
       line: lineAt(file.raw, timeline.start),
       name: keptUnder(file.ast, timeline)?.name ?? null,
       repeat: valueOf(varsOf(timeline), "repeat"),
       why: reasonFor(file, timeline),
       beats,
-    });
+    };
+    map.scenes.push(scene);
+    owners.set(scene, scopeOf(file.ast, timeline));
   }
 
-  /** The name each scene is kept under, so its own beats find their way home. */
-  const byName = new Map(
-    map.scenes.filter((scene) => scene.name).map((scene) => [scene.name, scene]),
-  );
+  /**
+   * The scene a beat belongs to. A name alone is not enough: two timelines in
+   * one file are often both `tl`, and handing one scene's beats to the other is
+   * the kind of wrong a map must not be. The owner is the enclosing function.
+   */
+  const sceneFor = (name, node) => {
+    const holding = map.scenes.filter((scene) => {
+      if (scene.name !== name) return false;
+      const owner = owners.get(scene);
+      /** A timeline at module scope owns the whole file; otherwise its function must hold the beat. */
+      return !owner || contains(owner, node);
+    });
+    return holding.at(-1) ?? null;
+  };
 
   // Beats added to a timeline this file was handed: the helper shape, where the
   // caller owns the timeline and this file only fills it.
@@ -232,14 +250,17 @@ function readFile(file) {
     if (claimed.has(call) || timelines.includes(call)) continue;
     const owner = dottedName(unwrap(call.callee).object);
     if (!owner || owner === "gsap" || owner.startsWith("gsap.")) continue;
-    const own = byName.get(owner);
+    const own = sceneFor(owner, call);
     if (!own && !handed.has(owner)) handed.set(owner, []);
 
     const method = methodName(call);
     const vars = varsOf(call);
     (own ? own.beats : handed.get(owner)).push(
       method === "addLabel"
-        ? { label: staticString(call.arguments[0]) ?? "(label)" }
+        ? {
+            label:
+              staticString(call.arguments[0]) ?? textOf(file, call.arguments[0], 24) ?? "(label)",
+          }
         : {
             line: lineAt(file.raw, startOf(call)),
             method,

@@ -257,14 +257,35 @@ export function parseOptions(argv) {
 
 /**
  * The timeline GSAP is running, read from the page itself rather than guessed
- * from the source. Without GSAP on the page this returns null, which is a
- * finding of its own: the animation never started.
+ * from the source.
+ *
+ * A bundled app never gives the page a gsap global. GSAP installs its exports
+ * into a private object, and the branch of its installer that would reach
+ * window cannot be taken, because that object is truthy from the start. So a
+ * page can be full of GSAP with nothing to ask. Presence is read instead from
+ * the traces it leaves — the version it announces, and the cache it hangs on
+ * every element it touches — and a timeline that cannot be read is reported as
+ * unreadable, never as an animation that never ran.
  */
 const READ_TIMELINE = `(() => {
-  if (typeof gsap === "undefined") return null;
-  const children = gsap.globalTimeline.getChildren(true, true, true);
+  const handle =
+    typeof gsap !== "undefined"
+      ? gsap
+      : window.GreenSockGlobals && window.GreenSockGlobals.gsap
+        ? window.GreenSockGlobals.gsap
+        : null;
+  const version = (window.gsapVersions || [])[0] || null;
+  const controlled = [...document.querySelectorAll("*")].filter((el) => el._gsap).length;
+  if (!handle) {
+    if (!version && !controlled) return null;
+    return { readable: false, version, controlled };
+  }
+  const children = handle.globalTimeline.getChildren(true, true, true);
   return {
-    time: gsap.globalTimeline.time(),
+    readable: true,
+    version,
+    controlled,
+    time: handle.globalTimeline.time(),
     children: children.map((child) => ({
       targets: (child.targets?.() ?? []).map((target) =>
         target?.id ? "#" + target.id :
@@ -283,6 +304,27 @@ const READ_TIMELINE = `(() => {
   };
 })()`;
 
+/**
+ * Frames the page actually drove.
+ *
+ * Chrome's own Frames metric reads 0 in headless even while a tween runs at a
+ * steady 60fps, so it cannot be reported as a frame count. A requestAnimationFrame
+ * counter, installed before the page's own scripts, counts the frames the page
+ * was given — which is the number a reader wants when asking whether motion
+ * was smooth.
+ */
+const COUNT_FRAMES = `(() => {
+  if (window.__gsapMotionFrames !== undefined) return true;
+  window.__gsapMotionFrames = 0;
+  window.__gsapMotionStart = performance.now();
+  const step = () => {
+    window.__gsapMotionFrames += 1;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+  return true;
+})()`;
+
 /** The live box of a selector, so a pointer lands on an element that is moving. */
 const boxOf = (selector) => `(() => {
   const element = document.querySelector(${JSON.stringify(selector)});
@@ -294,6 +336,17 @@ const boxOf = (selector) => `(() => {
 // --- The run -----------------------------------------------------------------
 
 const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+
+/**
+ * Whether a box can be pointed at.
+ *
+ * A selector can match an element that styles say is visible and that layout
+ * gives no box at all — a duplicate inside a collapsed container, say. Its
+ * rect is every zero, so a pointer aimed at its centre lands in the corner of
+ * the viewport and hits whatever is there. Found on a real site, where a
+ * header held two copies of the same button and the first had no box.
+ */
+export const pointable = (box) => Boolean(box && box.width > 0 && box.height > 0);
 
 async function capture(options) {
   const executable = findChrome(options.chrome);
@@ -343,6 +396,8 @@ async function capture(options) {
 
     if (options.cpu > 1) await call("Emulation.setCPUThrottlingRate", { rate: options.cpu });
 
+    await call("Page.addScriptToEvaluateOnNewDocument", { source: COUNT_FRAMES });
+
     const before = await call("Performance.getMetrics");
     await call("Page.navigate", { url: options.url });
     await wait(options.wait);
@@ -371,6 +426,12 @@ async function capture(options) {
         const box = await evaluate(boxOf(step.value));
         if (!box) {
           notes.push(`${step.type}: nothing matched ${step.value}`);
+          continue;
+        }
+        if (!pointable(box)) {
+          notes.push(
+            `${step.type}: ${step.value} matched an element with no box on screen, so nothing was done`,
+          );
           continue;
         }
         /**
@@ -423,6 +484,9 @@ async function capture(options) {
     }
 
     const timeline = await evaluate(READ_TIMELINE);
+    const drawn = await evaluate(
+      "({ frames: window.__gsapMotionFrames ?? null, since: window.__gsapMotionStart ?? null })",
+    );
     const after = await call("Performance.getMetrics");
 
     const delta = (name) => {
@@ -431,11 +495,17 @@ async function capture(options) {
       return end - start;
     };
 
-    const span = (options.at.at(-1) ?? 0) + options.wait;
+    /** The window the page was actually watched for, not the one that was asked for. */
+    const span = Math.round(
+      drawn.since === null
+        ? (options.at.at(-1) ?? 0) + options.wait
+        : await evaluate(`performance.now() - ${drawn.since}`),
+    );
     const measured = {
       layouts: delta("LayoutCount"),
       recalcs: delta("RecalcStyleCount"),
-      frames: delta("Frames"),
+      frames: drawn.frames,
+      fps: drawn.frames && span ? Number(((drawn.frames / span) * 1000).toFixed(1)) : null,
       layoutSeconds: Number(delta("LayoutDuration").toFixed(3)),
       recalcSeconds: Number(delta("RecalcStyleDuration").toFixed(3)),
       overMs: span,
@@ -449,7 +519,7 @@ async function capture(options) {
 
 // --- Reporting ---------------------------------------------------------------
 
-function report(result, options) {
+export function report(result, options) {
   const lines = [`Watched ${result.url}`];
 
   const emulated = [
@@ -469,6 +539,17 @@ function report(result, options) {
   lines.push("", "Timeline, as the page is running it");
   if (result.timeline === null) {
     lines.push("  no GSAP on the page — nothing was animating, or it never loaded");
+  } else if (result.timeline.readable === false) {
+    const { version, controlled } = result.timeline;
+    lines.push(
+      `  GSAP${version ? ` ${version}` : ""} is running, but this page keeps it to itself,` +
+        " so its timeline cannot be read from outside.",
+    );
+    lines.push(
+      `  ${controlled} element${controlled === 1 ? " carries" : "s carry"} GSAP's cache,` +
+        " so it has touched the page.",
+    );
+    lines.push("  To read the timeline here, call gsap.install(window) in development.");
   } else if (result.timeline.children.length === 0) {
     lines.push("  GSAP is loaded, and its global timeline has no children right now");
   } else {
@@ -486,8 +567,12 @@ function report(result, options) {
 
   const { measured } = result;
   lines.push("", `Browser work over ${measured.overMs}ms`);
+  /** A rate only means something when frames were counted at all. */
+  const rate = measured.fps === null ? "" : ` (${measured.fps}/s)`;
+  const drew =
+    measured.frames === null ? "frames not counted" : `${measured.frames} frames${rate}`;
   lines.push(
-    `  ${measured.frames} frames · ${measured.layouts} layouts (${measured.layoutSeconds}s)` +
+    `  ${drew} · ${measured.layouts} layouts (${measured.layoutSeconds}s)` +
       ` · ${measured.recalcs} style recalculations (${measured.recalcSeconds}s)`,
   );
   lines.push("", "These are observations. What they mean is yours to judge.");

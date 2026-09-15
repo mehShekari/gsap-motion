@@ -6,6 +6,37 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `inspect` called a page full of animation dead. It looked for a `gsap` global,
+  and a bundler never gives the page one: GSAP installs its exports into a
+  private object, and the branch of its installer that would reach `window`
+  cannot be taken, because that object is truthy from the start. So on every
+  Next, Vite, Nuxt, Astro and Svelte app — nearly every project this skill is
+  for — it printed "no GSAP on the page - nothing was animating, or it never
+  loaded". Presence is now read from the traces GSAP leaves instead: the version
+  it announces, and the cache it hangs on every element it touches. A timeline
+  that cannot be read is reported as unreadable, with the one line that makes it
+  readable in development, and a page with no GSAP at all still says so.
+- `inspect` printed a frame count that meant nothing. It came from Chrome's
+  `Frames` performance metric, which reads 0 in headless even while a tween runs
+  at a steady 60fps — so a smooth page was reported as having drawn one frame.
+  The frames are now counted by the page itself, from a `requestAnimationFrame`
+  loop installed before the page's own scripts, and reported with the rate over
+  the window that was really watched.
+- `inspect` aimed a pointer at elements that have no box. A selector can match
+  something whose styles say it is visible and that layout gives a rect of every
+  zero — a duplicate inside a collapsed container. The click landed at 0,0, hit
+  whatever was in the corner, and was reported as a click on the selector. A
+  step whose target has no box on screen now does nothing and says so.
+- `explain` gave a timeline's beats to the wrong scene. When a file had two
+  timelines of the same name it picked the last one; when the beats belonged to
+  neither, because a function fills a timeline it was handed, it picked the last
+  one anyway. A beat no scene encloses is now reported as what it is, under the
+  timeline the file was given.
+- `explain` printed `(label)` for any label that was built rather than written.
+  A label made from a template now shows the source it was written as.
+
 ## [3.4.0] - 2026-09-15
 
 Minor: two new commands that watch and map an animation instead of reading its

@@ -10,7 +10,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { parseOptions } from "../capture-motion.mjs";
+import { parseOptions, pointable, report } from "../capture-motion.mjs";
 
 describe("inspect options", () => {
   test("needs a URL, and says so rather than starting a browser", () => {
@@ -91,5 +91,109 @@ describe("inspect options", () => {
   test("names an unknown option rather than ignoring it", () => {
     const { errors } = parseOptions(["u", "--filmstrip"]);
     assert.deepEqual(errors, ["Unknown option: --filmstrip"]);
+  });
+});
+
+/**
+ * What the report says about a page it could not fully read.
+ *
+ * Found on a real site: a bundled app never publishes gsap, because GSAP
+ * installs its exports into a private object and the branch of its installer
+ * that would reach window cannot be taken. The first version of this probe
+ * asked for a gsap global, did not find one, and told the reader that nothing
+ * was animating — on a page running 228 animated elements. A tool that reports
+ * a wrong absence is worse than one that reports nothing.
+ */
+describe("inspect report", () => {
+  const base = {
+    url: "http://localhost:3000/fa",
+    frames: [],
+    measured: { frames: 1, layouts: 2, layoutTime: 0, recalcs: 3, recalcTime: 0 },
+    notes: [],
+  };
+  const plain = parseOptions([base.url]);
+
+  test("says nothing was there only when nothing was there", () => {
+    const text = report({ ...base, timeline: null }, plain);
+    assert.match(text, /no GSAP on the page/);
+  });
+
+  test("reports a bundled page as unreadable, not as dead", () => {
+    const text = report(
+      { ...base, timeline: { readable: false, version: "3.15.0", controlled: 228 } },
+      plain,
+    );
+    assert.doesNotMatch(text, /nothing was animating/);
+    assert.match(text, /GSAP 3\.15\.0 is running/);
+    assert.match(text, /cannot be read from outside/);
+    assert.match(text, /228 elements carry/);
+    assert.match(text, /gsap\.install\(window\)/);
+  });
+
+  test("counts one controlled element in the singular", () => {
+    const text = report(
+      { ...base, timeline: { readable: false, version: null, controlled: 1 } },
+      plain,
+    );
+    assert.match(text, /1 element carries GSAP's cache/);
+  });
+
+  test("still reads a timeline it can reach", () => {
+    const text = report(
+      {
+        ...base,
+        timeline: {
+          readable: true,
+          version: "3.15.0",
+          controlled: 4,
+          time: 1.5,
+          children: [
+            {
+              targets: ["#box"],
+              duration: 4,
+              repeat: -1,
+              yoyo: true,
+              paused: false,
+              ease: "power2.inOut",
+              props: ["x"],
+            },
+          ],
+        },
+      },
+      plain,
+    );
+    assert.match(text, /#box · 4s, repeats forever, yoyo, ease power2\.inOut · x/);
+  });
+
+  test("says so when the timeline is readable and empty", () => {
+    const text = report(
+      { ...base, timeline: { readable: true, version: null, controlled: 0, time: 0, children: [] } },
+      plain,
+    );
+    assert.match(text, /has no children right now/);
+  });
+});
+
+/**
+ * A selector can match something that cannot be pointed at. Found on a real
+ * site: a header held two copies of one button, and the first had a zero box,
+ * so a click aimed at its centre landed at 0,0 and was reported as a click on
+ * the selector.
+ */
+describe("what can be pointed at", () => {
+  test("a box with size can", () => {
+    assert.equal(pointable({ x: 64, y: 18, width: 36, height: 36 }), true);
+  });
+
+  test("an element with no box cannot, however visible its styles say it is", () => {
+    assert.equal(pointable({ x: 0, y: 0, width: 0, height: 0 }), false);
+  });
+
+  test("a sliver with no height cannot", () => {
+    assert.equal(pointable({ x: 10, y: 10, width: 120, height: 0 }), false);
+  });
+
+  test("nothing at all cannot", () => {
+    assert.equal(pointable(null), false);
   });
 });
