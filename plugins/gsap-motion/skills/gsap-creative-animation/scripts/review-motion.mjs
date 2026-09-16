@@ -19,7 +19,7 @@
  * for a reviewer looking at the filmstrip; this reports evidence, with the time
  * and the element, and leaves the verdict to them.
  *
- * Node.js 18+, no dependencies, whatever Chrome the machine already has.
+ * Node.js 22+, no dependencies, whatever Chrome the machine already has.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";

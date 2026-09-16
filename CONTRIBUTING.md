@@ -7,7 +7,7 @@ and specific.
 
 ## Setup
 
-You need Node.js 18 or later. The skill and its tests have no dependencies.
+You need Node.js 22 or later. The skill and its tests have no dependencies.
 
 ```bash
 git clone https://github.com/mehShekari/gsap-motion

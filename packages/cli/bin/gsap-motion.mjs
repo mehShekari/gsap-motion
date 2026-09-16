@@ -229,9 +229,9 @@ function doctor() {
 
   const nodeMajor = Number(process.versions.node.split(".")[0]);
   report(
-    nodeMajor >= 18 ? "ok" : "warn",
+    nodeMajor >= 22 ? "ok" : "warn",
     `Node.js ${process.versions.node}`,
-    "The audit scripts need Node.js 18 or later.",
+    "The audit scripts need Node.js 22 or later.",
   );
 
   for (const [scope, root, command] of [

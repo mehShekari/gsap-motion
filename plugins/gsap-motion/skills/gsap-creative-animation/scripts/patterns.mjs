@@ -17,7 +17,7 @@
  * needs a name, because those are the two a keen assistant would otherwise
  * grant itself. This command only reads and reports; it never edits the file.
  *
- * Node.js 18+, no dependencies.
+ * Node.js 22+, no dependencies.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

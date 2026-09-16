@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         # The skill's `compatibility` promises Node 18+ for its scripts.
-        node: [18, 20, 22, 24]
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -92,7 +92,7 @@ jobs:
         include:
           # The oldest ESLint the plugin supports, on the oldest Node it runs on.
           - eslint: 9
-            node: 18
+            node: 22
           - eslint: 10
             node: 24
     defaults:

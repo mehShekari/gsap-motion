@@ -17,7 +17,7 @@ holds here too.
 npm install --save-dev --save-exact @mehshekari/eslint-plugin-gsap-motion
 ```
 
-It needs ESLint 9 or 10 with flat config, and Node.js 18.18 or later. Pin the
+It needs ESLint 9 or 10 with flat config, and Node.js 22 or later. Pin the
 exact version: a release can add a rule, or catch a case a rule used to miss,
 and fail a build that passed.
 

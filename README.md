@@ -102,7 +102,7 @@ that is `~/.claude/skills/` for yourself or `.claude/skills/` for one project.
 ### Requirements
 
 GSAP 3.13 or later in your project, where every plugin is free. The audit
-scripts need Node.js 18 or later and nothing else.
+scripts need Node.js 22 or later and nothing else.
 
 ## Quick start
 
@@ -383,7 +383,7 @@ setup and the animation already in the codebase, and tells you what it assumed.
 | Next.js | App Router | Includes Server Component boundaries |
 | Vue 3 and Nuxt, Svelte 4 and 5, Astro, vanilla JS, Three.js, R3F | One adapter each | [`adapter/`](plugins/gsap-motion/skills/gsap-creative-animation/adapter) — lifecycle, scope, SSR, teardown |
 | Node.js, for the scripts | 18 and later | Tested in CI on 18, 20, 22 and 24 |
-| ESLint, for the plugin | 9 and 10, flat config | Tested in CI: ESLint 9 on Node 18, ESLint 10 on Node 24 |
+| ESLint, for the plugin | 9 and 10, flat config | Tested in CI: ESLint 9 on Node 22, ESLint 10 on Node 24 |
 | Clients | Claude Code, as a plugin; any Agent Skills client, as a folder | |
 
 A weekly workflow warns when GSAP publishes a version newer than the one the

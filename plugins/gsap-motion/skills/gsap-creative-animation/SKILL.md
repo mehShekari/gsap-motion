@@ -2,7 +2,7 @@
 name: gsap-creative-animation
 description: Senior motion engineer for GSAP. Turns a visual or interaction idea into production-ready animation across DOM, SVG, text, images, scroll, pointer, layout and 3D — entrance reveals, scroll-driven sequences, pinned and horizontal scroll, magnetic cursors, kinetic typography, marquees, card stacks, page and modal transitions, loaders and site intros, SVG draw/morph/path, Flip layout transitions, and GSAP orchestration of Three.js/R3F. React and Next.js first; also vanilla JS, Vue, Svelte and Astro. Use whenever the user wants something animated, wants motion to feel cinematic/premium/alive/futuristic, wants an existing animation retimed, audited, or made cheaper, or mentions gsap, ScrollTrigger, DrawSVG, MorphSVG, MotionPath, SplitText, Flip, Observer, انیمیشن, موشن, اسکرول, لودینگ, مورفینگ.
 license: MIT. See LICENSE; GSAP itself is licensed separately, see NOTICE.md
-compatibility: Any Agent Skills client; written for Claude Code. GSAP 3.13+, where every plugin is free. React guidance targets @gsap/react 2.x, React 18/19 and the Next.js App Router. The audit scripts need Node.js 18+ and nothing else.
+compatibility: Any Agent Skills client; written for Claude Code. GSAP 3.13+, where every plugin is free. React guidance targets @gsap/react 2.x, React 18/19 and the Next.js App Router. The audit scripts need Node.js 22+ and nothing else.
 metadata:
   version: "3.6.0"
   verified-gsap: "3.15"

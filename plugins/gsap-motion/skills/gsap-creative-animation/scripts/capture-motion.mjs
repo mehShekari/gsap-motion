@@ -11,7 +11,7 @@
  *
  * It drives Chrome over the DevTools Protocol through a pipe — `stdin` and
  * `stdout` of two extra file descriptors — rather than a WebSocket, because
- * Node 18 has no global WebSocket and this skill installs nothing. It uses
+ * Node 22 has no global WebSocket and this skill installs nothing. It uses
  * whatever Chrome the machine already has.
  *
  * Usage, from the project root:

@@ -10,7 +10,7 @@ npx @mehshekari/gsap-motion audit src      # find silent GSAP failures; exits 1 
 npx @mehshekari/gsap-motion doctor         # what is installed, and is your GSAP recent enough
 ```
 
-No dependencies, no install scripts, Node.js 18 or later.
+No dependencies, no install scripts, Node.js 22 or later.
 
 ## Commands
 
