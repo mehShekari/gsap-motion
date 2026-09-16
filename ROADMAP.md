@@ -310,10 +310,65 @@ it.
   have. The other nine measured rules are at 100% over 111 findings.
 - Each command keeps one line in SKILL.md, with its detail in its reference.
 
+## Before anything else: prove the guidance
+
+Decided 2026-09-16, after the first real test of what this skill is for.
+
+**What happened.** The same React hero was built four times with this skill and
+four times without it, by the same model, and every result was checked in a real
+browser rather than taken on the agent's word. Three of four real bugs were in
+the version built with the skill. None were in the one built without it.
+
+**What it means.** SKILL.md's third principle is *the smallest tool that does
+the job*. The skill taught the opposite: `gsap.matchMedia` where a check would
+do, a loop pause, a seven-state morph — and every more advanced pattern brought
+a way to fail that it did not guard. The skill has also grown the same way it
+taught: SKILL.md at its budget, a build tier with a dozen words spare, an
+eleven-step pipeline, a seven-part answer. It preaches restraint and practises
+accumulation.
+
+**Why it happened.** From 3.0 to 4.1 nearly all the work was on what could be
+measured — a parser, a corpus, an ESLint plugin, `inspect`, `review`, `patterns`
+— and all of it measured well. What the skill exists for, a model writing better
+animation, was never measured, because it is slow and it costs money. The means
+were polished and the end was assumed.
+
+**What is and is not proven.** The audit is: every finding on 14 real projects
+read, all true. The guidance is not: one case scored better with it (only the
+skill decided a marquee's direction for right-to-left), and one head-to-head
+scored worse. That is two products, and one of them has evidence.
+
+### The rule until then
+
+**No new guidance, unless it corrects a failure someone observed.** 4.2's three
+guidance changes qualify — `immediateRender`, why both matchMedia conditions are
+required, and what a Verification line must name — because each came from a bug
+in that test. 4.1's intent table would not have.
+
+### The work, in order
+
+1. **Turn the head-to-head into the suite, and keep its method.** A real
+   browser, a check independent of the agent, and no trust in what the agent
+   says it verified. `inspect` and `review` grade what they can measure; the
+   graders read the rest. Its four rounds are the first cases.
+2. **Answer the one question, with the baseline.** Built with the skill, is the
+   animation more correct, more appropriate to the request, and **no more
+   fragile** than without it? The third is the one that failed.
+3. **Cut what does not help.** Ablate the guidance a file at a time and remove
+   what moves no score. The likeliest outcome is a smaller skill, which is what
+   its own third principle asks for.
+4. **Only then, the list below.** Demo recordings, a marketplace listing and
+   notes for other agents all promote the guidance; they wait until there is
+   something shown to promote.
+
+**Exit:** the skill beats no skill on that suite, is no more fragile, and the
+release notes say so with the numbers — or it does not, and the guidance is cut
+until it does.
+
 ## Next
 
 The project is young and has one maintainer, so nobody should have to take it on
-trust. These make the evidence public.
+trust. These make the evidence public. **They wait on the section above.**
 
 - **Published scores.** Each release's notes carry the eval suite's scores with
   and without the plugin, and the audit's precision per rule on the 3.1 corpus.
