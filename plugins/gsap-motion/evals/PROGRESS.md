@@ -43,6 +43,30 @@ which would have scored the skill wrongly:
 **The first agent runs are its real test.** Read every failure it reports there
 before counting it, until it has seen code it was not tuned on.
 
+### Round 1, first attempt (2026-09-16) — a test of the grader, not of the skill
+
+The user's fintech hero brief, one Sonnet subagent with the skill and one without,
+graded with the grader above. **Not a verdict on the skill**, for two reasons:
+
+- **The control arm was contaminated.** Both were subagents of a session with the
+  gsap-motion 4.1.0 plugin enabled, so its `PostToolUse` audit hook ran on the
+  without-skill agent's edits too. Arms must be separate `claude` processes in
+  projects with no plugin enabled.
+- **The brief was wrong.** It said `@gsap/react` was installed; it was not. Only
+  `gsap` is.
+
+Also seen: the with-skill agent took 139k tokens, 41 tool uses and 559s against
+87k, 20 and 334s, and edited `src/index.css` outside the hero, which the other did
+not. Both graded not fragile.
+
+**What it taught the grader.** `below-fold-mobile` took the largest svg, canvas,
+img or video as the main visual. Both heroes built theirs from divs around a small
+SVG chart, so it measured the 64-72px chart and reported 100% on screen. The
+verdict was right by luck: the real visuals were 100% and 80% shown. A first fix,
+the largest block, picked the section below the hero and reported 0%. The visual
+is now the largest in-flow, non-copy block inside the headline's section, which
+matches the hand measurements on both and still grades the in-sample five 5 of 5.
+
 ## Keeping the cost down without testing less
 
 Agreed 2026-09-16, after the first baseline run cost $2.10 for one case and
