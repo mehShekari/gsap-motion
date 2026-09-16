@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.2.1] - 2026-09-16
+
+Patch: one false positive at error level, found by the first clean round of
+phase 8. Error-level findings fail a consumer's lint, so it ships on its own.
+No rule, level, command or word of guidance was added, so no eval was run for
+it; the fix is proven by fixtures, the corpus and the page it was found on.
+
 ### Fixed
 
 - **`orphan-tween` reported tweens inside a `gsap.matchMedia().add` callback as
@@ -727,7 +734,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.2.1...HEAD
+[4.2.1]: https://github.com/mehShekari/gsap-motion/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/mehShekari/gsap-motion/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/mehShekari/gsap-motion/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/mehShekari/gsap-motion/compare/v3.6.0...v4.0.0
