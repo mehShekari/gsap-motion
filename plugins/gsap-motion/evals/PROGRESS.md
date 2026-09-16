@@ -16,6 +16,33 @@ by 4.0:** 44
 > one winning. Written with the layer so it is falsifiable; they run in phase 8
 > with the rest. **Until they run, the intent guidance is unproven.**
 >
+## The grader phase 8 uses
+
+`scripts/grade/grade.mjs <url> <source dir>` — built 2026-09-16 on the method of
+a head-to-head test that the skill lost: a real browser, a check independent of
+the agent, no trust in what the agent says it verified. It answers one question,
+**is this implementation fragile**, and never whether the animation is good.
+
+It runs two instruments because the bugs split between them. The browser catches
+an animation that never runs and a visual off screen on mobile; the audit catches
+a label a stacked `fromTo` hides, which no browser threshold can tell from a
+normal reveal (1308ms buggy against 1178-1574ms clean, in the same page).
+
+**Validated in-sample: 5 of 5** — both clean implementations not fragile, each of
+the three real bugs restored and caught. The thresholds were set on those five,
+so this proves the grader can see those bugs, not that it is right elsewhere.
+Calibrating it also found four errors in the instruments themselves, each of
+which would have scored the skill wrongly:
+
+- It first accused the implementation built **without** the skill of two bugs.
+  Both were stacked per-state labels hidden on purpose.
+- It missed a visual 57% below the fold, because it wanted three quarters.
+- A stuck-invisible check could not be made to work at all, and was removed.
+- The new audit rule `stacked-from` flagged a loop guarded to run once.
+
+**The first agent runs are its real test.** Read every failure it reports there
+before counting it, until it has seen code it was not tuned on.
+
 ## Keeping the cost down without testing less
 
 Agreed 2026-09-16, after the first baseline run cost $2.10 for one case and
