@@ -226,6 +226,29 @@ test("the README states the audit's real rule count", () => {
 });
 
 /**
+ * The same discipline for the command count, and for the same reason: it said
+ * "14 commands" through three releases that added six, and nothing noticed
+ * until the surface was rewritten in 4.0. A number in prose that nothing checks
+ * is a number that goes stale.
+ */
+test("the README states as many commands as its own table lists", () => {
+  const readme = read("README.md");
+  const words = {
+    Twelve: 12, Thirteen: 13, Fourteen: 14, Fifteen: 15, Sixteen: 16,
+    Seventeen: 17, Eighteen: 18, Nineteen: 19, Twenty: 20,
+    "Twenty-one": 21, "Twenty-two": 22, "Twenty-three": 23, "Twenty-four": 24,
+  };
+  const stated = readme.match(/\*\*(?:(\d+)|([A-Z][a-z]+(?:-[a-z]+)?)) commands\*\*/);
+  assert.ok(stated, "README does not state a command count");
+  const count = stated[1] ? Number(stated[1]) : words[stated[2]];
+  assert.ok(count, `unrecognised number word: ${stated[2]}`);
+
+  const table = readme.match(/\| Command \| What it does \|[\s\S]*?\n\n/)?.[0] ?? "";
+  const rows = table.split("\n").filter((line) => /^\| `[a-z]/.test(line)).length;
+  assert.equal(count, rows, `README says ${count}, its table lists ${rows}`);
+});
+
+/**
  * The vendored parser's header names the versions it was built from. CI's
  * `vendor` job proves the bytes match; this proves, with no install, that a
  * change to a pin did not go without a regeneration.

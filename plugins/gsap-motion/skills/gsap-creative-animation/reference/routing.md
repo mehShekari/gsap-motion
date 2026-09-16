@@ -90,6 +90,47 @@ single hover takes [interaction](interaction.md) and nothing else from its row.
 Do not load a domain file "for completeness". Loading `adapter/three.md` for a
 button hover is the failure this map exists to prevent.
 
+## `create`, `design` and `build`
+
+Three commands for one piece of work, separated so that the expensive part —
+writing code — is not where a disagreement about the idea surfaces.
+
+- **`create`** is the front door, and the alias `animate` still reaches it. It
+  classifies the request and routes: a domain command if one fits, `design`
+  first if the request is large or vague, straight to the work if it is small
+  and clear. A one-element hover does not need a plan; a site intro does.
+- **`design`** produces a plan and **no code**: what moves and why, the beats in
+  order, the device and reduced-motion strategy, the techniques with the reason
+  each is needed, and what it will cost against the project's motion budget.
+  It ends by asking whether to build it. Writing code here defeats the point —
+  the plan is cheap to argue with, and an implementation is not.
+- **`build`** implements a plan that was approved, and needs one in hand. Given
+  no plan it asks for one rather than inventing something to build; given a plan
+  it follows it through the pipeline, and says plainly where it departed and
+  why. A departure is not a failure — a plan meets the real markup for the first
+  time during `build` — but a silent one is.
+
+## `evolve`
+
+Improve motion that already exists: `audit`, fix what it found, `tune` the
+timing, then offer what was learned. It adds no new motion; that is `create`.
+
+Its guards, all four of which exist because an improvement loop is the easiest
+place for an assistant to do damage while feeling useful:
+
+- **It needs a target, and keeps to one component or scene.** "Evolve the site"
+  is not a request, it is an invitation to churn.
+- **It shows its plan before a large change.** A retime is not a large change;
+  restructuring a timeline is.
+- **It stops after three rounds** and reports what is left, rather than trying a
+  fourth shape of the same idea.
+- **It leaves approved motion alone.** Something the project accepted is not a
+  defect because this run would have done it differently.
+- **It offers at most an `experimental` pattern, and never changes a status.**
+  See [project-rules.md](project-rules.md): standing comes from evidence, and a
+  loop that promotes its own output is the failure the maturity model exists to
+  prevent.
+
 ## `audit`
 
 **Run the checker first.** It is deterministic, it costs a second, and it finds

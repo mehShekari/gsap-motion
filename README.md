@@ -42,7 +42,7 @@ This skill gives the agent two things it lacks:
 
 ## What you get
 
-- **14 commands**, from `reveal` and `scroll` to `audit`, `tune` and `strip`.
+- **Twenty-two commands** in four groups: build, evaluate, refine, knowledge.
 - **Deep references** on ScrollTrigger, Flip, SVG, text, pointer interaction,
   Three.js, performance, accessibility, React and Next.js, and other frameworks.
   They load only when a request needs them.
@@ -232,7 +232,9 @@ This exact component is built in CI as part of the
 
 | Command | What it does |
 | --- | --- |
-| `animate [target]` | General entry: analyse the intent, then route |
+| `create [target]` | The front door: classify the request, then route. `animate` is an alias |
+| `design [target]` | Plan only — beats, devices, techniques, budget. No code |
+| `build` | Implement a plan that was approved |
 | `reveal [target]` | Entrance and in-view reveals, staggers, masks |
 | `scroll [target]` | Scroll-driven sequences, pinning, scrubbing, horizontal scroll |
 | `text [target]` | Kinetic typography, split reveals, scramble |
@@ -247,7 +249,9 @@ This exact component is built in CI as part of the
 | `inspect <url>` | Watch a page animate: a filmstrip, the running timeline, measured browser work |
 | `explain [target]` | Map an existing animation: scopes, branches, beats, triggers, and what the audit says |
 | `review <url>` | Measure what the motion did: time to first motion, how much of the screen moves at once, loop seams, motion over text |
+| `evolve [target]` | Audit, fix, tune, then offer what was learned. Adds no new motion |
 | `patterns` | What this project has proven, by status, and what has earned a promotion |
+| `learn` | Offer a verified finding as a candidate pattern, once you agree |
 | `tune [target]` | Retime, re-ease and fix rhythm, adding no new motion |
 | `strip [target]` | Remove motion that is not earning its place |
 

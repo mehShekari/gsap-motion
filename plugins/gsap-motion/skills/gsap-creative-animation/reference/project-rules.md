@@ -151,6 +151,25 @@ It exits 1 on a claim the evidence does not support, so it belongs in `lint`
 beside `audit`. Where a candidate has earned `validated`, it says so and leaves
 the promotion to you.
 
+### `patterns` and `learn`
+
+- **`patterns`** lists what the project has proven, by status, and what has
+  earned a promotion. Asked to apply one, it uses `validated` and `canonical`
+  entries by default and a `candidate` only when you name it — a candidate is an
+  option to mention, not a default to reach for.
+- **`learn`** offers a finding as a `candidate`, once you agree, and writes
+  nothing before that. It offers only what it has verified: the claim tested
+  with a minimal repro, the audit clean, and the entry carrying its concept,
+  what is fixed, when not to use it, its reduced-motion branch, and what it was
+  verified against. **An unverified finding is not offered at all**, and neither
+  command ever changes a status — `validated` is counted by `patterns check`,
+  and `canonical` is a person's signature.
+
+A new shape is composed from what exists before anything is invented, and a
+behaviour claim is verified one variable at a time before it is written down.
+Something that turns out to be general is worth an upstream issue; something
+mechanically detectable is worth an audit rule, with its fires and quiet cases.
+
 ---
 
 ## Rules worth knowing without a file

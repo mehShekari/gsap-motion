@@ -60,33 +60,25 @@ Core principles:
 
 ## Commands
 
-| Command | Category | Description | Reference |
-|---|---|---|---|
-| `animate [target]` | Build | General entry — analyse the intent, then route | [reference/routing.md](reference/routing.md) |
-| `reveal [target]` | Build | Entrance and in-view reveals, staggers, masks | [preset/reveal.md](preset/reveal.md) |
-| `scroll [target]` | Build | Scroll-driven sequences, pin, scrub, horizontal | [reference/scrolltrigger.md](reference/scrolltrigger.md) |
-| `text [target]` | Build | Kinetic typography, split reveals, scramble | [reference/text.md](reference/text.md) |
-| `svg [file]` | Build | Draw, morph, path-follow, SVG timelines | [reference/svg.md](reference/svg.md) |
-| `interact [target]` | Build | Pointer, magnetic, cursor, drag, inertia | [reference/interaction.md](reference/interaction.md) |
-| `ambient [target]` | Build | Marquees, orbits, floating, breathing loops | [preset/marquee.md](preset/marquee.md) |
-| `transition [target]` | Build | Page, route, modal and layout transitions | [reference/flip.md](reference/flip.md) |
-| `loader` | Build | Loading and progress animation | [preset/loader.md](preset/loader.md) |
-| `intro` | Build | Site or section entry sequence | [preset/cinematic.md](preset/cinematic.md) |
-| `three [target]` | Build | GSAP orchestrating Three.js / R3F | [adapter/three.md](adapter/three.md) |
-| `audit [target]` | Evaluate | Check an existing animation: leaks, cost, a11y | [reference/performance.md](reference/performance.md) |
-| `tune [target]` | Refine | Retime, re-ease, fix rhythm — no new motion | [reference/motion-design.md](reference/motion-design.md) |
-| `strip [target]` | Fix | Remove motion that is not earning its place | [reference/motion-design.md](reference/motion-design.md) |
+| Group | Commands |
+|---|---|
+| **Build** | `create` — the front door: classify the request, then route · `design` — plan only, no code · `build` — implement an approved plan · and the ten domain commands, unchanged: `reveal` `scroll` `text` `svg` `interact` `ambient` `transition` `loader` `intro` `three` |
+| **Evaluate** | `audit` — a verdict, from the source · `inspect` — what a browser saw · `explain` — the architecture · `review` — what the motion measured |
+| **Refine** | `tune` — timing and easing only · `strip` — remove motion that is not earning its place · `evolve` — audit, fix, tune, then offer patterns |
+| **Knowledge** | `patterns` — what this project has proven, by status · `learn` — offer a verified finding as a candidate |
 
-Routing:
+`animate` is an alias of `create`. Routing:
 
 - **No argument, or no target:** read [routing.md](reference/routing.md) and
   ask what should move. "Add some animation to my homepage" names no target:
   never invent one.
 - **A command, explicit or implied:** load its reference and follow it.
 - **A description** ("make this feel like Apple", "the hero is boring"): that is
-  `animate`. Classify with routing.md's table, then load what that needs.
+  `create`. Classify with routing.md's table, then load what that needs.
 - **Two commands fit:** ask once. A scroll-driven text reveal is `scroll` and
   `text` together, not a coin toss.
+- **`design` stops at the plan.** `build` implements one that was approved, and
+  needs it in hand. `evolve` improves what is there and never adds motion.
 
 ## The pipeline
 
