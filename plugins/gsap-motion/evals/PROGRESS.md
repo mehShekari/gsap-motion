@@ -7,7 +7,7 @@ Scores here are working numbers, not published ones. A single run is noisy. A sc
 reaches the release notes only after 3 runs with the no-plugin baseline. Raw results
 stay in `results/`, which git ignores.
 
-**Updated:** 2026-09-16 · **Plugin on npm:** 3.6.0 · **Cases today:** 17 · **Planned
+**Updated:** 2026-09-16 · **Plugin on npm:** 4.1.0 · **Cases today:** 17 · **Planned
 by 4.0:** 44
 
 > **Two cases added 2026-09-16, unrun** (`outcome-intent-values`,
@@ -54,18 +54,18 @@ from 2.1.0, one run each. **No release has a full baseline yet**, so no release 
 
 | Case | Measures | Added | Last run | Runs | Score | Next |
 |---|---|---|---|---|---|---|
-| `trigger-audit` | A debugging question about existing GSAP code | 2.1.0 | 2026-09-15 on 3.4.0 | 1 | 1.00 | Run at the next release |
-| `trigger-feeling` | A request about how motion should feel, naming no library | 2.1.0 | 2026-09-15 on 3.4.0 | 1 | 1.00 | Run at the next release |
-| `trigger-persian` | A request in Persian | 2.1.0 | 2026-09-15 on 3.4.0 | 1 | 1.00 | Run at the next release |
-| `trigger-scroll-reveal` | A plain reveal request in a Next.js project | 2.1.0 | 2026-09-15 on 3.4.0 | 1 | 1.00 | Run at the next release |
+| `trigger-audit` | A debugging question about existing GSAP code | 2.1.0 | 2026-09-16 on 4.1.0 | 1 | 1.00 | Run at the next release |
+| `trigger-feeling` | A request about how motion should feel, naming no library | 2.1.0 | 2026-09-16 on 4.1.0 | 1 | 1.00 | Run at the next release |
+| `trigger-persian` | A request in Persian | 2.1.0 | 2026-09-16 on 4.1.0 | 1 | 1.00 | Run at the next release |
+| `trigger-scroll-reveal` | A plain reveal request in a Next.js project | 2.1.0 | 2026-09-16 on 4.1.0 | 1 | 1.00 | Run at the next release |
 
 ### `ignore-` — the skill stays out of unrelated work
 
 | Case | Measures | Added | Last run | Runs | Score | Next |
 |---|---|---|---|---|---|---|
-| `ignore-backend` | Backend work | 2.1.0 | 2026-09-15 on 3.4.0 | 1 | 1.00 | Run at the next release |
-| `ignore-framer-motion` | An animation request naming another library | 2.1.0 | 2026-09-15 on 3.4.0 | 1 | 1.00 | Run at the next release |
-| `ignore-tailwind-colour` | A styling change with no motion | 2.1.0 | 2026-09-15 on 3.4.0 | 1 | 1.00 | Run at the next release |
+| `ignore-backend` | Backend work | 2.1.0 | 2026-09-16 on 4.1.0 | 1 | 1.00 | Run at the next release |
+| `ignore-framer-motion` | An animation request naming another library | 2.1.0 | 2026-09-16 on 4.1.0 | 1 | 1.00 | Run at the next release |
+| `ignore-tailwind-colour` | A styling change with no motion | 2.1.0 | 2026-09-16 on 4.1.0 | 1 | 1.00 | Run at the next release |
 
 ### `outcome-` — the answer has the property the skill teaches
 
@@ -121,6 +121,7 @@ phase is built. Until then a phase proves its behaviour with unit tests and fixt
 |---|---|---|---|---|---|
 | 2.1.0 (pilot) | 2026-09-13 | 10 of 13 | 1 each | ≈ $5.81 | `results/2026-09-13-pilot/SUMMARY.md` |
 | 3.3.0 | 2026-09-15 | 7 of 15 (`trigger-` and `ignore-`) | 1 each, no baseline | $2.70 | 7 of 7 at 1.00 — firing survived the adapter split, Persian included |
+| 4.1.0 | 2026-09-16 | 7 of 17 (`trigger-` and `ignore-`) | 1 each, no baseline | $3.33 | 7 of 7 at 1.00. The point of this run: SKILL.md was rewritten twice since the last one — 4.0 replaced the whole command table, 4.1 changed the Analysis contract — and firing is the one failure nothing else catches. `trigger-feeling` ("make the entrance feel more cinematic") exercises the path 4.1 rewrote; `trigger-audit` also passed its `names-the-leak` judge 3-0 |
 | 3.4.0 | 2026-09-15 | 7 of 15 (`trigger-` and `ignore-`) | 1 each, no baseline | $3.30 | 7 of 7 at 1.00. The `trigger-` arm ran on the 3.4.0 content before the version bump landed, so its report names 3.3.0 |
 | 3.0.0 | — | — | — | — | not run |
 | 3.0.1 | — | — | — | — | not run: evals wait for the roadmap |
