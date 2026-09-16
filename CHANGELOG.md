@@ -6,6 +6,56 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-09-16
+
+Minor: a request is read as an **intent**, and the values it resolves to are
+stated in the answer. Nothing in the audit, the CLI or any command changed.
+
+The skill already knew that "cinematic" means slow and sequential. It said so
+twice — eleven rows in `routing.md` and eight in `motion-design.md`, worded
+differently — and neither reached a number. So this is not a new layer on top;
+it is the duplication removed and the two halves joined to the parameter tables
+that were already there.
+
+**npm goes 3.6.0 → 4.1.0.** 4.0.0 is tagged at `ca9729a` and CI-green, but was
+superseded before it was published; everything in it is here.
+
+### Changed
+
+- **`motion-design.md`'s "Reading a request"** is now six intents — cinematic,
+  premium, playful, alive, technical, organic — each resolving to a duration
+  band, an ease, how many things compete for attention, and what deliberately
+  stays still. Every value comes from the tables already above it in that file.
+  - **They compose, one column at a time**, so "cinematic but fast" is a request
+    rather than a contradiction: keep the ease and the focus, move down a
+    duration band.
+  - Validated against a real site before release. A reviewed production hero
+    independently uses one beat over 1s, everything else in 600–900ms, and
+    `power3.out` throughout — which is the cinematic row, cell for cell. Three of
+    the six rows are confirmed this way; playful, technical and organic are not,
+    and are marked unvalidated in `evals/PROGRESS.md` rather than presented as
+    measured.
+- **`routing.md` routes, and no longer defines.** Feelings route to a command;
+  diagnoses — "it feels janky", "the hero is boring", "snappier" — route on what
+  is actually wrong, which is a different question and now a separate table.
+- **The Analysis section states the reading.** A reviewer can argue with a
+  reading; they cannot argue with `tl.from()` calls.
+- The Easing table's Use column no longer repeats the intents.
+
+### Added
+
+- `outcome-intent-values` and `outcome-intent-composes`, written and
+  **deliberately unrun**: whether a named feeling resolves to stated values, and
+  whether two at once compose instead of one winning. They run in phase 8.
+  Until then this guidance is unproven, and `evals/PROGRESS.md` says so.
+
+### Cost
+
+A request that names a feeling loads about **145 words more** than before — the
+tables say more than the adjectives did. The always tier is unchanged at 2,548
+of 2,600; the build tier keeps 11 words spare, which is tighter than it was and
+worth knowing before the next thing wants room.
+
 ## [4.0.0] - 2026-09-16
 
 Major, for one reason: **the Node floor rises to 22.** Node 18 and 20 are past
@@ -575,6 +625,7 @@ production website.
 - The date GSAP became free: version 3.13, in April 2025.
 
 [Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...HEAD
+[4.1.0]: https://github.com/mehShekari/gsap-motion/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/mehShekari/gsap-motion/compare/v3.6.0...v4.0.0
 [3.6.0]: https://github.com/mehShekari/gsap-motion/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/mehShekari/gsap-motion/compare/v3.4.1...v3.5.0
