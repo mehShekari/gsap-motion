@@ -478,12 +478,43 @@ export function gsapContexts(root) {
     }
   }
 
-  const scopes = findAll(
-    root,
-    (node) =>
-      node.type === "CallExpression" &&
-      (isHook(node) || calleeName(node) === "gsap.context" || safe.has(bareName(node))),
-  ).flatMap((call) => call.arguments);
+  /**
+   * A matchMedia is a context too: `mm.revert()` reverts what its `add`
+   * callbacks made. Its callback is recognised on `gsap.matchMedia().add` and on
+   * any name the file assigns `gsap.matchMedia()` to, followed when it is handed
+   * over by name. Whether the matchMedia itself is ever reverted is
+   * `unmanaged-instance`'s to report, not a reason to distrust its callbacks.
+   */
+  const matchMedias = new Set(
+    findAll(
+      root,
+      (node) =>
+        (node.type === "VariableDeclarator" &&
+          Boolean(node.init) &&
+          calleeName(unwrap(node.init)) === "gsap.matchMedia") ||
+        (node.type === "AssignmentExpression" &&
+          calleeName(unwrap(node.right)) === "gsap.matchMedia"),
+    )
+      .map((node) => dottedName(node.type === "VariableDeclarator" ? node.id : node.left))
+      .filter(Boolean),
+  );
+  const isMatchMediaAdd = (node) => {
+    if (methodName(node) !== "add") return false;
+    const object = unwrap(unwrap(node.callee).object);
+    return calleeName(object) === "gsap.matchMedia" || matchMedias.has(dottedName(object));
+  };
+
+  const scopes = [
+    ...findAll(
+      root,
+      (node) =>
+        node.type === "CallExpression" &&
+        (isHook(node) || calleeName(node) === "gsap.context" || safe.has(bareName(node))),
+    ).flatMap((call) => call.arguments),
+    ...findAll(root, isMatchMediaAdd).flatMap((call) =>
+      call.arguments.map((argument) => resolveFunction(root, argument)).filter(Boolean),
+    ),
+  ];
 
   const counts = new Map();
   const functions = new Map();

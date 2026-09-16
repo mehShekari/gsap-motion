@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **`orphan-tween` reported tweens inside a `gsap.matchMedia().add` callback as
+  errors**, though `mm.revert()` reverts them. A matchMedia is now a context: its
+  `add` callbacks count as inside, inline or handed over by name, on
+  `gsap.matchMedia().add` and on any name the file assigns a matchMedia to. A
+  matchMedia that is never reverted is still reported, by `unmanaged-instance`.
+  Found in phase 8, on a hero an agent wrote without the skill: three false
+  errors beside one true `matchmedia-never-runs`. The corpus did not contain the
+  shape; it is unchanged, 111 findings, all true.
+
 ## [4.2.0] - 2026-09-16
 
 Minor: two new audit rules and the guidance behind them, both from a single

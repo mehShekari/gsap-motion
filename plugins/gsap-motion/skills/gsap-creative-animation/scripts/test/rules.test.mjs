@@ -161,6 +161,85 @@ export function Box({ other }) {
     );
   });
 
+  /**
+   * A matchMedia is a context: `mm.revert()` reverts what its `add` callbacks
+   * made. Built from the hero an agent wrote in phase 8's round 1, where three
+   * tweens inside a reverted matchMedia were reported as errors. Whether the
+   * matchMedia itself is reverted is `unmanaged-instance`'s question.
+   */
+  test("stays quiet inside a matchMedia add callback", () => {
+    quiet(
+      "orphan-tween",
+      `${REACT}
+export function Hero() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const mm = gsap.matchMedia();
+    mm.add({ motion: "(prefers-reduced-motion: no-preference)" }, () => {
+      const entrance = gsap.timeline();
+      entrance.to(ref.current, { y: 0 });
+      gsap.to(ref.current, { x: 16, repeat: -1, yoyo: true });
+    });
+    return () => mm.revert();
+  }, []);
+  return <section ref={ref} />;
+}`,
+    );
+  });
+
+  test("stays quiet in a named function handed to matchMedia add", () => {
+    quiet(
+      "orphan-tween",
+      `${REACT}
+export function Hero() {
+  const ref = useRef(null);
+  useEffect(() => {
+    let mm;
+    mm = gsap.matchMedia();
+    function setup() {
+      gsap.to(ref.current, { x: 16 });
+    }
+    mm.add("(min-width: 800px)", setup);
+    return () => mm.revert();
+  }, []);
+  return <section ref={ref} />;
+}`,
+    );
+  });
+
+  test("fires beside a matchMedia, outside its add callback", () => {
+    fires(
+      "orphan-tween",
+      `${REACT}
+export function Hero() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(min-width: 800px)", () => {});
+    gsap.to(ref.current, { x: 16 });
+    return () => mm.revert();
+  }, []);
+  return <section ref={ref} />;
+}`,
+    );
+  });
+
+  test("fires in a callback handed to an add that is not a matchMedia", () => {
+    fires(
+      "orphan-tween",
+      `${REACT}
+export function Hero({ registry }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    registry.add("(min-width: 800px)", () => {
+      gsap.to(ref.current, { x: 16 });
+    });
+  }, []);
+  return <section ref={ref} />;
+}`,
+    );
+  });
+
   test("stays quiet at module scope and on gsap.set", () => {
     quiet(
       "orphan-tween",
@@ -205,6 +284,23 @@ export function Swipe() {
   }, []);
   return null;
 }`,
+    );
+  });
+
+  test("fires on a matchMedia never reverted, and only on it, not what its callback made", () => {
+    fires(
+      "unmanaged-instance",
+      `${OBSERVER}
+export function Hero() {
+  useEffect(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(min-width: 800px)", () => {
+      Observer.create({ target: window, onUp: () => {} });
+    });
+  }, []);
+  return null;
+}`,
+      { count: 1 },
     );
   });
 
