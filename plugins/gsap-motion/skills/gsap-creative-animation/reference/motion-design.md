@@ -122,7 +122,7 @@ takeover — in [routing.md](routing.md).
 A feeling resolves to values from the tables above. **Say them in Analysis**: a
 reviewer can argue with a reading, not with code.
 
-| Intent | Duration | Ease | At once | Deliberately still |
+| Intent | Duration | Ease | Competing | Deliberately still |
 |---|---|---|---|---|
 | cinematic | 600–900ms, 1s+ for one hero beat | `power3.out`, `expo.out` once | one | the background |
 | premium | 350–500ms | `power3.out`, no overshoot | few | anything that would bounce |
@@ -132,8 +132,8 @@ reviewer can argue with a reading, not with code.
 | organic | 600–900ms, overlapping | `sine.inOut`, soft | several | straight lines |
 
 **They compose, one column at a time.** "Cinematic but fast" keeps the ease and
-the one-at-a-time, and moves down a duration band. [routing.md](routing.md)
-reads the common adjustments.
+the focus, and moves down a duration band. [routing.md](routing.md) reads the
+common adjustments.
 
 ## Validation
 
