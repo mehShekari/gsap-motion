@@ -238,6 +238,31 @@ describe("doctor", () => {
     assert.match(result.stdout, /Not installed for this project/);
   });
 
+  test("--json reports the same run the text does, not a thinner one", () => {
+    const box = sandbox({
+      "package.json": JSON.stringify({ dependencies: { gsap: "^3.15.0", react: "^19.0.0" } }),
+    });
+    const result = run(box, "doctor", "--json");
+    assert.equal(result.status, 0);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.cli, version);
+    assert.equal(report.skill, version);
+    assert.deepEqual(report.adapters, ["react"]);
+    assert.equal(report.plugin, null);
+    assert.equal(report.animationMd, false);
+    /** The same checks the text prints, every one of them carrying its state. */
+    assert.ok(report.checks.length >= 4);
+    assert.ok(report.checks.every((check) => typeof check.state === "string"));
+    assert.equal(report.worst, "warn");
+  });
+
+  test("--json prints nothing but JSON, so a script can read it", () => {
+    const box = sandbox({ "package.json": JSON.stringify({ dependencies: { gsap: "^3.15.0" } }) });
+    const result = run(box, "doctor", "--json");
+    assert.doesNotThrow(() => JSON.parse(result.stdout));
+    assert.doesNotMatch(result.stdout, /carrying gsap-creative-animation/);
+  });
+
   test("names the adapters the stack gets, composed as SKILL.md composes them", () => {
     const next = sandbox({
       "package.json": JSON.stringify({

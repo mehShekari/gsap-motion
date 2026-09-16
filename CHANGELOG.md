@@ -38,6 +38,11 @@ them new, and `animate` still reaches `create`.
   behind a current plugin, and then recommended `add`, which is the command that
   creates exactly that. Where both exist it now says the local copy shadows the
   plugin.
+- **`doctor --json`**, deferred from 3.2 to the command surface and landing
+  here. It is the same run the text report makes — every check with its state,
+  plus the CLI and skill versions, the adapters, the plugin providing the skill,
+  and whether an `ANIMATION.md` exists — rather than a second, thinner report a
+  script would have to trust.
 - A test that the README's stated command count equals its own table. It said
   "14 commands" through three releases that added six.
 

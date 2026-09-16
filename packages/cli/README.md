@@ -24,7 +24,7 @@ No dependencies, no install scripts, Node.js 22 or later.
 | `explain <file...|url>` | Maps an animation and changes nothing: where it lives, its preference branches, its beats in order with the reasons their comments give, its scroll configuration, and what the audit says. Given a URL it reads the running page instead, where the timeline is the one GSAP actually built. |
 | `review <url>` | Measures what the motion actually did, by sampling the DOM every frame rather than by reading GSAP's timeline — which a bundled app never exposes, and which would make it work on demo pages and fail on real ones. Reports time to first motion, the share of the screen moving at its busiest, loop seams, and motion over text being read. Sampling forces layout, so it does not report layout counts; `inspect` measures those. Takes the same `--scroll`, `--reduced`, `--dark`, `--mobile` and `--cpu`. |
 | `patterns check [file]` | Validates the Patterns section of your `ANIMATION.md`: the fields each status needs, the recorded uses behind `validated`, the named reviewer behind `canonical`, and entries verified against an older GSAP than the one installed. Exits 1 on a claim the evidence does not support, so it belongs in `lint` beside `audit`. A project with no Patterns section passes. |
-| `doctor` | Checks Node.js, the installed skill's version for this project and your user, your project's `gsap` and `@gsap/react`, and whether an `ANIMATION.md` exists. |
+| `doctor` | `--json` for the same report a script can read. Checks Node.js, the installed skill's version for this project and your user, your project's `gsap` and `@gsap/react`, and whether an `ANIMATION.md` exists. |
 
 ## In CI
 

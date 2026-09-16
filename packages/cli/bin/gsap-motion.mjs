@@ -100,6 +100,7 @@ Commands
                         validated, the reviewer behind canonical
     --json              Machine-readable output
   doctor                Check Node, the installed skill and your project's GSAP
+    --json              Machine-readable output
   --version             Print the version
 
 Docs: https://github.com/mehShekari/gsap-motion`;
@@ -217,15 +218,26 @@ function runScript(script, args) {
   process.exit(result.status ?? 1);
 }
 
-function doctor() {
+function doctor(args = []) {
+  const json = args.includes("--json");
   const bundled = skillInfo(SKILL_DIR);
   const mark = { ok: green("✓"), warn: yellow("!"), info: dim("·") };
+  /**
+   * Every check is collected, so `--json` reports the same run the text one
+   * does rather than a second, thinner version of it. A half-JSON doctor is
+   * worse than none: it invites a script to trust a field nobody filled in.
+   */
+  const checks = [];
   const report = (state, message, hint) => {
+    checks.push({ state, message, ...(hint ? { hint } : {}) });
+    if (json) return;
     console.log(`${mark[state]} ${message}`);
     if (hint && state !== "ok") console.log(`  ${dim(hint)}`);
   };
 
-  console.log(`${bold("gsap-motion")} ${pkg.version}, carrying ${SKILL_NAME} ${bundled.version}\n`);
+  if (!json) {
+    console.log(`${bold("gsap-motion")} ${pkg.version}, carrying ${SKILL_NAME} ${bundled.version}\n`);
+  }
 
   const nodeMajor = Number(process.versions.node.split(".")[0]);
   report(
@@ -355,6 +367,26 @@ function doctor() {
     rules ? "ANIMATION.md found — the skill follows it" : "No ANIMATION.md",
     "Optional. Add one so the skill follows your project's rules; see reference/project-rules.md in the skill.",
   );
+
+  if (json) {
+    console.log(
+      JSON.stringify(
+        {
+          cli: pkg.version,
+          skill: bundled.version,
+          node: process.versions.node,
+          adapters: ORDER.filter((name) => picked.has(name)),
+          plugin: provider,
+          animationMd: rules,
+          /** Nothing here is a verdict on the project; `worst` is only the highest state reached. */
+          worst: checks.some((check) => check.state === "warn") ? "warn" : "ok",
+          checks,
+        },
+        null,
+        2,
+      ),
+    );
+  }
 }
 
 const [command, ...args] = process.argv.slice(2);
@@ -389,7 +421,7 @@ switch (command) {
     runScript("patterns.mjs", args);
     break;
   case "doctor":
-    doctor();
+    doctor(args);
     break;
   case "--version":
   case "-v":
