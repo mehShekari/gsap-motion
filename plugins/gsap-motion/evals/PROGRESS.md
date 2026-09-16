@@ -7,9 +7,15 @@ Scores here are working numbers, not published ones. A single run is noisy. A sc
 reaches the release notes only after 3 runs with the no-plugin baseline. Raw results
 stay in `results/`, which git ignores.
 
-**Updated:** 2026-09-15 · **Plugin on npm:** 3.4.0 · **Cases today:** 15 · **Planned
+**Updated:** 2026-09-16 · **Plugin on npm:** 3.6.0 · **Cases today:** 17 · **Planned
 by 4.0:** 44
 
+> **Two cases added 2026-09-16, unrun** (`outcome-intent-values`,
+> `outcome-intent-composes`). They grade the intent layer: whether a named
+> feeling resolves to stated values, and whether two at once compose instead of
+> one winning. Written with the layer so it is falsifiable; they run in phase 8
+> with the rest. **Until they run, the intent guidance is unproven.**
+>
 > **The expensive half waits for the roadmap** (decided 2026-09-14, refined
 > 2026-09-15). Outcome cases and baselines are not run while 3.0.x through 4.0 are
 > built: they grade guidance that each phase still changes, three runs with a

@@ -43,14 +43,14 @@ default.
 | Ease | Feel | Use |
 |---|---|---|
 | `power2.out` | quick start, soft landing | the default for entrances |
-| `power3.out` / `power4.out` | sharper, more expensive-feeling | premium, cinematic |
+| `power3.out` / `power4.out` | sharper, more expensive-feeling | see intents |
 | `power2.in` | gathers then leaves | exits |
 | `power2.inOut` | symmetric | moves between two resting states |
 | `none` | mechanical, constant | **anything looping**, scrub, marquee |
-| `back.out(1.4)` | overshoot | playful — never on more than one thing at a time |
+| `back.out(1.4)` | overshoot | playful — never two at once |
 | `elastic.out(1, 0.4)` | wobble | rarely; reads as a toy |
-| `sine.inOut` | gentle breath | ambient loops, pulses |
-| `expo.out` | dramatic arrival | one hero moment, not a list |
+| `sine.inOut` | gentle breath | ambient loops |
+| `expo.out` | dramatic arrival | one hero moment |
 
 Two failures worth naming. **An ease other than `none` on a repeating tween**
 puts a visible stutter at the seam — the loop decelerates into its own restart.
@@ -119,16 +119,21 @@ takeover — in [routing.md](routing.md).
 
 ## Reading a request
 
-| They say | They usually mean |
-|---|---|
-| "smoother" | longer duration, softer ease — or a cost problem; check which |
-| "snappier" | shorter duration, `power3.out`, less stagger |
-| "more premium" | fewer elements moving, longer eases, no overshoot |
-| "more playful" | overshoot on one element, tighter stagger |
-| "cinematic" | slower, sequential, one thing at a time, generous holds |
-| "subtle" | reduce distance before reducing duration |
-| "it feels cheap" | usually linear easing or uniform duration |
-| "it feels slow" | usually too sequential, not too long — try overlap first |
+A feeling resolves to values from the tables above. **Say them in Analysis**: a
+reviewer can argue with a reading, not with code.
+
+| Intent | Duration | Ease | At once | Deliberately still |
+|---|---|---|---|---|
+| cinematic | 600–900ms, 1s+ for one hero beat | `power3.out`, `expo.out` once | one | the background |
+| premium | 350–500ms | `power3.out`, no overshoot | few | anything that would bounce |
+| playful | 200–350ms | `back.out(1.4)`, one element | few | every second overshoot |
+| alive | 1s+, looping | `sine.inOut`, `none` | ambient only | the content itself |
+| technical | 200–500ms | `none`, `power2.out`, stepped | a grid, together | curves |
+| organic | 600–900ms, overlapping | `sine.inOut`, soft | several | straight lines |
+
+**They compose, one column at a time.** "Cinematic but fast" keeps the ease and
+the one-at-a-time, and moves down a duration band. [routing.md](routing.md)
+reads the common adjustments.
 
 ## Validation
 

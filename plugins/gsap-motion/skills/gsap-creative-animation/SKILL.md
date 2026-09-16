@@ -111,7 +111,8 @@ intent → precedent → targets → trigger → motion language → technique
 
 For anything beyond a one-line tweak, answer in this shape, each part short:
 
-- **Analysis** — what moves, why, in what style, on what trigger.
+- **Analysis** — what moves, why, on what trigger, and the intent you read it
+  as, with the values that follow.
 - **Motion strategy** — the sequence, as numbered beats.
 - **Architecture** — timeline shape, plugins and why each is needed, refs,
   handlers, what cleans up.

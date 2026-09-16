@@ -25,19 +25,34 @@ offer the menu below — grouped, so the question is easy to answer.
 
 Most requests are a feeling, not a command. Classify, then route.
 
-| What they say | What they mean | Route to |
+**A named feeling routes here, and resolves to values** in
+[motion-design](motion-design.md)'s *Reading a request* — duration, ease, how
+many move at once, and what stays still. They compose, so a request that names
+two is not a coin toss.
+
+| What they say | Route to |
+|---|---|
+| "make it cinematic" | `intro` · [cinematic](../preset/cinematic.md) |
+| "make it feel premium" | `tune` · [motion-design](motion-design.md) |
+| "make it feel alive" | `ambient` · [marquee](../preset/marquee.md) |
+| "futuristic / technical" | `text` + `svg` |
+| "liquid / organic" | `svg` · [loader](../preset/loader.md) |
+| "like Apple" | `scroll` · [scroll-storytelling](../preset/scroll-storytelling.md) |
+
+**A diagnosis is not a feeling**, and routes on what is actually wrong:
+
+| What they say | What it usually is | Route to |
 |---|---|---|
-| "make it cinematic" | slow, weighted, sequenced, one thing at a time | `intro` · [cinematic](../preset/cinematic.md) |
-| "make it feel premium" | fewer moving parts, longer eases, no bounce | `tune` · [motion-design](motion-design.md) |
-| "make it feel alive" | ambient continuous motion under static content | `ambient` · [marquee](../preset/marquee.md) |
-| "make it pop / bolder" | more contrast in timing, not more elements moving | `tune` · [motion-design](motion-design.md) |
-| "like Apple" | scroll-scrubbed, pinned, one idea per screen | `scroll` · [scroll-storytelling](../preset/scroll-storytelling.md) |
-| "futuristic / technical" | scramble, draw-on, mechanical easing, grid reveals | `text` + `svg` |
-| "liquid / organic" | morph, path motion, overlapping soft easing | `svg` · [loader](../preset/loader.md) |
-| "something crazy" | layered techniques with one clear concept | see below |
+| "make it pop / bolder" | contrast in timing, not more elements moving | `tune` |
+| "the hero is boring" | a hierarchy problem before a motion problem | `tune`, then `reveal` |
+| "it feels janky" | cost or trigger | `audit` · [performance](performance.md) |
 | "smooth image reveal" | clip-path or mask, not opacity | [reveal](../preset/reveal.md) |
-| "the hero is boring" | hierarchy problem before a motion problem | `tune`, then `reveal` |
-| "it feels janky" | cost or trigger problem | `audit` · [performance](performance.md) |
+| "something crazy" | layered techniques, one clear concept | see below |
+| "smoother" | longer and softer — or a cost problem, so check which | `tune`, or `audit` |
+| "snappier" | shorter, less stagger | `tune` |
+| "subtle" | less distance, before less duration | `tune` |
+| "it feels cheap" | linear easing, or one uniform duration | `tune` |
+| "it feels slow" | usually too sequential, not too long: try overlap | `tune` |
 
 ### "Something crazy"
 
