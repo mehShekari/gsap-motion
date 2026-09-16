@@ -61,6 +61,13 @@ it worse.** Phase 8 exists to measure that, and now has a real starting point.
   hides nothing because the conflict is per property. Both became fixtures, and
   the rule now requires the two to be able to run together and to share a
   property, with `autoAlpha` counted as `opacity`.
+- **It then accused the version built without the skill.** That code builds a
+  `fromTo` inside a loop over states, behind `if (key === "money")` — one pass,
+  so one tween. The rule saw a loop and stopped there, and would have credited
+  the winning side of the test with a bug it did not have. An equality guard
+  against a literal now counts as selecting one pass; an inequality such as
+  `key !== "brand"` runs on most passes and still fires, with a test holding
+  that in place.
 - **Now zero findings on the corpus** — which is unmeasured, not proven. Both
   rules stay at warn until a corpus that exercises them says otherwise.
 - `stacked-from` reports the line of the `fromTo` itself. The first version

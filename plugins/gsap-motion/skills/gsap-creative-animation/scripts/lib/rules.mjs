@@ -1748,17 +1748,52 @@ export const RULES = [
        * own callback nor a named helper some loop calls, because nothing then
        * says it runs more than once.
        */
+      /**
+       * Does a guard on the way out pick exactly one pass? `key === "money"`
+       * does; `key !== "brand"` runs on most passes and still stacks. Only an
+       * equality against a literal, on a name that changes each pass, counts —
+       * the version of a real hero built without the skill guarded its one
+       * per-state tween that way, and a first version of this rule credited it
+       * with a bug it did not have.
+       */
+      const selectsOnePass = (guards, varying) =>
+        guards.some((test) =>
+          findAll(test, (node) => {
+            if (node.type !== "BinaryExpression" || !["===", "=="].includes(node.operator)) return false;
+            const sides = [unwrap(node.left), unwrap(node.right)];
+            const name = sides.find((side) => side?.type === "Identifier" && varying.has(side.name));
+            const literal = sides.find((side) => side?.type === "Literal");
+            return Boolean(name && literal);
+          }).length > 0,
+        );
+
+      /** Names that change each pass: its variable, and whatever its body declares. */
+      const declaredIn = (body) =>
+        body
+          ? findAll(body, (n) => n.type === "VariableDeclarator" && n.id.type === "Identifier").map((n) => n.id.name)
+          : [];
+
       const repetition = (tween, timeline) => {
         const varying = new Set();
+        const guards = [];
+        const settle = (loopBody) => {
+          declaredIn(loopBody).forEach((n) => varying.add(n));
+          return selectsOnePass(guards, varying) ? null : varying;
+        };
+        let inner = tween;
         for (const ancestor of ancestorsOf(file.ast, tween)) {
           if (contains(ancestor, timeline)) return null;
+          if ((ancestor.type === "IfStatement" || ancestor.type === "ConditionalExpression") && contains(ancestor.consequent, inner)) {
+            guards.push(ancestor.test);
+          }
+          inner = ancestor;
           if (LOOPS.includes(ancestor.type)) {
             loopNames(ancestor).forEach((n) => varying.add(n));
-            return varying;
+            return settle(ancestor.body);
           }
           if (!isFunction(ancestor)) continue;
           paramNames(ancestor).forEach((n) => varying.add(n));
-          if (isLoopCallback(ancestor)) return varying;
+          if (isLoopCallback(ancestor)) return settle(ancestor.body);
 
           const holder = parentOf(file.ast, ancestor);
           const name =

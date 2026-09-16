@@ -2079,6 +2079,43 @@ tl.from(".badge", { opacity: 0 }).fromTo(".badge", { autoAlpha: 0 }, { autoAlpha
     );
   });
 
+  /**
+   * From the version built WITHOUT the skill, in the same head-to-head: a loop
+   * over states, with a fromTo guarded by `key === 'money'`. That selects one
+   * pass, so the tween is built once. The rule reported it, and would have
+   * credited that version with a bug it did not have.
+   */
+  test("stays quiet on a from-tween in a loop that an equality guard limits to one pass", () => {
+    quiet(
+      "stacked-from",
+      `${PLAIN}
+const tl = gsap.timeline();
+const STATES = ["brand", "money", "insights"];
+for (let i = 1; i < STATES.length; i++) {
+  const key = STATES[i];
+  if (key === "money" && dot) {
+    tl.fromTo(dot, { attr: { cx: 34 } }, { attr: { cx: 50 } }, "state-" + i);
+  }
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  /** The same guard turned around runs on most passes, and still stacks. */
+  test("fires when the guard in the loop excludes one pass instead of selecting it", () => {
+    fires(
+      "stacked-from",
+      `${PLAIN}
+const tl = gsap.timeline();
+for (const state of ["brand", "money", "insights"]) {
+  if (state !== "brand") {
+    tl.fromTo(".badge", { autoAlpha: 0 }, { autoAlpha: 1 }, state);
+  }
+}`,
+      { ext: "ts" },
+    );
+  });
+
   test("stays quiet on one from-tween per target", () => {
     quiet(
       "stacked-from",
