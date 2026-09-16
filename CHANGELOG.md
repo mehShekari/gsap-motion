@@ -6,6 +6,61 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-09-16
+
+Major, for one reason: **the Node floor rises to 22.** Node 18 and 20 are past
+end of life, and a consumer on either will not install this. Everything else
+here is additive.
+
+The command surface is the headline. Twenty-two commands in four groups, six of
+them new, and `animate` still reaches `create`.
+
+### Added
+
+- **`create`, `design` and `build`** — three commands for one piece of work,
+  separated so that the expensive part, writing code, is not where a
+  disagreement about the idea surfaces. `design` produces a plan and no code and
+  ends by asking whether to build it; `build` needs a plan in hand and says
+  where it departed from one and why.
+- **`evolve`** — audit, fix, tune, then offer what was learned, adding no new
+  motion. Five guards, because an improvement loop is the easiest place to do
+  damage while feeling useful: it needs a target and keeps to one component,
+  shows its plan before a large change, stops after three rounds, leaves
+  approved motion alone, and offers at most an `experimental` pattern — never a
+  status change.
+- **`patterns` and `learn`** finally named in the skill's own surface. 3.6 built
+  the model and the checker; there was no room to name the commands until the
+  table was regrouped.
+- **`doctor` knows when a plugin is providing the skill.** It reads
+  `.claude/settings.json` for an enabled `gsap-motion@…` plugin, and then a
+  missing local copy reads as the healthy state rather than as something to fix.
+  Found in a real project: doctor reported a checked-in copy three releases
+  behind a current plugin, and then recommended `add`, which is the command that
+  creates exactly that. Where both exist it now says the local copy shadows the
+  plugin.
+- A test that the README's stated command count equals its own table. It said
+  "14 commands" through three releases that added six.
+
+### Changed
+
+- **Node.js 22 or later**, in `engines` for all three packages, the skill's
+  `compatibility`, the CI matrix, `doctor`'s check, all three READMEs and
+  CONTRIBUTING. The ESLint plugin moves from `>=18.18` to `>=22`; CI runs 22 and
+  24, and the ESLint 9 job moves from Node 18 to 22.
+- The command table is grouped rather than one row per command, which cost 50
+  words fewer than the rows it replaced. SKILL.md is 1,449 against its unchanged
+  1,500. Per-command reference links move out of SKILL.md: `routing.md` maps by
+  intent, which is how a request actually arrives.
+
+### Not changed, deliberately
+
+- **`tween-per-frame` stays at `warn`.** The roadmap planned to promote it to
+  error at 4.0 once its corpus precision cleared 95%. Measured here, the rule
+  has **zero findings across all 14 corpus projects** — it is unmeasured, not
+  proven, and an unmeasured rule cannot clear a bar. An error fails a consumer's
+  build, which is not a thing to spend on a guess. The nine rules the corpus does
+  measure are at 100% over 111 findings.
+
 ## [3.6.0] - 2026-09-15
 
 Minor: the maturity model, and `patterns check` to enforce it. A project can now
@@ -515,6 +570,7 @@ production website.
 - The date GSAP became free: version 3.13, in April 2025.
 
 [Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...HEAD
+[4.0.0]: https://github.com/mehShekari/gsap-motion/compare/v3.6.0...v4.0.0
 [3.6.0]: https://github.com/mehShekari/gsap-motion/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/mehShekari/gsap-motion/compare/v3.4.1...v3.5.0
 [3.4.1]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...v3.4.1

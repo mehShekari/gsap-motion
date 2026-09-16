@@ -301,8 +301,13 @@ it.
   - It stops after three rounds and leaves approved motion alone.
   - It offers at most an `experimental` entry, and never changes a status.
 - `animate` stays as an alias of `create` through 4.x.
-- `tween-per-frame` is promoted to error, once its corpus precision clears 3.1's
-  bar.
+- ~~`tween-per-frame` is promoted to error, once its corpus precision clears
+  3.1's bar.~~ **It is not, and stays at warn.** Measured at 4.0: the rule has
+  **zero findings** across all 14 corpus projects, so it has no precision to
+  clear a bar with. Unmeasured is not the same as proven, and an error fails a
+  consumer's build. It moves when a corpus that exercises it says it may — which
+  needs projects that tween per frame, and those are what the corpus does not
+  have. The other nine measured rules are at 100% over 111 findings.
 - Each command keeps one line in SKILL.md, with its detail in its reference.
 
 ## Next

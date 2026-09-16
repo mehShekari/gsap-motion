@@ -191,6 +191,53 @@ describe("doctor", () => {
     assert.match(result.stdout, /✓ ANIMATION\.md found/);
   });
 
+  /**
+   * Found in a real project: a checked-in skill copy three releases behind a
+   * plugin that was current. doctor found it, and then recommended `add`, which
+   * is the command that creates exactly that. With a plugin present, a missing
+   * local copy is the healthy state and must not read as a thing to fix.
+   */
+  test("says the plugin provides the skill, and does not suggest a second copy", () => {
+    const box = sandbox({
+      "package.json": JSON.stringify({ dependencies: { gsap: "^3.15.0" } }),
+      ".claude/settings.json": JSON.stringify({
+        enabledPlugins: { "gsap-motion@mehshekari": true },
+      }),
+    });
+    const result = run(box, "doctor");
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /Provided by the gsap-motion@mehshekari plugin/);
+    assert.match(result.stdout, /No separate copy for this project/);
+    assert.doesNotMatch(result.stdout, /add installs it at/);
+  });
+
+  test("still offers the install when no plugin provides it", () => {
+    const box = sandbox({ "package.json": JSON.stringify({ dependencies: { gsap: "^3.15.0" } }) });
+    const result = run(box, "doctor");
+    assert.match(result.stdout, /Not installed for this project/);
+    assert.match(result.stdout, /add installs it at/);
+  });
+
+  test("ignores a plugin entry that is switched off", () => {
+    const box = sandbox({
+      "package.json": JSON.stringify({ dependencies: { gsap: "^3.15.0" } }),
+      ".claude/settings.json": JSON.stringify({
+        enabledPlugins: { "gsap-motion@mehshekari": false },
+      }),
+    });
+    assert.match(run(box, "doctor").stdout, /Not installed for this project/);
+  });
+
+  test("survives a settings file that is not JSON", () => {
+    const box = sandbox({
+      "package.json": JSON.stringify({ dependencies: { gsap: "^3.15.0" } }),
+      ".claude/settings.json": "{ this is not json",
+    });
+    const result = run(box, "doctor");
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /Not installed for this project/);
+  });
+
   test("names the adapters the stack gets, composed as SKILL.md composes them", () => {
     const next = sandbox({
       "package.json": JSON.stringify({

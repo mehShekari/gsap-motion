@@ -234,15 +234,60 @@ function doctor() {
     "The audit scripts need Node.js 22 or later.",
   );
 
+  /**
+   * A plugin may already be providing the skill, and then a copy in
+   * `.claude/skills` is not a missing install, it is the thing that shadows the
+   * plugin and goes stale. Found in a real project: a checked-in copy three
+   * releases behind a plugin that was current, while doctor recommended the
+   * command that creates exactly that.
+   */
+  const pluginProvides = () => {
+    for (const root of [process.cwd(), homedir()]) {
+      for (const file of ["settings.json", "settings.local.json"]) {
+        try {
+          const settings = JSON.parse(readFileSync(join(root, ".claude", file), "utf8"));
+          const enabled = Object.entries(settings.enabledPlugins ?? {})
+            .filter(([, on]) => on)
+            .map(([name]) => name)
+            .filter((name) => name.startsWith("gsap-motion@"));
+          if (enabled.length) return enabled[0];
+        } catch {
+          /** No settings file, or not JSON: nothing is claimed either way. */
+        }
+      }
+    }
+    return null;
+  };
+
+  const provider = pluginProvides();
+  if (provider) {
+    report("ok", `Provided by the ${provider} plugin`);
+  }
+
   for (const [scope, root, command] of [
     ["this project", process.cwd(), `npx ${pkg.name} add`],
     ["your user", homedir(), `npx ${pkg.name} add --global`],
   ]) {
     const location = join(root, ".claude", "skills", SKILL_NAME);
     const installed = skillInfo(location);
-    if (!installed) report("info", `Not installed for ${scope}`, `${command} installs it at ${location}`);
-    else if (installed.version === bundled.version) report("ok", `Installed for ${scope}: ${installed.version}`);
-    else report("warn", `Installed for ${scope}: ${installed.version}`, `${command} updates it to ${bundled.version}.`);
+    if (!installed) {
+      /**
+       * Recommending an install on top of a plugin is how a second, ageing copy
+       * gets created, so with a plugin present this is a fact, not a suggestion.
+       */
+      if (provider) report("info", `No separate copy for ${scope}`);
+      else report("info", `Not installed for ${scope}`, `${command} installs it at ${location}`);
+    } else if (installed.version === bundled.version) {
+      report("ok", `Installed for ${scope}: ${installed.version}`);
+    } else {
+      report(
+        "warn",
+        `Installed for ${scope}: ${installed.version}`,
+        provider
+          ? `The ${provider} plugin also provides it, and a local copy shadows the plugin. Remove ${location}, or ${command} to update it to ${bundled.version}.`
+          : `${command} updates it to ${bundled.version}.`,
+      );
+    }
   }
 
   const manifest = join(process.cwd(), "package.json");
