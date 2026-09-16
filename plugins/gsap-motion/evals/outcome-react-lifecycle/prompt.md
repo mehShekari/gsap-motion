@@ -1,6 +1,7 @@
 ---
 description: A React reveal should be scoped, cleaned up, registered and reduced-motion aware.
 tags: [outcome, react]
+timeout_seconds: 600
 max_turns: 15
 allowed_tools: [Read, Glob, Grep, Skill]
 ---

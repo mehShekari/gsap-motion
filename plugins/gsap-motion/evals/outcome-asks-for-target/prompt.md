@@ -1,6 +1,7 @@
 ---
 description: A whole page with nothing in it named is no target, so the skill asks what should move. Without the skill, Claude tends to invent a hero entrance and scroll reveals. The first version of this case had no page, so Claude asked only because the workspace was empty.
 tags: [outcome, judgement]
+timeout_seconds: 600
 max_turns: 8
 allowed_tools: [Read, Glob, Grep, Skill]
 ---

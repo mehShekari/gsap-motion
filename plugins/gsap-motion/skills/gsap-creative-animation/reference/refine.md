@@ -147,3 +147,30 @@ Verification
 
 Say what you did not check, too. "Not checked" is information; silence reads as
 "checked and fine", and that is the one thing it must never mean.
+
+### "Verified" names what you saw
+
+**A check is a measurement, not a verb.** "Verified live", "tested at 390px" and
+"works as expected" say that something was run; they do not say what came back,
+so nobody can tell whether it would have caught the failure.
+
+A head-to-head test made the cost concrete. An answer written with this skill
+reported *"verified live, no horizontal overflow at 390px"* — and shipped two
+bugs that a 390px browser shows at a glance: the visual pushed below the fold,
+and a label invisible through its whole first state. Overflow was the one thing
+checked, and it was not what was broken.
+
+So a line states the value observed, at a time and a size:
+
+| Not this | This |
+|---|---|
+| verified live | badge label opacity 1 at t=0 and at every state label, 1280x800 |
+| works on mobile | 390x844: the visual's top edge at 96px, above the fold; no overflow |
+| reduced motion handled | reduced emulated: heading and lead at end state, no tween ran |
+| animation runs | `review`: first motion at 410ms; 0 elements invisible for the whole window |
+
+**Check the failure, not the feature.** A reveal that works is easy to observe;
+the failures that ship are an element that never appears, one that appears too
+late, and one that is off screen at the size you did not look at. Look for those
+by name. And a claim you did not observe is worse than "not checked": it tells
+the reader to stop looking.

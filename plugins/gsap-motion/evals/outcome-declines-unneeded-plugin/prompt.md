@@ -1,6 +1,7 @@
 ---
 description: The skill should decline a plugin a transform can replace, and say so.
 tags: [outcome, judgement]
+timeout_seconds: 600
 max_turns: 12
 allowed_tools: [Read, Glob, Grep, Skill]
 ---

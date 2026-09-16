@@ -1,6 +1,7 @@
 ---
 description: A full-screen intro is server-rendered, so without a CSS exit a visitor whose JavaScript never runs is left behind it for good — the JavaScript ceiling cannot help them. Not yet piloted.
 tags: [outcome, intro]
+timeout_seconds: 600
 max_turns: 15
 allowed_tools: [Read, Glob, Grep, Skill]
 ---

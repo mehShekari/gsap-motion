@@ -48,7 +48,7 @@ This skill gives the agent two things it lacks:
   They load only when a request needs them.
 - **Presets and worked examples** for reveals, marquees, card stacks, loaders,
   site intros, page transitions and scroll storytelling.
-- **`audit-gsap`**: 22 rules for leaks, per-frame cost, eased loops, shared
+- **`audit-gsap`**: 24 rules for leaks, per-frame cost, eased loops, shared
   plugin ids, unregistered plugins and shipped dev tooling — from the command
   line, or in your editor as an ESLint plugin.
 - **`audit-svg`**: what an SVG can do before you animate it — what DrawSVG can
@@ -271,7 +271,7 @@ can gate a build. Pin the version, so a new rule cannot fail your build without
 warning:
 
 ```json
-"lint": "eslint && npx @mehshekari/gsap-motion@4.0.0 audit src --quiet"
+"lint": "eslint && npx @mehshekari/gsap-motion@4.2.0 audit src --quiet"
 ```
 
 Or install it with `npm install --save-dev --save-exact @mehshekari/gsap-motion`;
@@ -305,6 +305,8 @@ With the skill installed, the same scripts are in its folder:
 | `ungated-hover` | warn | A hover animation with no `(hover: hover)` gate, which a tap starts and nothing ends |
 | `delay-chain` | warn | Three or more tweens in one scope sequenced by `delay`, which is a timeline nobody can retime |
 | `unowned-loop` | info | An infinite repeat that nothing pauses, which keeps the ticker busy off screen |
+| `matchmedia-never-runs` | warn | A matchMedia callback that branches on its conditions, when every condition needs reduced motion |
+| `stacked-from` | warn | A timeline's `from` or `fromTo` built more than once against the same target |
 
 ### Waiving a finding
 
@@ -445,7 +447,16 @@ source and labelled true or false with a reason in
 - A rule missing from the table reports nothing on this corpus, so its precision
   is not measured here: `unregistered-plugin`, `unmanaged-instance`,
   `state-per-event`, `dangling-listener`, `unreverted-context`,
-  `tween-per-frame`, `delay-chain` and the rules that never fired.
+  `tween-per-frame`, `delay-chain`, `matchmedia-never-runs`, `stacked-from`
+  and the rules that never fired.
+- **`matchmedia-never-runs` and `stacked-from` (4.2) came from a head-to-head
+  test**, not from the corpus: a real hero built with this skill shipped both
+  bugs and one built without it shipped neither. Each fires on that code with
+  its fix removed and stays quiet with the fix in. On the corpus their first
+  version reported three findings and **all three were false** — a fade-in and
+  a fade-out in opposite branches of one `if`, and two tweens that set
+  different properties on one element — and both became fixtures and fixes.
+  Now zero findings there, which is unmeasured, not proven: both stay at warn.
 - The samples are small, and one project supplies half of them. Treat the
   numbers as evidence, not as a guarantee.
 - Recall is not measured: a failure nobody found cannot be counted.

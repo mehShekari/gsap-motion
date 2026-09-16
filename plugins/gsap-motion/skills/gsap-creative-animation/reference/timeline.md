@@ -186,3 +186,35 @@ ScrollTrigger's `scrub` is this same mechanism with scroll as the value.
 | Entrance replays on loop | `repeat: -1` on the timeline, not the child |
 | Flash of the end state before it runs | `from` without a `set`, outside a layout effect |
 | Two beats drift apart after an edit | both timed by number instead of sharing a label |
+| An element is invisible until much later than it should be | several `from`/`fromTo` on it, each applying its start state when built |
+
+### `from` renders when it is built, not when it plays
+
+`from` and `fromTo` default to `immediateRender: true`: the start state is
+written to the element **the moment the tween is created**, not when the
+playhead reaches it. With one tween per element that is exactly what you want —
+nothing flashes before the entrance.
+
+Build several against the same element and they all write at once, in order, so
+**the last one wins and holds the element there until the playhead arrives.**
+A helper that adds a beat per state is the usual way in: one call site, run in
+a loop, and a label that stays hidden through every state before the last.
+
+```ts
+const addBeat = (state: string) => {
+  tl.addLabel(state).fromTo(
+    badge,
+    { autoAlpha: 0, y: 6 },
+    { autoAlpha: 1, y: 0, immediateRender: false }, // written when it plays
+    state,
+  );
+};
+
+gsap.set(badge, { autoAlpha: 1, y: 0 }); // the first state, set once, on purpose
+STATES.forEach(addBeat);
+```
+
+The conflict is per property. Two tweens on one element that set **different**
+properties — one fading in on `opacity`, another turning on `rotationY` — hide
+nothing, and need no change. The audit reports the shape that does hide:
+`stacked-from`.

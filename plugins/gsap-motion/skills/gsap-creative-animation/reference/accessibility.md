@@ -54,6 +54,21 @@ mm.add(
 
 ```
 
+**Both conditions are required, and dropping `motion` breaks everything.** The
+callback runs only while at least one named condition matches. With `reduced`
+alone, a visitor who has no preference — nearly all of them — matches nothing,
+so the callback never runs and **the page ships with no animation at all**,
+silently: no error, and every test with reduced motion on still passes. The
+audit reports it as `matchmedia-never-runs`.
+
+A reduced-only `add` is still correct when it does not branch — the shape below
+is GSAP's own, and each callback is meant to run only for its own visitors:
+
+```ts
+mm.add("(prefers-reduced-motion: no-preference)", () => { /* the animation */ });
+mm.add("(prefers-reduced-motion: reduce)", () => { /* the end states */ });
+```
+
 Built inside a `useGSAP` body this needs no explicit teardown — `matchMedia`
 registers with the active context and is reverted with it.
 

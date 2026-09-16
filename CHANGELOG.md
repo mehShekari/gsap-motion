@@ -6,6 +6,91 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-09-16
+
+Minor: two new audit rules and the guidance behind them, both from a single
+piece of evidence — a head-to-head test in which **the version written with this
+skill shipped bugs that the version written without it did not.**
+
+That test is the most important thing to have happened to this project, and the
+release should say so plainly. A Sonnet agent built the same React hero four
+times with the skill and four times without, and every result was checked in a
+real browser rather than taken on the agent's word. Of four real bugs, three
+were in the version built with the skill and none in the one built without. The
+skill raised the ceiling — `gsap.matchMedia` that follows a mid-session change,
+an `IntersectionObserver` pausing loops off screen, a seven-state morph — and
+every more advanced pattern brought a new way to fail that it did not guard.
+
+This release guards the two that are mechanical, and teaches the lesson behind
+the third. It does not answer the harder finding, which stands: **the skill has
+not yet been shown to make animation better, and on this evidence it can make
+it worse.** Phase 8 exists to measure that, and now has a real starting point.
+
+### Added
+
+- **`matchmedia-never-runs`** (warn): a `gsap.matchMedia().add` whose callback
+  branches on `context.conditions`, when every condition needs reduced motion.
+  The callback runs only while a named condition matches, so a visitor with no
+  preference — nearly everyone — matches nothing, and **the page ships with no
+  animation at all**, silently, while every test run with reduced motion on
+  still passes. A reduced-only `add` that does not branch is GSAP's own
+  documented pattern and is not reported.
+- **`stacked-from`** (warn): a timeline's `from` or `fromTo`, without
+  `immediateRender: false`, built more than once against the same element with
+  an overlapping start state. Each writes its start state when built, so the
+  last one wins and holds the element hidden until the playhead arrives. It
+  follows a loop, and a helper that a loop calls — in the real bug there was
+  **one** call site, run six times.
+
+### How they were built, including what went wrong
+
+- **Against the real code first.** Each rule fires on that hero with its fix
+  removed and stays quiet with the fix in. The real file also held the shape a
+  careless rule would report — a `fromTo` inside a callback only passed along
+  for one state — and that became a quiet fixture.
+- **The first version crashed on the first real project it met.** An
+  uninitialised `let tl;` made `matchmedia-never-runs` throw, and a thrown rule
+  takes the whole audit down — every consumer's lint would have failed. 133
+  passing tests had missed it, because no hand-written fixture had an
+  uninitialised declaration. It is fixed, with a regression test that was
+  checked to fail without the fix.
+- **Its first corpus run was 0 for 3.** `stacked-from` reported three findings
+  across the 14 projects and all three were false: a fade-in in the `if` and a
+  fade-out in the `else` against one element, which never both run; and two
+  tweens on one element that set different properties, where "last one wins"
+  hides nothing because the conflict is per property. Both became fixtures, and
+  the rule now requires the two to be able to run together and to share a
+  property, with `autoAlpha` counted as `opacity`.
+- **Now zero findings on the corpus** — which is unmeasured, not proven. Both
+  rules stay at warn until a corpus that exercises them says otherwise.
+- `stacked-from` reports the line of the `fromTo` itself. The first version
+  reported where its chain began, 25 lines above.
+
+### Fixed
+
+- **4.1.0's READMEs told people to install a version that does not exist.** The
+  lint script read `npx @mehshekari/gsap-motion@4.0.0 audit src --quiet`, and
+  4.0.0 was tagged but never published, so copying it failed to install. The
+  4.1.0 version bump stopped partway — on the lockfile, where two unrelated
+  dependencies happened to sit at `4.0.0` — the pins after it were never
+  reached, and every other check passed. They now read 4.2.0, and a test fails
+  if any version the READMEs tell people to install is not the one being
+  released.
+
+### Changed
+
+- **`reference/timeline.md` teaches `immediateRender`**, which the skill had
+  never mentioned anywhere: `from` renders when it is built, several against one
+  element leave the last in charge, and the conflict is per property.
+- **`reference/accessibility.md` says why both matchMedia conditions are
+  required**, and shows the reduced-only `add` that is correct.
+- **`reference/refine.md`: "verified" names what you saw.** The agent that
+  shipped both bugs reported *"verified live, no horizontal overflow at 390px"*.
+  Overflow was the one thing checked, and not what was broken. A Verification
+  line now states the value observed, at a time and a size, and checks the ways
+  animation fails — an element that never appears, one that appears late, one
+  off screen at the size nobody looked at — by name.
+
 ## [4.1.0] - 2026-09-16
 
 Minor: a request is read as an **intent**, and the values it resolves to are
@@ -625,6 +710,7 @@ production website.
 - The date GSAP became free: version 3.13, in April 2025.
 
 [Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v3.4.0...HEAD
+[4.2.0]: https://github.com/mehShekari/gsap-motion/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/mehShekari/gsap-motion/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/mehShekari/gsap-motion/compare/v3.6.0...v4.0.0
 [3.6.0]: https://github.com/mehShekari/gsap-motion/compare/v3.5.0...v3.6.0

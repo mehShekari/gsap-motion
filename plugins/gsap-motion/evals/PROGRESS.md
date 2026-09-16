@@ -16,6 +16,52 @@ by 4.0:** 44
 > one winning. Written with the layer so it is falsifiable; they run in phase 8
 > with the rest. **Until they run, the intent guidance is unproven.**
 >
+## Keeping the cost down without testing less
+
+Agreed 2026-09-16, after the first baseline run cost $2.10 for one case and
+showed where the money actually goes. The design — 44 cases, 3 runs, both arms,
+about $75 — pays for the same information many times over. Four levers, in
+order of what they save.
+
+**1. Measure each baseline once, not every release.** The baseline arm answers
+*would the model do this unaided?* That answer does not change between our
+releases, because the model does not. Record it per case with the model version
+beside it, then run only the with-skill arm afterwards and take the delta
+against the stored number. **Halves every release run.** When the model changes,
+the baselines expire together and are re-measured in one batch.
+
+**2. Two runs, and a third only on disagreement.** Three runs exist to average
+out noise, but a case that scored 1.00 twice has none to average. Spend the
+third run only where the first two differ — which is exactly where the noise
+is. About a third off the stable cases, nothing off the unstable ones.
+
+**3. Run the cases this release can actually have changed.** Most releases touch
+one or two references: 4.1 touched `motion-design.md` and `routing.md` and
+nothing else. Record for each case which files it exercises, and a release runs
+three to six cases rather than forty-four. This is the largest lever, and the
+only one that needs anything built: a `touches:` list in each case.
+
+**4. A free grader wherever the property is mechanical.** `regex` and
+`tool_used` cost nothing; `llm` and `baseline` are paid, and are skipped anyway
+when a run breaches its budget. `ease: "none"`, `repeat: -1` and `useGSAP(` are
+regex checks — `outcome-marquee-loop` grades five properties for free. Keep
+`llm` for what genuinely needs judgement, such as whether a declined plugin was
+explained.
+
+| | as designed | with the four levers |
+|---|---|---|
+| One full pass, 44 cases with baselines | ~$75 | ~$40 |
+| Each release after that | ~$75 | **~$5–10** |
+
+**What must not be cut.** A baseline at least once per case per model, or the
+score means nothing on its own. More runs wherever variance is real — one case
+here scored 1.00 and 0.00 on the same prompt. And budgets that fit the skill:
+a timed-out run costs full price and returns no data, which makes it the most
+expensive kind of run there is.
+
+**A timed-out run is missing data, not a zero.** Averaging it as zero is what
+turned a case the skill answered perfectly into evidence against the skill.
+Exclude it and say how many runs were counted.
 > **The expensive half waits for the roadmap** (decided 2026-09-14, refined
 > 2026-09-15). Outcome cases and baselines are not run while 3.0.x through 4.0 are
 > built: they grade guidance that each phase still changes, three runs with a

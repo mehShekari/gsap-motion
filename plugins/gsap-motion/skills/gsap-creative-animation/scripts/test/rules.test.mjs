@@ -1812,6 +1812,322 @@ export function Rig() {
   });
 });
 
+/**
+ * Both rules below come from a head-to-head test on a real React + Vite hero,
+ * where the version written with this skill shipped both bugs and the version
+ * written without it shipped neither. The firing cases are that code with its
+ * fix removed; the quiet cases include the fixed code, and the two nearby
+ * shapes a careless rule would have reported.
+ */
+describe("matchmedia-never-runs", () => {
+  test("fires on a callback that branches on a condition no default visitor has", () => {
+    fires(
+      "matchmedia-never-runs",
+      `${REACT}
+export function Hero() {
+  const scope = useRef(null);
+  useGSAP(() => {
+    const mm = gsap.matchMedia();
+    mm.add(
+      { reduced: "(prefers-reduced-motion: reduce)" },
+      (context) => {
+        const { reduced } = context.conditions;
+        if (reduced) {
+          gsap.set(".title", { autoAlpha: 1 });
+          return;
+        }
+        gsap.from(".title", { autoAlpha: 0, y: 24 });
+      },
+    );
+  }, { scope });
+  return <section ref={scope} />;
+}`,
+    );
+  });
+
+  test("fires when the conditions are read without destructuring", () => {
+    fires(
+      "matchmedia-never-runs",
+      `${PLAIN}
+const mm = gsap.matchMedia();
+mm.add({ reduced: "(prefers-reduced-motion: reduce)" }, (ctx) => {
+  if (!ctx.conditions.reduced) gsap.from(".title", { autoAlpha: 0 });
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet once a no-preference condition sits beside it — the fix", () => {
+    quiet(
+      "matchmedia-never-runs",
+      `${PLAIN}
+const mm = gsap.matchMedia();
+mm.add(
+  {
+    reduced: "(prefers-reduced-motion: reduce)",
+    motion: "(prefers-reduced-motion: no-preference)",
+  },
+  (context) => {
+    const { reduced } = context.conditions;
+    if (reduced) return gsap.set(".title", { autoAlpha: 1 });
+    gsap.from(".title", { autoAlpha: 0 });
+  },
+);`,
+      { ext: "ts" },
+    );
+  });
+
+  /**
+   * GSAP's own documented pattern: a reduced-only branch that sets end states,
+   * beside a separate add for everyone else. It must never fire, because it is
+   * correct — it is meant to run only for visitors who asked for less motion.
+   */
+  test("stays quiet on a reduced-only branch that does not branch on its conditions", () => {
+    quiet(
+      "matchmedia-never-runs",
+      `${PLAIN}
+const mm = gsap.matchMedia();
+mm.add("(prefers-reduced-motion: no-preference)", () => {
+  gsap.from(".title", { autoAlpha: 0 });
+});
+mm.add("(prefers-reduced-motion: reduce)", () => {
+  gsap.set(".title", { autoAlpha: 1 });
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on an object of width conditions, which most visitors match", () => {
+    quiet(
+      "matchmedia-never-runs",
+      `${PLAIN}
+const mm = gsap.matchMedia();
+mm.add({ isDesktop: "(min-width: 800px)" }, (context) => {
+  const { isDesktop } = context.conditions;
+  gsap.to(".panel", { x: isDesktop ? 200 : 0 });
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on a timeline's add, which only shares the name", () => {
+    quiet(
+      "matchmedia-never-runs",
+      `${PLAIN}
+const tl = gsap.timeline();
+tl.add({ reduced: "(prefers-reduced-motion: reduce)" }, (context) => context.conditions);`,
+      { ext: "ts" },
+    );
+  });
+});
+
+describe("stacked-from", () => {
+  /**
+   * The shape from the real hero: one \`.fromTo\` call site inside a helper that
+   * a loop calls once per state. Every call applies its start state the moment
+   * it is built, so the last one wins and holds its target hidden until the
+   * playhead reaches it — the badge was invisible for the whole first state.
+   */
+  test("fires on a from-tween in a helper that a loop calls with the same target", () => {
+    fires(
+      "stacked-from",
+      `${REACT}
+export function Emblem() {
+  const badge = useRef(null);
+  useGSAP(() => {
+    const tl = gsap.timeline();
+    const addBeat = (state) => {
+      tl.addLabel(state).fromTo(badge.current, { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0 }, state);
+    };
+    ["money", "cards", "final"].forEach((state) => {
+      addBeat(state);
+    });
+  });
+  return <span ref={badge} />;
+}`,
+    );
+  });
+
+  test("fires on a from-tween directly inside a loop with a fixed target", () => {
+    fires(
+      "stacked-from",
+      `${PLAIN}
+const tl = gsap.timeline();
+for (const label of ["a", "b", "c"]) {
+  tl.from(".badge", { autoAlpha: 0 }, label);
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  test("fires on two from-tweens written out against the same target", () => {
+    fires(
+      "stacked-from",
+      `${PLAIN}
+const tl = gsap.timeline();
+tl.from(".badge", { autoAlpha: 0 })
+  .to(".badge", { autoAlpha: 0 }, "+=1")
+  .from(".badge", { autoAlpha: 0, y: 8 });`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet once immediateRender is false — the fix", () => {
+    quiet(
+      "stacked-from",
+      `${PLAIN}
+const tl = gsap.timeline();
+const addBeat = (state) => {
+  tl.fromTo(".badge", { autoAlpha: 0 }, { autoAlpha: 1, immediateRender: false }, state);
+};
+["money", "cards", "final"].forEach((state) => addBeat(state));`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet when each pass targets a different element", () => {
+    quiet(
+      "stacked-from",
+      `${PLAIN}
+const tl = gsap.timeline();
+document.querySelectorAll(".card").forEach((card) => {
+  tl.from(card, { autoAlpha: 0, y: 20 }, "<0.1");
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  /**
+   * The trap in the same real file: a from-tween inside a callback that is only
+   * passed along, and only invoked for one of the states. Reporting it would
+   * have been a false finding sitting right next to the true one.
+   */
+  test("stays quiet on a from-tween inside a callback that is only passed along", () => {
+    quiet(
+      "stacked-from",
+      `${PLAIN}
+const tl = gsap.timeline();
+const addBeat = (state, extra) => {
+  tl.addLabel(state);
+  extra?.(state);
+};
+["money", "insights"].forEach((state) => {
+  addBeat(state, state === "insights" ? (label) => {
+    tl.fromTo("[data-bar]", { scaleY: 0 }, { scaleY: 1 }, label);
+  } : undefined);
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on gsap.from outside a timeline, which renders on its own schedule", () => {
+    quiet(
+      "stacked-from",
+      `${PLAIN}
+["a", "b"].forEach(() => {
+  gsap.from(".badge", { autoAlpha: 0 });
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  /**
+   * From the corpus: a fade-in built in the `if` and a fade-out in the `else`,
+   * against the same element. Only one branch ever runs, so nothing is stacked.
+   * The first version of this rule reported it — twice, once per target.
+   */
+  test("stays quiet on from-tweens in opposite branches of one if", () => {
+    quiet(
+      "stacked-from",
+      `${PLAIN}
+export function toggle(open, effect) {
+  const timeline = gsap.timeline();
+  if (open) {
+    timeline.fromTo(effect, { opacity: 0, scale: 1.08 }, { opacity: 1, scale: 1 });
+  } else {
+    timeline.fromTo(effect, { opacity: 1, scale: 1 }, { opacity: 0, scale: 1.08 });
+  }
+}`,
+      { ext: "ts" },
+    );
+  });
+
+  /**
+   * From the corpus: two from-tweens on one element that set different
+   * properties. "Last one wins" is per property, so neither hides the other —
+   * a line flies in on opacity and y while a second tween turns it on
+   * rotationY. That is choreography, not a bug.
+   */
+  test("stays quiet when the start states set different properties", () => {
+    quiet(
+      "stacked-from",
+      `${PLAIN}
+const tl = gsap.timeline();
+tl.from(".wish span", { opacity: 0, y: -50, rotation: 150 })
+  .fromTo(".wish span", { scale: 1.4, rotationY: 150 }, { scale: 1, rotationY: 0 }, "party");`,
+      { ext: "ts" },
+    );
+  });
+
+  test("fires when opacity and autoAlpha, which are the same property, collide", () => {
+    fires(
+      "stacked-from",
+      `${PLAIN}
+const tl = gsap.timeline();
+tl.from(".badge", { opacity: 0 }).fromTo(".badge", { autoAlpha: 0 }, { autoAlpha: 1 }, "+=1");`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on one from-tween per target", () => {
+    quiet(
+      "stacked-from",
+      `${PLAIN}
+const tl = gsap.timeline();
+tl.from(".title", { autoAlpha: 0 }).from(".lead", { autoAlpha: 0 }, "-=0.3");`,
+      { ext: "ts" },
+    );
+  });
+});
+
+/**
+ * The first real project either new rule met threw on it, and a thrown rule
+ * takes the whole audit down — every consumer's lint fails, not one finding.
+ * No fixture had an uninitialised `let`; real code has them everywhere. These
+ * are the shapes real code has and hand-written fixtures tend not to.
+ */
+describe("the two new rules survive shapes fixtures leave out", () => {
+  const AWKWARD = `${PLAIN}
+let tl;
+let mm;
+var ready;
+const shared = { reduced: "(prefers-reduced-motion: reduce)" };
+mm = gsap.matchMedia();
+mm.add({ ...shared }, (context) => context.conditions);
+mm.add();
+tl = gsap.timeline();
+tl.from();
+tl.fromTo(".badge", { ...shared }, { autoAlpha: 1 });
+for (;;) { break; }
+while (ready) { tl.from(".x", {}); ready = false; }
+[].forEach();
+`;
+
+  test("matchmedia-never-runs does not throw on them", () => {
+    quiet("matchmedia-never-runs", AWKWARD, { ext: "ts" });
+  });
+
+  test("stacked-from does not throw on them", () => {
+    assert.doesNotThrow(() => {
+      try {
+        quiet("stacked-from", AWKWARD, { ext: "ts" });
+      } catch (error) {
+        if (error instanceof TypeError) throw error;
+      }
+    });
+  });
+});
+
 test("every rule is shown to fire and to stay quiet", () => {
   const ids = RULES.map((rule) => rule.id);
   assert.deepEqual(

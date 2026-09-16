@@ -47,6 +47,10 @@ import {
 
 /** What each rule says, in one place. */
 const HINT = {
+  matchMediaNeverRuns:
+    "A matchMedia callback runs only while at least one of its named conditions matches, and a visitor with no reduced-motion preference matches none of these — so the branch for them is dead code and nothing animates. Add `motion: \"(prefers-reduced-motion: no-preference)\"` beside it, or use two separate `add` calls.",
+  stackedFrom:
+    "A `from` or `fromTo` applies its start state the moment it is built. Built more than once against the same element, the last one wins, and holds that element at its start state until the playhead reaches it — invisible, if the start state hides it. Pass `immediateRender: false`, and set the element's first state yourself with `gsap.set`.",
   orphanTween:
     "Nothing reverts it on unmount, and React StrictMode runs it twice in development. Move it into the useGSAP body, or wrap the handler in contextSafe. A helper counts as inside only when every use of it is a call from inside a context.",
   unmanagedInstance:
@@ -1596,6 +1600,282 @@ export const RULES = [
           message: "Importing from `gsap/all` pulls in every plugin.",
           hint: HINT.barrelImport,
         }));
+    },
+  },
+  {
+    id: "matchmedia-never-runs",
+    level: "warn",
+    description:
+      "A matchMedia callback that branches on its conditions, when every condition needs reduced motion",
+    /**
+     * `mm.add({ reduced: "(prefers-reduced-motion: reduce)" }, (context) => …)`
+     * whose callback reads `context.conditions`. The callback runs only while a
+     * named condition matches, and a visitor with no preference matches none —
+     * so the branch written for them never runs, and neither does the
+     * animation in it. Found in a head-to-head test on a real hero, where the
+     * whole page shipped without motion.
+     *
+     * The reading of `conditions` is the whole signal. A reduced-only `add`
+     * that does not branch is GSAP's documented pattern for setting end states,
+     * meant to run for those visitors only, and is correct.
+     */
+    test(file) {
+      const REDUCE = /prefers-reduced-motion\s*:\s*reduce/i;
+
+      /** Names bound to `gsap.matchMedia()` in this file. */
+      const media = new Set(
+        findAll(
+          file.ast,
+          (node) =>
+            node.type === "VariableDeclarator" &&
+            node.id.type === "Identifier" &&
+            /**
+             * `let tl;` has no initializer, and `calleeName` does not accept
+             * null. Every fixture initialised its declarations, so 133 passing
+             * tests missed this; the first real project threw on it and took
+             * the whole audit down with it.
+             */
+            Boolean(node.init) &&
+            calleeName(unwrap(node.init)) === "gsap.matchMedia",
+        ).map((node) => node.id.name),
+      );
+
+      const onMatchMedia = (call) => {
+        const callee = unwrap(call.callee);
+        if (callee?.type !== "MemberExpression") return false;
+        const object = unwrap(callee.object);
+        if (object?.type === "Identifier") return media.has(object.name);
+        return calleeName(object) === "gsap.matchMedia";
+      };
+
+      /** Does the callback read the conditions it was handed? */
+      const branches = (fn) => {
+        const [param] = fn.params;
+        if (!param) return false;
+        if (param.type === "ObjectPattern") {
+          return param.properties.some((p) => keyName(p) === "conditions");
+        }
+        if (param.type !== "Identifier") return false;
+        return findAll(fn.body, (node) => {
+          const member = unwrap(node);
+          return (
+            member?.type === "MemberExpression" &&
+            !member.computed &&
+            unwrap(member.object)?.type === "Identifier" &&
+            unwrap(member.object).name === param.name &&
+            member.property.name === "conditions"
+          );
+        }).length > 0;
+      };
+
+      return findAll(file.ast, (node) => methodName(node) === "add" && onMatchMedia(node))
+        .filter((call) => {
+          const conditions = unwrap(call.arguments[0]);
+          if (conditions?.type !== "ObjectExpression" || !conditions.properties.length) return false;
+          const everyReduces = conditions.properties.every((property) => {
+            const value = staticString(property.value);
+            return typeof value === "string" && REDUCE.test(value);
+          });
+          if (!everyReduces) return false;
+          const callback = resolveFunction(file.ast, call.arguments[1]);
+          return Boolean(callback) && branches(callback);
+        })
+        .map((call) => ({
+          index: call.start,
+          message:
+            "This matchMedia callback branches on its conditions, but every condition needs reduced motion — so it never runs for a visitor without that preference.",
+          hint: HINT.matchMediaNeverRuns,
+        }));
+    },
+  },
+  {
+    id: "stacked-from",
+    level: "warn",
+    description:
+      "A timeline's `from` or `fromTo` built more than once against the same target",
+    /**
+     * A `from` or `fromTo` on a timeline, without `immediateRender: false`,
+     * that is built more than once against the same element: written out
+     * twice, or inside a loop, or inside a helper a loop calls. Each applies
+     * its start state the moment it is built, so the last one wins and holds
+     * the element hidden until the playhead arrives. Found in a real hero,
+     * where one call site in a helper ran six times and a badge stayed
+     * invisible through the whole first state.
+     *
+     * Two shapes must stay quiet, and both sat in that same file. A target that
+     * varies with the loop — `forEach((card) => tl.from(card, …))` — is a new
+     * element each pass. And a tween inside a callback that is only passed
+     * along is not known to run each pass, so it is not reported.
+     */
+    test(file) {
+      const LOOPS = ["ForStatement", "ForOfStatement", "ForInStatement", "WhileStatement", "DoWhileStatement"];
+      const isLoopCallback = (fn) => {
+        const parent = parentOf(file.ast, fn);
+        return (
+          parent?.type === "CallExpression" &&
+          unwrap(parent.arguments[0]) === fn &&
+          ["forEach", "map", "flatMap"].includes(methodName(parent))
+        );
+      };
+      const renders = (call) =>
+        !call.arguments.some((arg) => {
+          const object = unwrap(arg);
+          return (
+            object?.type === "ObjectExpression" &&
+            object.properties.some((p) => {
+              const value = unwrap(p.value);
+              return keyName(p) === "immediateRender" && value?.type === "Literal" && value.value === false;
+            })
+          );
+        });
+
+      const paramNames = (fn) =>
+        fn.params.flatMap((param) =>
+          findAll(param, (n) => n.type === "Identifier").map((n) => n.name),
+        );
+      const loopNames = (loop) => {
+        const left = loop.left ?? loop.init;
+        return left ? findAll(left, (n) => n.type === "Identifier").map((n) => n.name) : [];
+      };
+
+      /** Is this node inside a loop body or a loop callback? */
+      const inLoop = (node) =>
+        ancestorsOf(file.ast, node).some((a) => LOOPS.includes(a.type) || (isFunction(a) && isLoopCallback(a)));
+
+      /**
+       * Walk out from the tween. The names that change each pass are gathered on
+       * the way; the walk stops at the first function that is neither a loop's
+       * own callback nor a named helper some loop calls, because nothing then
+       * says it runs more than once.
+       */
+      const repetition = (tween, timeline) => {
+        const varying = new Set();
+        for (const ancestor of ancestorsOf(file.ast, tween)) {
+          if (contains(ancestor, timeline)) return null;
+          if (LOOPS.includes(ancestor.type)) {
+            loopNames(ancestor).forEach((n) => varying.add(n));
+            return varying;
+          }
+          if (!isFunction(ancestor)) continue;
+          paramNames(ancestor).forEach((n) => varying.add(n));
+          if (isLoopCallback(ancestor)) return varying;
+
+          const holder = parentOf(file.ast, ancestor);
+          const name =
+            holder?.type === "VariableDeclarator" && holder.id.type === "Identifier"
+              ? holder.id.name
+              : ancestor.type === "FunctionDeclaration"
+                ? ancestor.id?.name
+                : null;
+          if (!name) return null;
+          const calledInLoop = findAll(
+            file.ast,
+            (n) =>
+              n.type === "CallExpression" &&
+              unwrap(n.callee)?.type === "Identifier" &&
+              unwrap(n.callee).name === name &&
+              inLoop(n),
+          ).length > 0;
+          return calledInLoop ? varying : null;
+        }
+        return null;
+      };
+
+      /**
+       * The properties a tween's start state sets, or null when they cannot be
+       * read. "Last one wins" is per property: two from-tweens on one element
+       * that set different properties hide nothing, and a real project relied on
+       * exactly that — a line flying in on `opacity` and `y` while a second tween
+       * turned it on `rotationY`. `autoAlpha` sets opacity, so they count as one.
+       */
+      const CONFIG = new Set([
+        "duration", "delay", "ease", "stagger", "repeat", "yoyo", "repeatDelay",
+        "immediateRender", "overwrite", "paused", "id", "data", "callbackScope",
+        "onStart", "onUpdate", "onComplete", "onRepeat", "onReverseComplete", "scrollTrigger",
+      ]);
+      const startKeys = (tween) => {
+        const vars = unwrap(tween.arguments[1]);
+        if (vars?.type !== "ObjectExpression") return null;
+        if (vars.properties.some((p) => p.type !== "Property" || p.computed)) return null;
+        return new Set(
+          vars.properties
+            .map((p) => keyName(p))
+            .filter((key) => key && !CONFIG.has(key))
+            .map((key) => (key === "autoAlpha" ? "opacity" : key)),
+        );
+      };
+      const overlap = (a, b) => {
+        if (!a || !b) return false;
+        for (const key of a) if (b.has(key)) return true;
+        return false;
+      };
+
+      /**
+       * Two calls that cannot both run: opposite branches of one `if` or one
+       * ternary, or two cases of one `switch`. A real project built a fade-in in
+       * the `if` and a fade-out in the `else` against the same element, and only
+       * ever ran one of them.
+       */
+      const exclusive = (a, b) => {
+        const upB = new Set(ancestorsOf(file.ast, b));
+        for (const node of ancestorsOf(file.ast, a)) {
+          if (!upB.has(node)) continue;
+          if ((node.type === "IfStatement" || node.type === "ConditionalExpression") && node.alternate) {
+            if (contains(node.alternate, a) !== contains(node.alternate, b)) return true;
+          }
+          if (node.type === "SwitchStatement") {
+            const caseOf = (n) => node.cases.find((c) => contains(c, n));
+            if (caseOf(a) && caseOf(a) !== caseOf(b)) return true;
+          }
+        }
+        return false;
+      };
+
+      const mentions = (text, names) =>
+        [...names].some((name) => new RegExp(`(^|[^\\w$])${name.replace(/\$/g, "\\$")}([^\\w$]|$)`).test(text));
+
+      const findings = [];
+      const timelines = findAll(file.ast, (node) => calleeName(node) === "gsap.timeline");
+      for (const timeline of timelines) {
+        const tweens = timelineLinks(file.ast, timeline).filter(
+          (call) => ["from", "fromTo"].includes(methodName(call)) && call.arguments[0] && renders(call),
+        );
+        const reported = new Set();
+        /** Earlier from-tweens on each target, to compare a later one against. */
+        const earlier = new Map();
+
+        for (const tween of tweens) {
+          const target = unwrap(tween.arguments[0]);
+          const text = file.raw.slice(target.start, target.end).replace(/\s+/g, "");
+          if (reported.has(text)) continue;
+
+          /** One call site built repeatedly always shares its own properties. */
+          const varying = repetition(tween, timeline);
+          const repeatedInPlace = varying !== null && !mentions(text, varying);
+
+          const keys = startKeys(tween);
+          const before = earlier.get(text) ?? [];
+          const writtenTwice = before.some(
+            (other) => !exclusive(other.tween, tween) && overlap(other.keys, keys),
+          );
+          earlier.set(text, [...before, { tween, keys }]);
+
+          if (repeatedInPlace || writtenTwice) {
+            reported.add(text);
+            findings.push({
+              /**
+               * The method's own position, not the call's. A chained call starts
+               * where its chain starts, so `tween.start` pointed a real report 25
+               * lines above the `fromTo` it was about.
+               */
+              index: unwrap(tween.callee)?.property?.start ?? tween.start,
+              message: `\`${text}\` gets a \`${methodName(tween)}\` more than once on this timeline, and each applies its start state as soon as it is built.`,
+              hint: HINT.stackedFrom,
+            });
+          }
+        }
+      }
+      return findings;
     },
   },
 ];

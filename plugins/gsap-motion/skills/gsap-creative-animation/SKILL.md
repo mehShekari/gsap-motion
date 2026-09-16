@@ -4,7 +4,7 @@ description: Senior motion engineer for GSAP. Turns a visual or interaction idea
 license: MIT. See LICENSE; GSAP itself is licensed separately, see NOTICE.md
 compatibility: Any Agent Skills client; written for Claude Code. GSAP 3.13+, where every plugin is free. React guidance targets @gsap/react 2.x, React 18/19 and the Next.js App Router. The audit scripts need Node.js 22+ and nothing else.
 metadata:
-  version: "4.1.0"
+  version: "4.2.0"
   verified-gsap: "3.15"
   verified-gsap-react: "2.1"
 ---

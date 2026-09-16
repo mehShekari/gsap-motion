@@ -76,6 +76,21 @@ describe("plugin", () => {
     assert.equal(released, plugin.version);
   });
 
+  /**
+   * 4.1.0 shipped telling people to run `npx @mehshekari/gsap-motion@4.0.0`, a
+   * version that was never published — copy the lint script and the install
+   * fails. The bump script stopped partway, the pins were never reached, and
+   * every other check passed. A version the docs tell people to install must be
+   * the one being released.
+   */
+  test("every version pin the READMEs tell people to install is this release", () => {
+    for (const file of ["README.md", "packages/cli/README.md"]) {
+      const pins = [...read(file).matchAll(/@mehshekari\/gsap-motion@(\d+\.\d+\.\d+)/g)].map((m) => m[1]);
+      assert.ok(pins.length > 0, `${file} pins no version`);
+      for (const pin of pins) assert.equal(pin, plugin.version, `${file} pins ${pin}`);
+    }
+  });
+
   test("README's install command names this plugin and marketplace", () => {
     assert.ok(
       read("README.md").includes(
