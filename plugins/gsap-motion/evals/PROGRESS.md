@@ -67,6 +67,46 @@ the largest block, picked the section below the hero and reported 0%. The visual
 is now the largest in-flow, non-copy block inside the headline's section, which
 matches the hand measurements on both and still grades the in-sample five 5 of 5.
 
+### Round 1, clean (2026-09-16) — one sample per arm
+
+Each arm a separate `claude -p` process (CLI 2.1.272, `claude-sonnet-5`) in its own
+copy of the project: `--disable-slash-commands --setting-sources project
+--strict-mcp-config`, a $6 cap. The init event of both showed no plugins, skills
+or MCP servers and identical tools; no hook event fired. The brief now says only
+`gsap` is installed and forbids edits outside `src/hero/`. A third leak was found
+and removed before launch: the user's `SKILL-COMPARISON-REPORT.md` had been copied
+into both projects, the first attempt's included.
+
+| | With the skill (4.2.0 by path) | Without |
+|---|---|---|
+| Cost, time, tools | $1.25, 375s, 39 | $1.28, 386s, 34 |
+| Grader | not fragile | **fragile** |
+| Browser | first motion 211ms; visual 100% on mobile | **nothing moves** |
+| Audit | clean | `matchmedia-never-runs` (true); 3 × `orphan-tween` (false, below) |
+
+**The without-skill hero never animates for anyone.** `mm.add({ reduced: "(prefers-reduced-motion: reduce)" }, …)`
+runs only for a visitor who prefers reduced motion, and that branch returns at
+once. It is the same bug as #1 of the user's head-to-head, which there was in the
+with-skill arm, so it is a model tendency, not something the skill introduced;
+this time the skill's `accessibility.md` and the rule prevented it. Read by hand,
+the with-skill code has no defect found: both conditions, a reduced branch that
+sets end states, `quickTo` per axis gated on `(hover: hover) and (pointer: fine)`,
+`ease: "none"` under scrub, everything reverted through one context.
+
+**n = 1 per arm.** This reverses the direction of the head-to-head on one bug; it
+does not show the skill is better. More rounds, and the user's other briefs, are
+what can.
+
+**What it taught the instruments:**
+
+- **`orphan-tween` false positive, at error level.** Tweens inside a
+  `gsap.matchMedia().add` callback are reverted by `mm.revert()`, but
+  `gsapContexts` counts only `useGSAP`, `gsap.context` and `contextSafe`. Fix with
+  a quiet fixture, then re-run the corpus.
+- **First motion on a cold Vite server is not the page's.** The with-skill page
+  first measured 1703ms and 211ms once warm: the first request waited on
+  dependency optimisation. Load each page once before grading.
+
 ## Keeping the cost down without testing less
 
 Agreed 2026-09-16, after the first baseline run cost $2.10 for one case and
