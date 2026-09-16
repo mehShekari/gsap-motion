@@ -95,19 +95,42 @@ export const RECORDER = `(() => {
   }, ${SAMPLE_MS});
 })()`;
 
-/** The largest visual on the page, and how much of it the first screen shows. */
+/**
+ * The main visual, and how much of it the first screen shows.
+ *
+ * The largest in-flow block, inside the section that holds the headline, that
+ * is not the copy: nothing in it is the headline, a button or a link, it does not
+ * contain the headline, and it is not absolutely positioned, so a decorative blob
+ * is not taken for it. Staying inside the headline's section matters: without it
+ * the next section down, a larger block than any visual, was taken for the visual
+ * and reported 0% on screen.
+ *
+ * A first version took the largest svg, canvas, img or video. That was right on
+ * the project it was calibrated on, whose visual was one large SVG, and wrong on
+ * the first code it had not seen: two heroes built their visual from divs around
+ * a small SVG chart, and it measured the 72px chart and reported the visual 100%
+ * on screen. The verdict happened to be right; the measurement was not, and a
+ * div-built visual that really sat below the fold would have passed the same way.
+ */
 const MAIN_VISUAL = `(() => {
+  const headline = document.querySelector("h1");
+  const isCopy = (el) => el.matches("h1, button, a[href]") || el.querySelector("h1, button, a[href]");
+  const scope = (headline && headline.closest("section, header")) || document.body;
   let best = null;
-  for (const el of document.querySelectorAll("svg, canvas, img, video")) {
-    if (el.closest("svg") && el.closest("svg") !== el) continue;
+  for (const el of scope.querySelectorAll("*")) {
+    if (headline && el.contains(headline)) continue;
+    if (isCopy(el)) continue;
+    const position = getComputedStyle(el).position;
+    if (position === "absolute" || position === "fixed") continue;
     const box = el.getBoundingClientRect();
     const area = box.width * box.height;
-    if (area < 4000) continue;
-    if (!best || area > best.area) best = { area, top: box.top + scrollY, bottom: box.bottom + scrollY, height: box.height };
+    if (area < 4000 || box.top + scrollY > innerHeight * 2) continue;
+    if (!best || area > best.area) best = { el, area, top: box.top + scrollY, bottom: box.bottom + scrollY, height: box.height };
   }
   if (!best) return null;
   const shown = Math.max(0, Math.min(best.bottom, innerHeight) - Math.max(best.top, 0));
-  return { top: Math.round(best.top), shown: Math.round((shown / best.height) * 100) / 100, viewport: innerHeight };
+  const tag = best.el.tagName.toLowerCase() + (best.el.className && typeof best.el.className === "string" ? "." + best.el.className.trim().split(" ")[0] : "");
+  return { top: Math.round(best.top), height: Math.round(best.height), what: tag, shown: Math.round((shown / best.height) * 100) / 100, viewport: innerHeight };
 })()`;
 
 async function watch(url, { mobile = false, reduced = false, ms = 6000 } = {}) {
@@ -159,7 +182,7 @@ export async function fragility(url) {
     "below-fold-mobile",
     visual !== null && visual.shown < 0.5,
     visual
-      ? `main visual top ${visual.top}px, ${Math.round(visual.shown * 100)}% in the first ${visual.viewport}px`
+      ? `main visual ${visual.what}, top ${visual.top}px, ${visual.height}px tall, ${Math.round(visual.shown * 100)}% in the first ${visual.viewport}px`
       : "no main visual found",
   );
 
