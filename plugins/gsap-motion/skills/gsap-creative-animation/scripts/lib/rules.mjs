@@ -1606,38 +1606,47 @@ export const RULES = [
     id: "matchmedia-never-runs",
     level: "warn",
     description:
-      "A matchMedia callback that branches on its conditions, when every condition needs reduced motion",
+      "A matchMedia callback that branches on reduced motion, when every condition needs it",
     /**
      * `mm.add({ reduced: "(prefers-reduced-motion: reduce)" }, (context) => …)`
-     * whose callback reads `context.conditions`. The callback runs only while a
+     * whose callback branches on the preference. The callback runs only while a
      * named condition matches, and a visitor with no preference matches none —
      * so the branch written for them never runs, and neither does the
      * animation in it. Found in a head-to-head test on a real hero, where the
-     * whole page shipped without motion.
+     * whole page shipped without motion, and again in phase 8's first round.
      *
-     * The reading of `conditions` is the whole signal. A reduced-only `add`
-     * that does not branch is GSAP's documented pattern for setting end states,
-     * meant to run for those visitors only, and is correct.
+     * Branching is the whole signal: reading `conditions`, or asking
+     * `window.matchMedia` about reduced motion inside the callback. A
+     * reduced-only `add` that does not branch is GSAP's documented pattern for
+     * setting end states, meant to run for those visitors only, and is correct.
+     *
+     * The conditions are read when they are written in the call, or kept in a
+     * `const` the file declares once. An imported object, or a `let` that may be
+     * reassigned, cannot be judged here and is left alone.
      */
     test(file) {
       const REDUCE = /prefers-reduced-motion\s*:\s*reduce/i;
+      const PREFERENCE = /prefers-reduced-motion/i;
 
-      /** Names bound to `gsap.matchMedia()` in this file. */
+      /** Names bound to `gsap.matchMedia()` in this file, at declaration or later. */
       const media = new Set(
         findAll(
           file.ast,
           (node) =>
-            node.type === "VariableDeclarator" &&
-            node.id.type === "Identifier" &&
-            /**
-             * `let tl;` has no initializer, and `calleeName` does not accept
-             * null. Every fixture initialised its declarations, so 133 passing
-             * tests missed this; the first real project threw on it and took
-             * the whole audit down with it.
-             */
-            Boolean(node.init) &&
-            calleeName(unwrap(node.init)) === "gsap.matchMedia",
-        ).map((node) => node.id.name),
+            (node.type === "VariableDeclarator" &&
+              node.id.type === "Identifier" &&
+              /**
+               * `let tl;` has no initializer, and `calleeName` does not accept
+               * null. Every fixture initialised its declarations, so 133 passing
+               * tests missed this; the first real project threw on it and took
+               * the whole audit down with it.
+               */
+              Boolean(node.init) &&
+              calleeName(unwrap(node.init)) === "gsap.matchMedia") ||
+            (node.type === "AssignmentExpression" &&
+              node.left.type === "Identifier" &&
+              calleeName(unwrap(node.right)) === "gsap.matchMedia"),
+        ).map((node) => (node.type === "VariableDeclarator" ? node.id.name : node.left.name)),
       );
 
       const onMatchMedia = (call) => {
@@ -1648,8 +1657,45 @@ export const RULES = [
         return calleeName(object) === "gsap.matchMedia";
       };
 
-      /** Does the callback read the conditions it was handed? */
+      /** The conditions as written: in the call, or in a `const` the file declares once. */
+      const conditionsOf = (argument) => {
+        const target = unwrap(argument);
+        if (target?.type !== "Identifier") return target;
+        const declarators = findAll(
+          file.ast,
+          (node) =>
+            node.type === "VariableDeclarator" &&
+            node.id.type === "Identifier" &&
+            node.id.name === target.name,
+        );
+        if (declarators.length !== 1) return null;
+        const [declarator] = declarators;
+        return parentOf(file.ast, declarator)?.kind === "const" ? unwrap(declarator.init) : null;
+      };
+
+      /** Every condition needs reduced motion: one query string, or an object of them. */
+      const everyReduces = (conditions) => {
+        const query = staticString(conditions);
+        if (typeof query === "string") return REDUCE.test(query);
+        if (conditions?.type !== "ObjectExpression" || !conditions.properties.length) return false;
+        return conditions.properties.every((property) => {
+          const value = staticString(property.value);
+          return typeof value === "string" && REDUCE.test(value);
+        });
+      };
+
+      /** Does the callback read its conditions, or ask the browser about reduced motion? */
       const branches = (fn) => {
+        const asksTheBrowser =
+          findAll(fn.body, (node) => {
+            if (node.type !== "CallExpression") return false;
+            const name = calleeName(node);
+            if (name !== "window.matchMedia" && name !== "matchMedia") return false;
+            const query = staticString(node.arguments[0]);
+            return typeof query === "string" && PREFERENCE.test(query);
+          }).length > 0;
+        if (asksTheBrowser) return true;
+
         const [param] = fn.params;
         if (!param) return false;
         if (param.type === "ObjectPattern") {
@@ -1670,20 +1716,14 @@ export const RULES = [
 
       return findAll(file.ast, (node) => methodName(node) === "add" && onMatchMedia(node))
         .filter((call) => {
-          const conditions = unwrap(call.arguments[0]);
-          if (conditions?.type !== "ObjectExpression" || !conditions.properties.length) return false;
-          const everyReduces = conditions.properties.every((property) => {
-            const value = staticString(property.value);
-            return typeof value === "string" && REDUCE.test(value);
-          });
-          if (!everyReduces) return false;
+          if (!everyReduces(conditionsOf(call.arguments[0]))) return false;
           const callback = resolveFunction(file.ast, call.arguments[1]);
           return Boolean(callback) && branches(callback);
         })
         .map((call) => ({
           index: call.start,
           message:
-            "This matchMedia callback branches on its conditions, but every condition needs reduced motion — so it never runs for a visitor without that preference.",
+            "This matchMedia callback branches on reduced motion, but every condition needs reduced motion — so it never runs for a visitor without that preference.",
           hint: HINT.matchMediaNeverRuns,
         }));
     },

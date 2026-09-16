@@ -2006,6 +2006,115 @@ mm.add({ isDesktop: "(min-width: 800px)" }, (context) => {
     );
   });
 
+  /**
+   * The shapes a probe of the 4.2.1 rule missed, each still the same bug: the
+   * conditions kept in a constant, the preference re-checked with
+   * `window.matchMedia` instead of `conditions`, and a matchMedia assigned
+   * after its declaration.
+   */
+  test("fires when the conditions are a constant declared in the file", () => {
+    fires(
+      "matchmedia-never-runs",
+      `${PLAIN}
+const QUERIES = { reduced: "(prefers-reduced-motion: reduce)" };
+const mm = gsap.matchMedia();
+mm.add(QUERIES, (context) => {
+  if (context.conditions.reduced) return;
+  gsap.from(".title", { autoAlpha: 0 });
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("fires when the callback re-checks the preference with window.matchMedia", () => {
+    fires(
+      "matchmedia-never-runs",
+      `${PLAIN}
+const mm = gsap.matchMedia();
+mm.add({ reduced: "(prefers-reduced-motion: reduce)" }, () => {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  gsap.from(".title", { autoAlpha: 0 });
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("fires on a string query re-checked with a bare matchMedia", () => {
+    fires(
+      "matchmedia-never-runs",
+      `${PLAIN}
+const mm = gsap.matchMedia();
+mm.add("(prefers-reduced-motion: reduce)", () => {
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    gsap.from(".title", { autoAlpha: 0 });
+  }
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("fires on a matchMedia assigned after it is declared", () => {
+    fires(
+      "matchmedia-never-runs",
+      `${PLAIN}
+let mm;
+mm = gsap.matchMedia();
+mm.add({ reduced: "(prefers-reduced-motion: reduce)" }, ({ conditions }) => {
+  if (!conditions.reduced) gsap.from(".title", { autoAlpha: 0 });
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet when the constant also holds a no-preference condition — the fix", () => {
+    quiet(
+      "matchmedia-never-runs",
+      `${PLAIN}
+const QUERIES = {
+  reduced: "(prefers-reduced-motion: reduce)",
+  motion: "(prefers-reduced-motion: no-preference)",
+};
+const mm = gsap.matchMedia();
+mm.add(QUERIES, (context) => {
+  if (context.conditions.reduced) return;
+  gsap.from(".title", { autoAlpha: 0 });
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on conditions it cannot see: imported, or a let that may change", () => {
+    quiet(
+      "matchmedia-never-runs",
+      `${PLAIN}import { QUERIES } from "./queries";
+let LOCAL = { reduced: "(prefers-reduced-motion: reduce)" };
+LOCAL = { motion: "(prefers-reduced-motion: no-preference)" };
+const mm = gsap.matchMedia();
+mm.add(QUERIES, (context) => {
+  if (context.conditions.reduced) return;
+  gsap.from(".title", { autoAlpha: 0 });
+});
+mm.add(LOCAL, (context) => {
+  if (context.conditions.reduced) return;
+  gsap.from(".title", { autoAlpha: 0 });
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet when a reduced-only callback checks some other query", () => {
+    quiet(
+      "matchmedia-never-runs",
+      `${PLAIN}
+const mm = gsap.matchMedia();
+mm.add("(prefers-reduced-motion: reduce)", () => {
+  const wide = window.matchMedia("(min-width: 800px)").matches;
+  gsap.set(".title", { autoAlpha: 1, x: wide ? 0 : 8 });
+});`,
+      { ext: "ts" },
+    );
+  });
+
   test("stays quiet on a timeline's add, which only shares the name", () => {
     quiet(
       "matchmedia-never-runs",

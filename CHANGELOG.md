@@ -8,12 +8,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [4.2.1] - 2026-09-16
 
-Patch: one false positive at error level, found by the first clean round of
-phase 8. Error-level findings fail a consumer's lint, so it ships on its own.
-No rule, level, command or word of guidance was added, so no eval was run for
-it; the fix is proven by fixtures, the corpus and the page it was found on.
+Patch: both fixes come from the first clean round of phase 8. One false positive
+at error level, and one warning that caught the round's bug only as written,
+missing the same bug in shapes a line away. No rule, level, command or word of
+guidance was added, so no eval was run; each fix is proven by fixtures, the
+corpus and the page it was found on.
 
 ### Fixed
+
+- **`matchmedia-never-runs` saw its bug in one shape only.** It needed the
+  conditions written in the call and the callback reading `conditions`. It now
+  also reads conditions kept in a `const` the file declares once, a single query
+  string, a callback that asks `window.matchMedia` about reduced motion instead,
+  and a matchMedia assigned after its declaration. An imported object, or a
+  `let` that may be reassigned, is left alone. Of four probes of the bug it now
+  reports three; the fourth, a reduced-only `add` that animates, is not reported,
+  because a reduced-only `add` is GSAP's documented pattern. The corpus is
+  unchanged. The rule stays at warn, so `--quiet` still hides it: raising it
+  would be a major version.
 
 - **`orphan-tween` reported tweens inside a `gsap.matchMedia().add` callback as
   errors**, though `mm.revert()` reverts them. A matchMedia is now a context: its
