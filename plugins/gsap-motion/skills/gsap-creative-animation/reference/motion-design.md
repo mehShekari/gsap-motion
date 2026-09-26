@@ -142,11 +142,10 @@ Before calling an animation done:
 - Does it say one of the five things at the top of this file?
 - Is the rhythm intentional, or are the delays arbitrary?
 - Does anything looping use `ease: "none"`?
+- Does an ambient loop move only decoration, never the copy being read?
 - Is the seam of the loop invisible?
 - Do entrances use `out` easing and exits `in`?
 - Does one element carry the emphasis, rather than all of them?
 - Does it still read at 400px wide, and on a touch device with no hover?
 - Does the reduced-motion branch still communicate the same thing?
-- Is everything reverted on unmount?
-- Is every plugin justified, and would a transform have done it?
 - Watch it five times. Does anything start to irritate?

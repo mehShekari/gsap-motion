@@ -23,12 +23,15 @@ mm.add(
     hoverable: "(hover: hover) and (pointer: fine)",
     motion: "(prefers-reduced-motion: no-preference)",
   },
-  (context) => {
+  (context, contextSafe) => {
     const { wide, hoverable, motion } = context.conditions;
-    // …one branch, three facts
+    // …one branch, three facts. A handler that tweens later: contextSafe(fn).
   },
 );
 ```
+
+`contextSafe` is the **second** argument. The context has none, and
+`context.add(fn)` runs `fn` at once: either one ships a blank page.
 
 `matchMedia` re-runs the body when any condition changes and reverts what the
 previous run created, so a visitor who rotates a phone, plugs in a mouse or

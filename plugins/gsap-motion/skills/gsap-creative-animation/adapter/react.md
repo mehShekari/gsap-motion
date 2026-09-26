@@ -35,7 +35,8 @@ body re-runs on change) and `revertOnUpdate` (the previous run reverts first).
 A tween created *outside* the body — in a handler, a promise, a callback — is
 never reverted. Wrap that function in `contextSafe`, from the same hook, and the
 context owns it again. Only wrap functions that *create* animations: playing an
-existing timeline creates nothing. `contextSafe` runs during render, so reading a
+existing timeline creates nothing. Inside `mm.add`, use its own: the callback's
+second argument, `(context, contextSafe) =>`. `contextSafe` runs during render, so reading a
 ref inside the callback trips React's "cannot access refs during render" rule —
 build the timeline in the body, keep it on a ref, and expose a `useCallback`
 that plays it.

@@ -13,6 +13,11 @@ The recovery is what makes it feel physical. A button that springs toward the
 cursor and snaps back on leave feels broken; the same button easing back over
 0.6s feels alive.
 
+**A layer that answers the pointer follows it** — on both axes, toward the
+cursor. One axis, or the opposite way, reads as resistance: in blind judging, a
+card that followed beat one that drifted away every time. Depth comes from how
+*far* each layer follows, not which way.
+
 ## The rule: `quickTo`, not a tween per event
 
 ```ts
@@ -168,6 +173,8 @@ Cheap, and the styling stays in CSS where it can follow the theme.
 - Never destroy the focus ring with a transform that moves the element out from
   under it.
 - Gate hover effects on `(hover: hover)`. On touch, `:hover` sticks after a tap.
+  Input is its own axis, read in one `gsap.matchMedia` with layout and motion —
+  see [devices.md](devices.md).
 - Under `prefers-reduced-motion: reduce`, keep the state change and drop the
   travel — see [accessibility.md](accessibility.md).
 
