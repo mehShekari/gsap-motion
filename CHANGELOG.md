@@ -6,6 +6,40 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+From the creative A/B: 27 agent runs of one landing page, three briefs, three
+arms (no skill, 4.2.1, and a candidate with concept guidance), judged blind and
+pairwise in a real browser. The candidate lost to both, and its guidance is not
+here. What is here corrects failures the round observed.
+
+### Added
+
+- **`context-safe-misuse`** (warn): a callback made context-safe with the
+  context itself. Inside `gsap.matchMedia().add`, `gsap.context` or `useGSAP`,
+  the callback receives `(context, contextSafe)`; reading `contextSafe` from the
+  first argument gives `undefined`, and `context.add(fn)` runs `fn` at once. Four
+  of the 27 runs did one or the other, in both arms: three shipped a blank page,
+  and one a whole section left invisible that nobody judging it noticed. All four
+  are findings; the other 23 runs, the corpus, the example app and roboshan give
+  none. New at warn, as every new rule is.
+- **Grading tools for creative work**, in `scripts/grade/`: `run-arm.mjs` runs an
+  arm as separate `claude -p` processes and grades each build; `arena.mjs` serves
+  pairs of builds for a person to judge blind, with undo, and a reload that keeps
+  the pair on screen.
+
+### Changed
+
+- **The matchMedia example in `devices.md` takes `(context, contextSafe)`**, and
+  says which argument is which. The one-argument version was the shape the
+  crashing runs started from. `react.md` says the same in a sentence.
+- **`interaction.md`: a layer that answers the pointer follows it**, on both
+  axes, toward the cursor. With the skill, a card drifted on one axis away from
+  the cursor, and it lost the blind comparison every time it came up.
+- **`motion-design.md`'s checklist asks whether an ambient loop moves the copy.**
+  Two of its lines repeated SKILL.md in the same tier and were cut.
+- **The grader's `never-animates` scrolls before its verdict.** Motion that
+  waits for the visitor is not missing, and a below-the-fold brief was being
+  called dead on every run.
+
 ## [4.2.1] - 2026-09-16
 
 Patch: both fixes come from the first clean round of phase 8. One false positive

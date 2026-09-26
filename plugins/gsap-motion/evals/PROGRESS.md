@@ -107,6 +107,67 @@ what can.
   first measured 1703ms and 211ms once warm: the first request waited on
   dependency optimisation. Load each page once before grading.
 
+### The creative A/B (2026-09-26) — judged blind by a person
+
+The question this round asked is the one `grade.mjs` cannot: is the motion
+*good*? The user's own A/B reports had answered it, but both arms were one
+program and the agent that built them graded them. So this round:
+
+- **Setup.**
+  - One landing page with real content (a fictional invoicing product).
+  - Three briefs: `hero`, the whole `page`, and the `stages` section.
+  - Three runs per brief and arm, each a separate `claude -p` process on
+    Sonnet 5, with `gsap` and `@gsap/react` installed in every arm.
+- **Grading.** `scripts/grade/run-arm.mjs` graded each build for fragility.
+  The user then judged pairs in `scripts/grade/arena.mjs`, blind: the sides
+  were random and no arm was named until the last vote.
+- **Where it lives.** `gsap-motion-test/creative/`, outside this repository:
+  the starter, the briefs, a frozen copy of each skill, every run, `votes.jsonl`
+  and the notes.
+
+| Arm | Against no skill | Against 4.2.1 | Crashed on load | Fade-up share |
+|---|---|---|---|---|
+| 4.2.1 | won 4, lost 3, tied 1 | — | 0 of 9 | 63% |
+| candidate: concept guidance | won 3, lost 5, tied 1 | won 1, lost 3, tied 5 | 2 of 9 | 61% |
+| repair: 4.2.1 + the fixes in 4.3 | won 6, lost 2, tied 1 | won 3, lost 4, tied 2 | 0 of 7 graded | 56% |
+| no skill | — | — | 2 of 9 | 55% |
+
+**What it showed:**
+
+- **The skill was technically stronger and creatively even.**
+  - It had fewer crashes and fewer audit findings.
+  - It used *more* of the default fade-up vocabulary.
+  - One of 4.2.1's four wins was against a blank page.
+- **Concept guidance ("find one idea in the content, spend on one moment")
+  did not help and was dropped.** The judge found no difference from 4.2.1 on
+  hero, and its bolder code crashed twice. The draft is kept in
+  `creative/skills/candidate`.
+- **What the judge rewarded** was absence of bugs and jumps, smoothness, and a
+  card that *follows* the pointer. Every skill arm drifted the card on one axis
+  away from the cursor, and lost on it every time.
+- **Four of 27 runs made a callback context-safe the wrong way inside a
+  matchMedia.** Three shipped a blank page, in both arms. The fourth hid a whole
+  section, and it went unnoticed in judging. That became `context-safe-misuse`,
+  and the matchMedia example in `devices.md` now takes `(context, contextSafe)`.
+- **The repair arm passed against no skill (6 of 9) and drew with 4.2.1** (3–4,
+  two ties). That is noise at nine pairs, so it fails the round's own rule
+  against 4.2.1. Its changes ship on their own evidence: tests, fixtures, the
+  corpus, and no crash in its graded runs.
+
+**What it taught the instruments:**
+
+- **`never-animates` called every `stages` run dead.** The section sits below
+  the fold and nothing scrolled. It now scrolls the page before its verdict.
+- **`below-fold-mobile` failed on the untouched starter.** `run-arm.mjs` grades
+  the starter once and counts only the failures it does not have.
+- **Grading six builds at once timed out Chrome** on four runs, which were
+  re-graded one at a time. Two of the repair runs are still ungraded.
+- **The copy step broke vite in the first two runs**: it skipped every `dist`,
+  `node_modules/vite/dist` included. Both runs were discarded, about $2.3.
+
+Cost: about $35 across four rounds, on the user's subscription. After this round
+the user stopped evals; none runs without being asked for.
+
 ## Keeping the cost down without testing less
 
 Agreed 2026-09-16, after the first baseline run cost $2.10 for one case and
