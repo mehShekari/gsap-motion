@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-09-26
+
 From the creative A/B: 27 agent runs of one landing page, three briefs, three
 arms (no skill, 4.2.1, and a candidate with concept guidance), judged blind and
 pairwise in a real browser. The candidate lost to both, and its guidance is not
@@ -780,7 +782,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.2.1...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.3.0...HEAD
+[4.3.0]: https://github.com/mehShekari/gsap-motion/compare/v4.2.1...v4.3.0
 [4.2.1]: https://github.com/mehShekari/gsap-motion/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/mehShekari/gsap-motion/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/mehShekari/gsap-motion/compare/v4.0.0...v4.1.0
