@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Motion arena</title>
+<style>
+  :root { color-scheme: dark; --bg: #111; --line: #333; --text: #eee; --muted: #999; --pick: #7cc4ff; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  header strong { font-size: 15px; }
+  .muted { color: var(--muted); }
+  .spacer { flex: 1; }
+  button { background: #222; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; }
+  button:hover, button:focus-visible { border-color: var(--pick); outline: none; }
+  button:disabled { opacity: .35; cursor: default; border-color: var(--line); }
+  kbd { font-size: 11px; color: var(--muted); margin-inline-start: 6px; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+  main.focus { grid-template-columns: 1fr; }
+  main.focus-left .side:last-child, main.focus-right .side:first-child { display: none; }
+  button[aria-pressed="true"] { border-color: var(--pick); color: var(--pick); }
+  .side { display: flex; flex-direction: column; align-items: center; }
+  .side h2 { align-self: stretch; margin: 0 0 8px; font-size: 13px; letter-spacing: .1em; color: var(--muted); }
+  .frame { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #000; }
+  iframe { border: 0; display: block; transform-origin: 0 0; }
+  footer { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 0 16px 16px; }
+  footer input { flex: 1; min-width: 240px; background: #1a1a1a; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font: inherit; }
+  .done { padding: 32px 16px; }
+  pre { background: #1a1a1a; padding: 16px; border-radius: 8px; overflow: auto; }
+</style>
+</head>
+<body>
+<header>
+  <strong id="brief">…</strong>
+  <span class="muted" id="hint"></span>
+  <span class="spacer"></span>
+  <span class="muted" id="progress"></span>
+  <button data-view="both" aria-pressed="true">Both<kbd>0</kbd></button>
+  <button data-view="left">A only<kbd>1</kbd></button>
+  <button data-view="right">B only<kbd>2</kbd></button>
+  <button id="size">Mobile 390<kbd>M</kbd></button>
+  <button id="replay">Replay<kbd>R</kbd></button>
+</header>
+<main id="stage">
+  <section class="side"><h2>A</h2><div class="frame"><iframe id="left" title="A"></iframe></div></section>
+  <section class="side"><h2>B</h2><div class="frame"><iframe id="right" title="B"></iframe></div></section>
+</main>
+<footer id="controls">
+  <span>Which would you ship on a site you are proud of?</span>
+  <button data-pick="left">A<kbd>A</kbd></button>
+  <button data-pick="tie">Same<kbd>=</kbd></button>
+  <button data-pick="right">B<kbd>B</kbd></button>
+  <input id="note" placeholder="Why (optional): what made the difference" />
+  <button id="undo" disabled>Undo last vote<kbd>U</kbd></button>
+</footer>
+<section id="finished" class="done" hidden>
+  <h1>All pairs judged</h1>
+  <p class="muted">Now the arms can be named.</p>
+  <pre id="summary"></pre>
+  <button id="undo-final">Undo last vote</button>
+</section>
+<script>
+  const HINTS = {
+    hero: "judge the hero: load, pointer, then scroll past it",
+    page: "judge the whole page, top to bottom",
+    stages: "judge the How it works section: scroll through it",
+  };
+  const SIZES = { desktop: [1440, 900], mobile: [390, 844] };
+  let size = "desktop";
+  let view = "both";
+  let current = null;
+  const $ = (id) => document.getElementById(id);
+
+  function layout() {
+    const [w, h] = SIZES[size];
+    const main = $("stage");
+    main.className = view === "both" ? "" : `focus focus-${view}`;
+    document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+    const room = view === "both" ? (innerWidth - 48) / 2 : innerWidth - 32;
+    const chrome = document.querySelector("header").offsetHeight + $("controls").offsetHeight + 64;
+    const scale = Math.min(1, room / w, (innerHeight - chrome) / h);
+    for (const frame of [$("left"), $("right")]) {
+      frame.width = w;
+      frame.height = h;
+      frame.style.transform = `scale(${scale})`;
+      frame.parentElement.style.width = `${w * scale}px`;
+      frame.parentElement.style.height = `${h * scale}px`;
+    }
+    $("size").firstChild.textContent = size === "desktop" ? "Mobile 390" : "Desktop 1440";
+  }
+
+  function replay() {
+    if (!current) return;
+    $("left").src = current.left;
+    $("right").src = current.right;
+  }
+
+  function show(state) {
+    current = state.finished ? null : state;
+    $("undo").disabled = !state.canUndo;
+    const finished = $("finished");
+    finished.hidden = !state.finished;
+    $("stage").hidden = $("controls").hidden = document.querySelector("header").hidden = state.finished;
+    if (state.finished) {
+      $("summary").textContent = JSON.stringify(state.summary, null, 2);
+      $("undo-final").disabled = !state.canUndo;
+      return;
+    }
+    $("brief").textContent = state.brief;
+    $("hint").textContent = HINTS[state.brief] ?? "";
+    $("progress").textContent = `${state.done + 1} of ${state.total}`;
+    $("note").value = "";
+    replay();
+  }
+
+  const refresh = () => fetch("/api/next").then((r) => r.json()).then(show);
+
+  async function vote(pick) {
+    if (!current) return;
+    const res = await fetch("/api/vote", {
+      method: "POST",
+      body: JSON.stringify({ id: current.id, pick, note: $("note").value }),
+    });
+    // A vote on a pair the server no longer shows (another tab voted) is refused: show what it does show.
+    if (!res.ok) return refresh();
+    show(await res.json());
+  }
+
+  async function undo() {
+    const res = await fetch("/api/undo", { method: "POST" });
+    if (res.ok) show(await res.json());
+  }
+
+  document.querySelectorAll("[data-pick]").forEach((b) => b.addEventListener("click", () => vote(b.dataset.pick)));
+  $("replay").addEventListener("click", replay);
+  $("undo").addEventListener("click", undo);
+  $("undo-final").addEventListener("click", undo);
+  const setView = (next) => { view = next; layout(); replay(); };
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
+  $("size").addEventListener("click", () => { size = size === "desktop" ? "mobile" : "desktop"; layout(); replay(); });
+  addEventListener("resize", layout);
+  function onKey(e) {
+    if (e.target === $("note")) return;
+    const key = e.key.toLowerCase();
+    if (key === "a") vote("left");
+    else if (key === "b") vote("right");
+    else if (key === "=") vote("tie");
+    else if (key === "r") replay();
+    else if (key === "u") undo();
+    else if (key === "m") $("size").click();
+    else if (key === "0" || key === "escape") setView("both");
+    else if (key === "1") setView("left");
+    else if (key === "2") setView("right");
+  }
+  addEventListener("keydown", onKey);
+  // The builds are served from this origin, so a key pressed after clicking into a page still reaches the arena.
+  for (const frame of [$("left"), $("right")]) {
+    frame.addEventListener("load", () => {
+      try { frame.contentWindow.addEventListener("keydown", onKey); } catch {}
+    });
+  }
+
+  layout();
+  refresh();
+</script>
+</body>
+</html>

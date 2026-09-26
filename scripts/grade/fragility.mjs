@@ -8,7 +8,7 @@
  * of those failures, stated as something a browser can measure. None of them is
  * a judgement about taste.
  *
- *   never-animates         nothing moves in the watch window
+ *   never-animates         nothing moves at load, nor while the page is scrolled
  *   below-fold-mobile      at 390x844, most of the main visual is off screen
  *   reduced-leaves-hidden  with reduced motion, a label ends hidden in a shown,
  *                          textless container
@@ -133,7 +133,7 @@ const MAIN_VISUAL = `(() => {
   return { top: Math.round(best.top), height: Math.round(best.height), what: tag, shown: Math.round((shown / best.height) * 100) / 100, viewport: innerHeight };
 })()`;
 
-async function watch(url, { mobile = false, reduced = false, ms = 6000 } = {}) {
+async function watch(url, { mobile = false, reduced = false, ms = 6000, scroll = false } = {}) {
   const browser = connect(findChrome());
   try {
     const { targetId } = await browser.send("Target.createTarget", { url: "about:blank" });
@@ -156,7 +156,26 @@ async function watch(url, { mobile = false, reduced = false, ms = 6000 } = {}) {
     await call("Page.addScriptToEvaluateOnNewDocument", { source: RECORDER });
     await call("Page.navigate", { url });
     await wait(ms);
-    return { frag: await evaluate("window.__frag"), visual: await evaluate(MAIN_VISUAL) };
+    const visual = await evaluate(MAIN_VISUAL);
+    /**
+     * Motion that waits for the visitor is not missing. A brief that animates
+     * one section below the fold moved nothing in the first 6s on every one of
+     * 27 runs in the 4.3 creative A/B, in all three arms, and the check called
+     * every one of them dead. So a page that has not moved is scrolled to its
+     * end, slowly, before the verdict.
+     */
+    let scrolled = false;
+    if (scroll && (await evaluate("window.__frag.motion")) === null) {
+      await evaluate(`(async () => {
+        for (let y = 0; y <= document.documentElement.scrollHeight; y += 200) {
+          scrollTo(0, y);
+          await new Promise((done) => setTimeout(done, 100));
+        }
+      })()`);
+      await wait(1500);
+      scrolled = true;
+    }
+    return { frag: await evaluate("window.__frag"), visual, scrolled };
   } finally {
     browser.close();
   }
@@ -164,7 +183,7 @@ async function watch(url, { mobile = false, reduced = false, ms = 6000 } = {}) {
 
 /** Every check against one URL. Each result says what was measured, pass or fail. */
 export async function fragility(url) {
-  const desktop = await watch(url);
+  const desktop = await watch(url, { scroll: true });
   const mobile = await watch(url, { mobile: true, ms: 2500 });
   const reduced = await watch(url, { reduced: true, ms: 2500 });
 
@@ -174,7 +193,9 @@ export async function fragility(url) {
   add(
     "never-animates",
     desktop.frag.motion === null,
-    desktop.frag.motion === null ? "nothing moved in 6s" : `first motion at ${desktop.frag.motion}ms`,
+    desktop.frag.motion === null
+      ? "nothing moved in 6s, nor while the page was scrolled to its end"
+      : `first motion at ${desktop.frag.motion}ms${desktop.scrolled ? ", once the page was scrolled" : ""}`,
   );
 
   const visual = mobile.visual;
