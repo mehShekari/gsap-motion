@@ -49,6 +49,8 @@ import {
 const HINT = {
   matchMediaNeverRuns:
     "A matchMedia callback runs only while at least one of its named conditions matches, and a visitor with no reduced-motion preference matches none of these — so the branch for them is dead code and nothing animates. Add `motion: \"(prefers-reduced-motion: no-preference)\"` beside it, or use two separate `add` calls.",
+  contextSafeMisuse:
+    "The callback of `gsap.matchMedia().add`, `gsap.context` and `useGSAP` receives `(context, contextSafe)`: take the second argument, as in `mm.add(query, (context, contextSafe) => …)`, and wrap the delayed callback in it. `context.add(fn)` runs `fn` straight away instead.",
   stackedFrom:
     "A `from` or `fromTo` applies its start state the moment it is built. Built more than once against the same element, the last one wins, and holds that element at its start state until the playhead reaches it — invisible, if the start state hides it. Pass `immediateRender: false`, and set the element's first state yourself with `gsap.set`.",
   orphanTween:
@@ -684,6 +686,45 @@ function stopped(ast, name) {
     }).length > 0
   );
 }
+
+/**
+ * Every `add` call on a `gsap.matchMedia()`: made on it directly, or on a name
+ * the file binds it to, at declaration or later.
+ */
+function matchMediaAdds(file) {
+  const media = new Set(
+    findAll(
+      file.ast,
+      (node) =>
+        (node.type === "VariableDeclarator" &&
+          node.id.type === "Identifier" &&
+          /**
+           * `let tl;` has no initializer, and `calleeName` does not accept
+           * null. Every fixture initialised its declarations, so 133 passing
+           * tests missed this; the first real project threw on it and took
+           * the whole audit down with it.
+           */
+          Boolean(node.init) &&
+          calleeName(unwrap(node.init)) === "gsap.matchMedia") ||
+        (node.type === "AssignmentExpression" &&
+          node.left.type === "Identifier" &&
+          calleeName(unwrap(node.right)) === "gsap.matchMedia"),
+    ).map((node) => (node.type === "VariableDeclarator" ? node.id.name : node.left.name)),
+  );
+
+  const onMatchMedia = (call) => {
+    const callee = unwrap(call.callee);
+    if (callee?.type !== "MemberExpression") return false;
+    const object = unwrap(callee.object);
+    if (object?.type === "Identifier") return media.has(object.name);
+    return calleeName(object) === "gsap.matchMedia";
+  };
+
+  return findAll(file.ast, (node) => methodName(node) === "add" && onMatchMedia(node));
+}
+
+/** Nodes a value passes through unchanged on its way to whatever uses it. */
+const TRANSPARENT = new Set(["ParenthesizedExpression", "ChainExpression", "TSAsExpression", "TSNonNullExpression"]);
 
 export const RULES = [
   // --- Lifecycle ------------------------------------------------------------
@@ -1628,35 +1669,6 @@ export const RULES = [
       const REDUCE = /prefers-reduced-motion\s*:\s*reduce/i;
       const PREFERENCE = /prefers-reduced-motion/i;
 
-      /** Names bound to `gsap.matchMedia()` in this file, at declaration or later. */
-      const media = new Set(
-        findAll(
-          file.ast,
-          (node) =>
-            (node.type === "VariableDeclarator" &&
-              node.id.type === "Identifier" &&
-              /**
-               * `let tl;` has no initializer, and `calleeName` does not accept
-               * null. Every fixture initialised its declarations, so 133 passing
-               * tests missed this; the first real project threw on it and took
-               * the whole audit down with it.
-               */
-              Boolean(node.init) &&
-              calleeName(unwrap(node.init)) === "gsap.matchMedia") ||
-            (node.type === "AssignmentExpression" &&
-              node.left.type === "Identifier" &&
-              calleeName(unwrap(node.right)) === "gsap.matchMedia"),
-        ).map((node) => (node.type === "VariableDeclarator" ? node.id.name : node.left.name)),
-      );
-
-      const onMatchMedia = (call) => {
-        const callee = unwrap(call.callee);
-        if (callee?.type !== "MemberExpression") return false;
-        const object = unwrap(callee.object);
-        if (object?.type === "Identifier") return media.has(object.name);
-        return calleeName(object) === "gsap.matchMedia";
-      };
-
       /** The conditions as written: in the call, or in a `const` the file declares once. */
       const conditionsOf = (argument) => {
         const target = unwrap(argument);
@@ -1714,7 +1726,7 @@ export const RULES = [
         }).length > 0;
       };
 
-      return findAll(file.ast, (node) => methodName(node) === "add" && onMatchMedia(node))
+      return matchMediaAdds(file)
         .filter((call) => {
           if (!everyReduces(conditionsOf(call.arguments[0]))) return false;
           const callback = resolveFunction(file.ast, call.arguments[1]);
@@ -1726,6 +1738,93 @@ export const RULES = [
             "This matchMedia callback branches on reduced motion, but every condition needs reduced motion — so it never runs for a visitor without that preference.",
           hint: HINT.matchMediaNeverRuns,
         }));
+    },
+  },
+  {
+    id: "context-safe-misuse",
+    level: "warn",
+    description:
+      "A callback made context-safe with the context itself, which runs it at once instead",
+    /**
+     * The callback of `gsap.matchMedia().add`, `gsap.context` or `useGSAP`
+     * receives `(context, contextSafe)`. Two ways of getting that wrong both
+     * ship a blank page:
+     *
+     * - `({ contextSafe }) => …` reads `contextSafe` from the context, which has
+     *   none. It is `undefined`, and the first call throws.
+     * - `context.add(fn)` handed on as a callback. `add` with a function runs it
+     *   at once, passing the context, and returns what it returned, so the
+     *   caller receives no callback and `fn` ran with the wrong argument.
+     *
+     * Found in the 4.3 creative A/B: three of 27 runs, in both arms, crashed on
+     * load this way, every one inside a matchMedia. `add` as a statement runs a
+     * block inside the context and is correct; a named `add("onClick", fn)` and
+     * `add(null, fn)` return a wrapper and are correct too. Only an `add` whose
+     * result is used, given a function, is reported.
+     */
+    test(file) {
+      const callbacks = new Set(
+        [
+          ...matchMediaAdds(file).map((call) => call.arguments[1]),
+          ...findAll(
+            file.ast,
+            (node) =>
+              node.type === "CallExpression" &&
+              ["gsap.context", "useGSAP"].includes(calleeName(node)),
+          ).map((call) => call.arguments[0]),
+        ]
+          .map((argument) => resolveFunction(file.ast, argument))
+          .filter(Boolean),
+      );
+
+      /** Is the call's result handed on, rather than thrown away as a statement? */
+      const used = (call) => {
+        let child = call;
+        let parent = parentOf(file.ast, call);
+        while (parent && TRANSPARENT.has(parent.type)) {
+          child = parent;
+          parent = parentOf(file.ast, parent);
+        }
+        if (!parent || parent.type === "ExpressionStatement" || parent.type === "SequenceExpression") {
+          return false;
+        }
+        return !(parent.type === "CallExpression" && parent.callee === child);
+      };
+
+      const findings = [];
+      for (const fn of callbacks) {
+        const [param] = fn.params;
+        if (param?.type === "ObjectPattern") {
+          const property = param.properties.find((p) => keyName(p) === "contextSafe");
+          if (property) {
+            findings.push({
+              index: property.start,
+              message:
+                "`contextSafe` is read from the callback's first argument, the context, which has none: it is undefined, and the first call throws.",
+              hint: HINT.contextSafeMisuse,
+            });
+          }
+          continue;
+        }
+        if (param?.type !== "Identifier") continue;
+        const adds = findAll(fn.body, (node) => {
+          if (methodName(node) !== "add") return false;
+          const receiver = unwrap(unwrap(node.callee).object);
+          return receiver?.type === "Identifier" && receiver.name === param.name;
+        });
+        for (const call of adds) {
+          const target = unwrap(call.arguments[0]);
+          if (!target || target.type === "Literal" || target.type === "TemplateLiteral") continue;
+          if (!isFunction(target) && target.type !== "Identifier") continue;
+          if (!used(call)) continue;
+          findings.push({
+            index: call.start,
+            message: `\`${param.name}.add(fn)\` runs fn at once and returns its result, so what is handed on here is not a callback.`,
+            hint: HINT.contextSafeMisuse,
+          });
+        }
+      }
+      return findings;
     },
   },
   {

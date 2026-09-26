@@ -2359,6 +2359,10 @@ while (ready) { tl.from(".x", {}); ready = false; }
     quiet("matchmedia-never-runs", AWKWARD, { ext: "ts" });
   });
 
+  test("context-safe-misuse does not throw on them", () => {
+    quiet("context-safe-misuse", AWKWARD, { ext: "ts" });
+  });
+
   test("stacked-from does not throw on them", () => {
     assert.doesNotThrow(() => {
       try {
@@ -2367,6 +2371,119 @@ while (ready) { tl.from(".x", {}); ready = false; }
         if (error instanceof TypeError) throw error;
       }
     });
+  });
+});
+
+describe("context-safe-misuse", () => {
+  /**
+   * Three of 27 runs of the 4.3 creative A/B shipped a blank page this way, in
+   * both arms: each made a callback context-safe inside a matchMedia, and got it
+   * wrong. `add(fn)` on a context runs fn at once and passes it the context;
+   * the callback's first argument has no `contextSafe`. The real one is the
+   * callback's second argument.
+   */
+  test("fires on contextSafe read from the callback's first argument", () => {
+    fires(
+      "context-safe-misuse",
+      `${REACT}
+export function Page() {
+  const root = useRef(null);
+  useGSAP(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", ({ contextSafe }) => {
+      const onClick = contextSafe(() => gsap.to(".cta", { scale: 0.96 }));
+      root.current.addEventListener("click", onClick);
+    });
+  }, { scope: root });
+  return <main ref={root} />;
+}`,
+    );
+  });
+
+  test("fires on context.add(fn) handed over as a callback", () => {
+    fires(
+      "context-safe-misuse",
+      `${PLAIN}import { ScrollTrigger } from "gsap/ScrollTrigger";
+gsap.registerPlugin(ScrollTrigger);
+const mm = gsap.matchMedia();
+mm.add("(min-width: 800px)", (context) => {
+  ScrollTrigger.batch(".stage", {
+    onEnter: context.add((batch) => gsap.to(batch, { autoAlpha: 1 })),
+  });
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("fires on a helper that wraps context.add to make callbacks safe", () => {
+    fires(
+      "context-safe-misuse",
+      `${PLAIN}
+gsap.matchMedia().add("(min-width: 800px)", (context) => {
+  const safe = (fn) => context.add(fn);
+  document.querySelector(".cta").addEventListener("click", safe(() => gsap.to(".cta", { y: -4 })));
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("fires in a gsap.context callback too", () => {
+    fires(
+      "context-safe-misuse",
+      `${PLAIN}
+const ctx = gsap.context((self) => {
+  window.addEventListener("resize", self.add(() => gsap.to(".bar", { scaleX: 1 })));
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on the callback's second argument — the fix", () => {
+    quiet(
+      "context-safe-misuse",
+      `${PLAIN}
+const mm = gsap.matchMedia();
+mm.add("(min-width: 800px)", (context, contextSafe) => {
+  const onClick = contextSafe(() => gsap.to(".cta", { scale: 0.96 }));
+  document.querySelector(".cta").addEventListener("click", onClick);
+  return () => document.querySelector(".cta").removeEventListener("click", onClick);
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on context.add(fn) run as a statement, and on a named add", () => {
+    quiet(
+      "context-safe-misuse",
+      `${PLAIN}
+const mm = gsap.matchMedia();
+mm.add("(min-width: 800px)", (context) => {
+  context.add(() => {
+    gsap.to(".title", { autoAlpha: 1 });
+  });
+  context.add("onClick", () => gsap.to(".cta", { y: -4 }));
+  document.querySelector(".cta").addEventListener("click", () => context.onClick());
+});`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet on useGSAP's own contextSafe, and on a timeline's add", () => {
+    quiet(
+      "context-safe-misuse",
+      `${REACT}
+export function Hero() {
+  const root = useRef(null);
+  const { contextSafe } = useGSAP((context) => {
+    const tl = gsap.timeline();
+    const intro = tl.add(gsap.from(".title", { autoAlpha: 0 }));
+    const { conditions } = context;
+    return () => intro.kill();
+  }, { scope: root });
+  const onClick = contextSafe(() => gsap.to(".cta", { scale: 0.96 }));
+  return <main ref={root} onClick={onClick} />;
+}`,
+    );
   });
 });
 

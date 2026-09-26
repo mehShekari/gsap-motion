@@ -48,7 +48,7 @@ This skill gives the agent two things it lacks:
   They load only when a request needs them.
 - **Presets and worked examples** for reveals, marquees, card stacks, loaders,
   site intros, page transitions and scroll storytelling.
-- **`audit-gsap`**: 24 rules for leaks, per-frame cost, eased loops, shared
+- **`audit-gsap`**: 25 rules for leaks, per-frame cost, eased loops, shared
   plugin ids, unregistered plugins and shipped dev tooling — from the command
   line, or in your editor as an ESLint plugin.
 - **`audit-svg`**: what an SVG can do before you animate it — what DrawSVG can
@@ -306,6 +306,7 @@ With the skill installed, the same scripts are in its folder:
 | `delay-chain` | warn | Three or more tweens in one scope sequenced by `delay`, which is a timeline nobody can retime |
 | `unowned-loop` | info | An infinite repeat that nothing pauses, which keeps the ticker busy off screen |
 | `matchmedia-never-runs` | warn | A matchMedia callback that branches on reduced motion, when every condition needs it |
+| `context-safe-misuse` | warn | A callback made context-safe with the context itself, which runs it at once instead |
 | `stacked-from` | warn | A timeline's `from` or `fromTo` built more than once against the same target |
 
 ### Waiving a finding
@@ -447,8 +448,8 @@ source and labelled true or false with a reason in
 - A rule missing from the table reports nothing on this corpus, so its precision
   is not measured here: `unregistered-plugin`, `unmanaged-instance`,
   `state-per-event`, `dangling-listener`, `unreverted-context`,
-  `tween-per-frame`, `delay-chain`, `matchmedia-never-runs`, `stacked-from`
-  and the rules that never fired.
+  `tween-per-frame`, `delay-chain`, `matchmedia-never-runs`, `stacked-from`,
+  `context-safe-misuse` and the rules that never fired.
 - **`matchmedia-never-runs` and `stacked-from` (4.2) came from a head-to-head
   test**, not from the corpus: a real hero built with this skill shipped both
   bugs and one built without it shipped neither. Each fires on that code with

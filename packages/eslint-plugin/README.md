@@ -95,6 +95,7 @@ so a finding waived that way still fails `gsap-motion audit`.
 | `delay-chain` | warn | Three or more tweens in one scope sequenced by `delay`, which is a timeline nobody can retime |
 | `unowned-loop` | info | An infinite repeat that nothing pauses, which keeps the ticker busy off screen |
 | `matchmedia-never-runs` | warn | A matchMedia callback that branches on reduced motion, when every condition needs it |
+| `context-safe-misuse` | warn | A callback made context-safe with the context itself, which runs it at once instead |
 | `stacked-from` | warn | A timeline's `from` or `fromTo` built more than once against the same target |
 | `not-parsed` | warn | A file that uses GSAP and that the audit's parser could not read, so no other rule checked it |
 
