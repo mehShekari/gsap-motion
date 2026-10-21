@@ -56,6 +56,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **SKILL.md: two commands that fit are used together**, said in a line, rather
+  than asked about — the example already composed them, as routing.md does.
+  **The output format yields to a style the user or project asks for.** The
+  Tools comment no longer says both browser scripts need a Chrome of their own,
+  and the audit's comment is shorter, to keep the budget.
 - **`devices.md`: data saving, and what a weak device gives up first.**
   `saveData` is about bytes, not motion: skip video, large textures and models,
   keep transforms and fades. A weak device lowers cost — pixel ratio, particles,

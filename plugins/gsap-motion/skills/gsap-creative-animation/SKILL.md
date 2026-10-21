@@ -75,8 +75,8 @@ Core principles:
 - **A command, explicit or implied:** load its reference and follow it.
 - **A description** ("make this feel like Apple", "the hero is boring"): that is
   `create`. Classify with routing.md's table, then load what that needs.
-- **Two commands fit:** ask once. A scroll-driven text reveal is `scroll` and
-  `text` together, not a coin toss.
+- **Two commands fit:** use both, and say so in a line. A scroll-driven text
+  reveal is `scroll` and `text` together.
 - **`design` stops at the plan.** `build` implements one that was approved, and
   needs it in hand. `evolve` improves what is there and never adds motion.
 
@@ -109,7 +109,8 @@ intent → precedent → targets → trigger → motion language → technique
 
 ## Output format
 
-For anything beyond a one-line tweak, answer in this shape, each part short:
+Beyond a one-line tweak, use this shape, each part short, unless the user or
+project asks for another:
 
 - **Analysis** — what moves, why, on what trigger, and the intent you read it
   as, with the values that follow.
@@ -160,8 +161,7 @@ These catch what is **silent**. Run them from the project root; `<skill-dir>`
 is the skill's folder.
 
 ```bash
-# Leaks, per-event and per-frame tweens, layout and paint properties, loops,
-# plugin ids, unregistered plugins, dev tooling. Exit 1 on an error.
+# Silent failures: leaks, per-frame cost, plugins, dev tooling. Exit 1 on error.
 node <skill-dir>/scripts/audit-gsap.mjs [path...]     # default: src
 node <skill-dir>/scripts/audit-gsap.mjs src --quiet   # errors only
 node <skill-dir>/scripts/audit-gsap.mjs src --json
@@ -171,8 +171,8 @@ node <skill-dir>/scripts/audit-svg.mjs <file.svg>
 node <skill-dir>/scripts/audit-svg.mjs --morph <a.svg> <b.svg>
 node <skill-dir>/scripts/audit-svg.mjs --hues <file.svg>
 
-# Both need a Chrome. Watch a page animate; then measure what it did:
-# first motion, screen share, seams, motion over text.
+# Both open a Chrome (refine.md: --probe, for yours). Watch a page animate,
+# then measure: first motion, screen share, seams, motion over text.
 node <skill-dir>/scripts/capture-motion.mjs <url> --at 0,300,900
 node <skill-dir>/scripts/review-motion.mjs <url> --scroll 2000
 ```
