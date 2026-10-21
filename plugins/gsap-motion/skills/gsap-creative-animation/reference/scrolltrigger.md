@@ -97,6 +97,33 @@ Things that bite:
 - `position: sticky` is cheaper and needs no plugin. Use it when you only need
   the element to stay put, not to drive a timeline.
 
+### `pinType`
+
+How the pin holds the element. On the window it defaults to `"fixed"`: at each
+enter and leave, ScrollTrigger swaps the element's whole state — `position`,
+`top`, `left`, `width`, `height`, margins, padding — and the browser lays it out
+again in that frame. `"transform"` swaps nothing, and writes a translate every
+frame while the pin is active (verified against gsap 3.15).
+
+`"fixed"` is the default because native scrolling runs off the main thread, and
+a translate written once per frame would trail it. Under Lenis that reason is
+gone for the wheel — the scroll moves in the same frame as the pin — and the
+state swap at every section edge is what remains. On one landing page it was
+measured at a CLS of 4 to 7.5 and frames of 50 to 117ms per edge, and
+`"transform"` removed both. Touch is still native under Lenis, so keep
+`"fixed"` there:
+
+```ts
+// Inside the component's context, so it reverts with it. Both conditions are
+// named: a matchMedia callback runs only while one of them matches.
+gsap.matchMedia().add({ smoothed: "(pointer: fine)", touch: "(pointer: coarse)" }, (context) => {
+  const { smoothed } = context.conditions;
+  ScrollTrigger.create({ trigger: section, pin: true, pinType: smoothed ? "transform" : "fixed" });
+});
+```
+
+Without smooth scrolling, leave the default.
+
 ## Horizontal scroll
 
 A vertical scroll driving a horizontal translation. `xPercent` avoids measuring:
@@ -165,8 +192,9 @@ only when the whole page is designed around smoothed scrolling.
 ## Lenis
 
 Lenis smooths wheel input and writes the result to the real scroll position, so
-ScrollTrigger needs no `scrollerProxy` and pins behave as on a native page. What
-it needs is **one clock**, shared with GSAP:
+ScrollTrigger needs no `scrollerProxy`. Pins need one decision, in
+[`pinType`](#pintype). What it needs above all is **one clock**, shared with
+GSAP:
 
 ```ts
 const lenis = new Lenis();                         // autoRaf stays false, its default
@@ -233,3 +261,4 @@ images settle. `ScrollTrigger.refresh()` on mount is usually needed. See
 | Wrong on mobile after address-bar hide | viewport resize — `invalidateOnRefresh` |
 | Smooth scroll stutters | Lenis on two loops — `autoRaf` and the ticker |
 | A numeric scrub trails the scroll by a frame | Lenis's `raf` added to the ticker without `prioritize` |
+| A layout shift and a long frame at each pinned section's edge | a `"fixed"` pin under Lenis — `pinType: "transform"` for the wheel |

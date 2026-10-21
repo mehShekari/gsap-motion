@@ -30,6 +30,14 @@ All notable changes to this project are documented here. The format follows
   `lagSmoothing(0)` and what it costs; touch left native; reduced motion already
   handled; teardown, which no context does for you. Verified against
   `lenis@1.3`. The load map routes smooth-scroll requests to it.
+- **`scrolltrigger.md`: `pinType`.** A `"fixed"` pin swaps the element's whole
+  state at each enter and leave, and the browser lays it out again in that
+  frame; `"transform"` writes a translate per frame instead. Fixed is the
+  default because native scrolling runs off the main thread, a reason Lenis
+  removes for the wheel: on one landing page fixed pins under Lenis measured a
+  CLS of 4 to 7.5 and 50 to 117ms frames per edge, and transform removed both.
+  Touch stays native, so stays fixed. The Lenis section no longer says pins
+  behave as on a native page.
 - **`performance.md`: WebGL, the first frame of each material.** Shaders compile
   and textures upload on first draw, on the main thread: `compileAsync` and
   `initTexture` ahead of the scroll; a second compile with a render target bound,
