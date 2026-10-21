@@ -118,7 +118,8 @@ was created inside the body.
 
 The React rules from react.md, since these are `.tsx` files. From 3.2,
 `useFrame` counts as a per-frame scope, so React state set inside it is reported
-as `state-per-event`.
+as `state-per-event`, and a Three vector or colour built in it as
+`allocation-per-frame`.
 
 Disposal, GPU cost and the render loop are not checkable — read for them, and
 measure with [performance.md](../reference/performance.md).

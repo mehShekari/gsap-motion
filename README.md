@@ -48,7 +48,7 @@ This skill gives the agent two things it lacks:
   They load only when a request needs them.
 - **Presets and worked examples** for reveals, marquees, card stacks, loaders,
   site intros, page transitions and scroll storytelling.
-- **`audit-gsap`**: 25 rules for leaks, per-frame cost, eased loops, shared
+- **`audit-gsap`**: 27 rules for leaks, per-frame cost, eased loops, shared
   plugin ids, unregistered plugins and shipped dev tooling — from the command
   line, or in your editor as an ESLint plugin.
 - **`audit-svg`**: what an SVG can do before you animate it — what DrawSVG can
@@ -301,6 +301,8 @@ With the skill installed, the same scripts are in its folder:
 | `missing-reduced-motion` | warn | An animating file with no `prefers-reduced-motion` branch |
 | `barrel-import` | warn | Importing from `gsap/all`, which pulls in every plugin |
 | `tween-per-frame` | warn | A tween created every frame — in `onUpdate`, the ticker, an Observer callback, `useFrame` or a `requestAnimationFrame` loop |
+| `allocation-per-frame` | warn | A Three.js vector, colour, matrix or quaternion built every frame — in `useFrame`, the ticker, `onUpdate` or a `requestAnimationFrame` loop |
+| `layout-read-per-frame` | info | A layout read — `getBoundingClientRect`, `offsetWidth`, `getComputedStyle` — in a callback that runs every frame |
 | `paint-property` | warn | Animating `filter`, `backdropFilter` or `boxShadow`, which repaints the element every frame |
 | `ungated-hover` | warn | A hover animation with no `(hover: hover)` gate, which a tap starts and nothing ends |
 | `delay-chain` | warn | Three or more tweens in one scope sequenced by `delay`, which is a timeline nobody can retime |
@@ -427,6 +429,7 @@ source and labelled true or false with a reason in
 |---|---|---|---|---|---|
 | `eased-scrub` | warn | 1 | 1 | 0 | 100% |
 | `layout-property` | warn | 10 | 10 | 0 | 100% |
+| `layout-read-per-frame` | info | 1 | 1 | 0 | 100% |
 | `missing-reduced-motion` | warn | 40 | 40 | 0 | 100% |
 | `orphan-tween` | error | 17 | 17 | 0 | 100% |
 | `paint-property` | warn | 32 | 32 | 0 | 100% |

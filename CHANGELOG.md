@@ -8,6 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`allocation-per-frame`** (warn): a Three.js vector, colour, matrix or
+  quaternion built with `new` inside `useFrame`, the ticker, an `onUpdate` or a
+  rAF loop — garbage every frame, reclaimed in a pause that drops one. Only
+  Three's math types, which all have `set` or `copy`; a `Set` or `Map` there is
+  left alone. Zero findings on the corpus, so its precision is unmeasured.
+- **`layout-read-per-frame`** (info): `getBoundingClientRect`, `offsetWidth` and
+  their kin, or `getComputedStyle`, in the same per-frame scopes. Info, because
+  a read costs only when layout is stale, which depends on what else runs. One
+  finding on the corpus, labelled true.
 - **`--probe`, for a browser you already drive.** `review --probe install` and
   `--probe read`, and `inspect --probe timeline`, print the in-page functions
   instead of opening a Chrome, for a DevTools MCP server's `evaluate_script`

@@ -103,6 +103,10 @@
     "verdict": "true",
     "reason": "A `filter` or `boxShadow` is animated, which repaints the element on every frame rather than moving a layer that already exists."
   },
+  "card-master|src/features/userscript-deck/useCardActionController.ts|layout-read-per-frame|325|220218d7ea": {
+    "verdict": "true",
+    "reason": "An onUpdate reads the card's getBoundingClientRect on every frame of a 0.5s tween that moves the card by transform, forcing a style recalculation each frame; the centre could be derived from the tweened x and y."
+  },
   "careercompass|src/components/ui/dot-flow.tsx|layout-property|33|ba6f3938cc": {
     "verdict": "true",
     "reason": "Tweens the container's width over 0.5s."

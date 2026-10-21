@@ -90,6 +90,8 @@ so a finding waived that way still fails `gsap-motion audit`.
 | `missing-reduced-motion` | warn | An animating file with no `prefers-reduced-motion` branch |
 | `barrel-import` | warn | Importing from `gsap/all`, which pulls in every plugin |
 | `tween-per-frame` | warn | A tween created every frame — in `onUpdate`, the ticker, an Observer callback, `useFrame` or a `requestAnimationFrame` loop |
+| `allocation-per-frame` | warn | A Three.js vector, colour, matrix or quaternion built every frame — in `useFrame`, the ticker, `onUpdate` or a `requestAnimationFrame` loop |
+| `layout-read-per-frame` | info | A layout read — `getBoundingClientRect`, `offsetWidth`, `getComputedStyle` — in a callback that runs every frame |
 | `paint-property` | warn | Animating `filter`, `backdropFilter` or `boxShadow`, which repaints the element every frame |
 | `ungated-hover` | warn | A hover animation with no `(hover: hover)` gate, which a tap starts and nothing ends |
 | `delay-chain` | warn | Three or more tweens in one scope sequenced by `delay`, which is a timeline nobody can retime |

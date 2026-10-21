@@ -61,6 +61,10 @@ const HINT = {
     "Keep it under a name and revert it when the component goes: `onUnmounted` in Vue, the function returned from `onMount` or `$effect` in Svelte, the `useEffect` cleanup in React, `astro:before-swap` in Astro. Everything created inside the context goes with it.",
   tweenPerFrame:
     "A tween per frame allocates an object per frame, and each one fights the last. Create a `gsap.quickTo()` or `quickSetter()` once outside the callback and call it inside — or, for scroll, scrub a timeline instead of writing values by hand.",
+  allocationPerFrame:
+    "Every frame's object is garbage by the next, and the collector reclaims it in a pause that lands as a dropped frame. Build it once, outside the callback — at module scope, or in a ref or useMemo — and reuse it with `.set()` or `.copy()`.",
+  layoutReadPerFrame:
+    "If anything has changed layout since the last frame, this read makes the browser compute it now, every frame. Measure once and again only on resize — a ScrollTrigger's `onRefresh`, or a ResizeObserver — and read the cached value here.",
   paintProperty:
     "Filters and shadows repaint the layer every frame, and the cost grows with the painted area. Animate `opacity` on a pre-blurred or pre-shadowed copy, or move a transform instead, and measure before defending anything else.",
   unownedLoop:
@@ -104,6 +108,7 @@ const HINT = {
 const MESSAGE = {
   easedLoop: "An infinite repeat with an ease other than `none`.",
   tweenPerFrame: "A tween is created here on every frame.",
+  layoutReadPerFrame: "Layout is read here on every frame.",
   unownedLoop: "An infinite repeat that nothing pauses.",
   ungatedHover: "A hover animation with no `(hover: hover)` gate.",
   delayChain: "Three or more tweens in this scope are sequenced by `delay`.",
@@ -587,6 +592,36 @@ const PAINT_PROPERTIES = new Set([
   "webkitFilter",
   "backdropFilter",
   "boxShadow",
+]);
+
+/** Three's math types: what a render loop allocates when it should reuse. */
+const THREE_MATH = new Set([
+  "Vector2",
+  "Vector3",
+  "Vector4",
+  "Quaternion",
+  "Euler",
+  "Matrix3",
+  "Matrix4",
+  "Color",
+  "Box3",
+  "Sphere",
+  "Ray",
+  "Plane",
+  "Spherical",
+]);
+
+/** Reads that return layout, and so make the browser compute it if it is stale. */
+const LAYOUT_READ_METHODS = new Set(["getBoundingClientRect", "getClientRects"]);
+const LAYOUT_READ_PROPERTIES = new Set([
+  "offsetWidth",
+  "offsetHeight",
+  "offsetTop",
+  "offsetLeft",
+  "clientWidth",
+  "clientHeight",
+  "scrollWidth",
+  "scrollHeight",
 ]);
 
 const HOVER_EVENTS = new Set([
@@ -1399,6 +1434,91 @@ export const RULES = [
         }
       }
       return findings;
+    },
+  },
+  {
+    id: "allocation-per-frame",
+    level: "warn",
+    description:
+      "A Three.js vector, colour, matrix or quaternion built every frame — in `useFrame`, the ticker, `onUpdate` or a `requestAnimationFrame` loop",
+    /**
+     * Only Three's math types, by name. Any `new` in a frame allocates, but a
+     * `Set` or a `Map` there is usually deliberate and rarely hot; these are
+     * the objects a render loop builds by the thousand, once per object per
+     * frame, and each has a `set` or `copy` that makes the allocation pointless.
+     */
+    test(file) {
+      const scopes = perFrameScopes(file.ast);
+      if (scopes.length === 0) return [];
+
+      const built = findAll(file.ast, (node) => {
+        if (node.type !== "NewExpression") return false;
+        const name = dottedName(unwrap(node.callee))?.split(".").at(-1);
+        return THREE_MATH.has(name);
+      });
+
+      const reported = new Set();
+      return built.flatMap((node) => {
+        if (reported.has(node.start) || !scopes.some((scope) => contains(scope, node))) {
+          return [];
+        }
+        reported.add(node.start);
+        const name = dottedName(unwrap(node.callee)).split(".").at(-1);
+        return [
+          {
+            index: node.start,
+            message: `A \`${name}\` is allocated here on every frame.`,
+            hint: HINT.allocationPerFrame,
+          },
+        ];
+      });
+    },
+  },
+  {
+    id: "layout-read-per-frame",
+    level: "info",
+    description:
+      "A layout read — `getBoundingClientRect`, `offsetWidth`, `getComputedStyle` — in a callback that runs every frame",
+    /**
+     * Info, because a read is only expensive when something has invalidated
+     * layout since the last frame, and that depends on what else runs — a
+     * transform does not, a `width` tween does. What is certain is that the
+     * value is re-measured every frame when it usually changes only on resize.
+     */
+    test(file) {
+      const scopes = perFrameScopes(file.ast);
+      if (scopes.length === 0) return [];
+
+      const reads = findAll(file.ast, (node) => {
+        if (node.type === "CallExpression") {
+          const name = calleeName(node);
+          return (
+            name === "getComputedStyle" ||
+            name === "window.getComputedStyle" ||
+            LAYOUT_READ_METHODS.has(methodName(node))
+          );
+        }
+        return (
+          node.type === "MemberExpression" &&
+          !node.computed &&
+          LAYOUT_READ_PROPERTIES.has(node.property.name)
+        );
+      });
+
+      const reported = new Set();
+      return reads.flatMap((node) => {
+        if (reported.has(node.start) || !scopes.some((scope) => contains(scope, node))) {
+          return [];
+        }
+        reported.add(node.start);
+        return [
+          {
+            index: node.start,
+            message: MESSAGE.layoutReadPerFrame,
+            hint: HINT.layoutReadPerFrame,
+          },
+        ];
+      });
     },
   },
   {

@@ -1574,6 +1574,85 @@ ScrollTrigger.create({
   });
 });
 
+describe("allocation-per-frame", () => {
+  const R3F = `import { useFrame } from "@react-three/fiber";
+import { Vector3 } from "three";
+import * as THREE from "three";
+`;
+
+  test("fires on a Three math object built inside useFrame, either import style", () => {
+    fires(
+      "allocation-per-frame",
+      `${R3F}
+export function Follower({ target }) {
+  const mesh = useRef(null);
+  useFrame(() => {
+    const goal = new Vector3(target.x, target.y, 0);
+    mesh.current.position.lerp(goal, 0.1);
+    mesh.current.material.color.lerp(new THREE.Color("#fff"), 0.1);
+  });
+  return <mesh ref={mesh} />;
+}`,
+      { count: 2 },
+    );
+  });
+
+  test("fires in a rAF loop and on the ticker", () => {
+    for (const body of [
+      "function tick() { camera.lookAt(new Vector3(0, y, 0)); requestAnimationFrame(tick); }\nrequestAnimationFrame(tick);",
+      "gsap.ticker.add(() => { mesh.quaternion.copy(new THREE.Quaternion()); });",
+    ]) {
+      fires("allocation-per-frame", `${R3F}import gsap from "gsap";\n${body}\n`, { ext: "ts" });
+    }
+  });
+
+  test("stays quiet on one object built outside and reused with set", () => {
+    quiet(
+      "allocation-per-frame",
+      `${R3F}
+const goal = new Vector3();
+export function Follower({ target }) {
+  const mesh = useRef(null);
+  const tint = useMemo(() => new THREE.Color("#fff"), []);
+  useFrame(() => {
+    goal.set(target.x, target.y, 0);
+    mesh.current.position.lerp(goal, 0.1);
+    mesh.current.material.color.lerp(tint, 0.1);
+    const seen = new Set();
+  });
+  return <mesh ref={mesh} />;
+}`,
+    );
+  });
+});
+
+describe("layout-read-per-frame", () => {
+  test("fires on a box read in onUpdate, a rAF loop and useFrame", () => {
+    for (const body of [
+      "gsap.to(el, { x: 100, onUpdate: () => { const box = el.getBoundingClientRect(); dot.style.left = box.x + 'px'; } });",
+      "function tick() { bar.style.width = track.offsetWidth * p + 'px'; requestAnimationFrame(tick); }\nrequestAnimationFrame(tick);",
+      "useFrame(() => { const style = getComputedStyle(el); });",
+    ]) {
+      fires("layout-read-per-frame", `${PLAIN}${body}\n`, { ext: "ts" });
+    }
+  });
+
+  test("stays quiet on a box measured once, and on onRefresh", () => {
+    quiet(
+      "layout-read-per-frame",
+      `${PLAIN}
+let width = track.offsetWidth;
+ScrollTrigger.create({
+  trigger: track,
+  onRefresh: () => { width = track.offsetWidth; },
+  onUpdate: (self) => { gsap.set(bar, { x: self.progress * width }); },
+});
+`,
+      { ext: "ts" },
+    );
+  });
+});
+
 describe("paint-property", () => {
   test("stays quiet on a clip-path reveal, which is the technique this skill teaches", () => {
     quiet(
