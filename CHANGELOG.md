@@ -56,6 +56,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **`devices.md`: data saving, and what a weak device gives up first.**
+  `saveData` is about bytes, not motion: skip video, large textures and models,
+  keep transforms and fades. A weak device lowers cost — pixel ratio, particles,
+  post-processing, blur — before it loses a beat of the story.
 - **`performance.md`: CSS `scale`, `rotate` and `translate` against `transform`**,
   with a row in `interaction.md`'s failures.
   GSAP folds the three into its own transform and sets them to `none` inline, so

@@ -71,6 +71,16 @@ Device memory and core count (`navigator.deviceMemory`, `hardwareConcurrency`)
 are hints, not facts: they are absent on some browsers and rounded on others.
 Use them to pick a tier, never to decide whether a thing works.
 
+**Data saving is about bytes, not motion.** `navigator.connection?.saveData` is
+true when the visitor has turned data saving on — read it where it exists, and
+treat its absence as false, since only Chromium has it. Skip what motion costs
+to download — a video background, large textures, a 3D scene's models — and
+ship the poster frame. Keep transforms and fades: they cost nothing to fetch.
+
+A weak device lowers cost before it loses content: a capped pixel ratio, fewer
+particles, no post-processing or blur, then a poster in place of the scene. Cut
+a beat of the story last, and the same beat on every device.
+
 ## Where to read each axis
 
 `prefers-reduced-motion`, `hover` and `pointer` are media queries, so
