@@ -84,6 +84,17 @@ All notable changes to this project are documented here. The format follows
   react.md, whose `useId` note it repeated, and react.md's failures lose the
   hover row interaction.md already has.
 
+### Fixed
+
+- **Vars kept in a `const` are read.** A vars argument that names a `const`
+  bound to an object, or spreads one, was invisible to every rule that reads
+  vars — `layout-property`, `paint-property`, `eased-loop`, `unowned-loop` and
+  `delay-chain`. A real film's credits wrote `fromTo(names, hidden, { ...shown })`
+  and the audit saw five of its seven filter tweens. Now a `const` the file binds
+  exactly once is followed, its spread unfolded, and the finding lands on the
+  tween; a name bound twice, or a `let`, is still not guessed at. The corpus
+  gives no new finding.
+
 ## [4.3.0] - 2026-09-26
 
 From the creative A/B: 27 agent runs of one landing page, three briefs, three

@@ -214,26 +214,75 @@ export function tweenMethod(node) {
   return allowed.has(method) ? method : null;
 }
 
-const argumentObject = (call, index) => {
-  const node = unwrap(call.arguments[index]);
-  return node?.type === "ObjectExpression" ? node : null;
-};
+/**
+ * The object literal bound to `name` by a `const`, when the file binds that
+ * name exactly once. Two bindings of one name, in different functions, would
+ * need scope to tell apart; a wrong guess is a false finding, so neither is
+ * read.
+ */
+function constObject(root, name) {
+  const bound = findAll(
+    root,
+    (node) => node.type === "VariableDeclarator" && node.id.type === "Identifier" && node.id.name === name,
+  );
+  if (bound.length !== 1 || !bound[0].init) return null;
+  const declaration = parentOf(root, bound[0]);
+  if (declaration?.kind !== "const") return null;
+  const init = unwrap(bound[0].init);
+  return init.type === "ObjectExpression" ? init : null;
+}
+
+/** `node`'s properties, re-anchored at `site`: a finding lands where the tween uses them. */
+const anchoredAt = (properties, site) =>
+  properties.map((property) => ({ ...property, start: site.start, end: site.end }));
+
+/**
+ * The object a vars argument stands for: a literal, or a `const` bound to one,
+ * with any spread of such a `const` unfolded in place. Vars written once and
+ * shared between a `fromTo`'s ends are how a real film's credits hid two of
+ * seven filter tweens from the audit.
+ */
+function resolveObject(root, node, seen = new Set()) {
+  let target = unwrap(node);
+  let site = null;
+  if (target?.type === "Identifier" && root) {
+    site = target;
+    target = constObject(root, target.name);
+  }
+  if (target?.type !== "ObjectExpression" || seen.has(target)) return null;
+  seen.add(target);
+
+  let unfolded = false;
+  const properties = target.properties.flatMap((property) => {
+    if (property.type !== "SpreadElement") return [property];
+    const spread = resolveObject(root, property.argument, seen);
+    if (!spread) return [property];
+    unfolded = true;
+    return anchoredAt(spread.properties, property);
+  });
+  /** A literal with nothing to unfold is returned as it is, not as a copy. */
+  if (site) return { ...target, start: site.start, end: site.end, properties: anchoredAt(properties, site) };
+  return unfolded ? { ...target, properties } : target;
+}
+
+const argumentObject = (call, index, root) => resolveObject(root, call.arguments[index]);
 
 /**
  * The vars object that holds a tween's own settings — `repeat`, `ease`,
  * `yoyo`: the second argument, a `fromTo`'s third, a timeline's first. `null`
- * when it is not an object literal.
+ * when it is neither an object literal nor a `const` bound to one. Pass the
+ * file's `root` to follow a `const`; without it, only literals are read.
  */
-export const ownVars = (call, method) =>
-  argumentObject(call, method === "fromTo" ? 2 : method === "timeline" ? 0 : 1);
+export const ownVars = (call, method, root) =>
+  argumentObject(call, method === "fromTo" ? 2 : method === "timeline" ? 0 : 1, root);
 
 /**
  * Every vars object a tween call carries, as object literals: both of a
  * `fromTo`'s, a timeline's own, or the tween's.
  */
-export function varsObjects(call, method) {
+export function varsObjects(call, method, root) {
   const indexes = method === "fromTo" ? [1, 2] : method === "timeline" ? [0] : [1];
-  return indexes.map((index) => argumentObject(call, index)).filter(Boolean);
+  return indexes.map((index) => argumentObject(call, index, root)).filter(Boolean);
 }
 
 const FUNCTIONS = new Set([

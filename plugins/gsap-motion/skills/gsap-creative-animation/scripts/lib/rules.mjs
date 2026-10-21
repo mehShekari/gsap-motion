@@ -1044,7 +1044,7 @@ export const RULES = [
       return findAll(file.ast, animates).flatMap(
         (call) => {
           const seen = new Set();
-          return varsObjects(call, tweenMethod(call))
+          return varsObjects(call, tweenMethod(call), file.ast)
             .flatMap((vars) => vars.properties)
             .filter((property) => {
               const key = keyName(property);
@@ -1122,7 +1122,7 @@ export const RULES = [
     test(file) {
       return findAll(file.ast, (node) => tweenMethod(node) !== null).flatMap(
         (call) => {
-          const vars = ownVars(call, tweenMethod(call));
+          const vars = ownVars(call, tweenMethod(call), file.ast);
           if (!vars) return [];
           const repeat = propertyOf(vars, "repeat");
           if (!repeat || numberValue(repeat.value) !== -1) return [];
@@ -1535,7 +1535,7 @@ export const RULES = [
 
       return findAll(file.ast, animates).flatMap((call) => {
         const seen = new Set();
-        return varsObjects(call, tweenMethod(call))
+        return varsObjects(call, tweenMethod(call), file.ast)
           .flatMap((vars) => vars.properties)
           .filter((property) => {
             const key = keyName(property);
@@ -1582,7 +1582,7 @@ export const RULES = [
 
       return findAll(file.ast, (node) => tweenMethod(node) !== null).flatMap((call) => {
         if (inside(call)) return [];
-        const vars = ownVars(call, tweenMethod(call));
+        const vars = ownVars(call, tweenMethod(call), file.ast);
         if (!vars) return [];
         const repeat = propertyOf(vars, "repeat");
         if (!repeat || numberValue(repeat.value) !== -1) return [];
@@ -1638,7 +1638,7 @@ export const RULES = [
 
       for (const call of findAll(file.ast, (node) => tweenMethod(node) !== null)) {
         if (chainStart(call) !== call) continue;
-        const vars = ownVars(call, tweenMethod(call));
+        const vars = ownVars(call, tweenMethod(call), file.ast);
         const delay = vars && propertyOf(vars, "delay");
         if (!delay || !(numberValue(delay.value) > 0)) continue;
         const scope = scopeOf(file.ast, call) ?? file.ast;

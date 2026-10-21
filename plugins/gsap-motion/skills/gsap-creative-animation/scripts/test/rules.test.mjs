@@ -1653,6 +1653,60 @@ ScrollTrigger.create({
   });
 });
 
+/**
+ * Vars written once and shared: a `const` passed as a vars argument, or spread
+ * into one. A real film's credits did both, and the audit saw five of its seven
+ * filter tweens — the two it missed were exactly these shapes.
+ */
+describe("vars kept in a const", () => {
+  const CREDITS = `${PLAIN}
+const hidden = { autoAlpha: 0, scale: 1.04, filter: "blur(6px)" };
+const shown = { autoAlpha: 1, scale: 1, filter: "blur(0px)" };
+`;
+
+  test("paint-property fires on a const passed as vars, and on one spread into them", () => {
+    const found = fires(
+      "paint-property",
+      `${CREDITS}film.fromTo(names, hidden, { ...shown, stagger: 0.4 }, 0.6);
+`,
+      { ext: "ts", count: 1 },
+    );
+    /** Reported where the tween uses it, not where the const is declared. */
+    assert.equal(found[0].index > CREDITS.length, true);
+  });
+
+  test("layout-property and eased-loop read a const too", () => {
+    fires(
+      "layout-property",
+      `${PLAIN}const open = { height: 240, duration: 0.4 };
+gsap.to(panel, open);
+`,
+      { ext: "ts" },
+    );
+    fires(
+      "eased-loop",
+      `${PLAIN}const drift = { x: 40, repeat: -1, ease: "power1.inOut" };
+gsap.to(mark, { ...drift });
+`,
+      { ext: "ts" },
+    );
+  });
+
+  test("stays quiet when the name is bound twice, or is not a const", () => {
+    quiet(
+      "paint-property",
+      `${PLAIN}
+function a() { const hidden = { filter: "blur(6px)" }; return hidden; }
+function b(el) { const hidden = { autoAlpha: 0 }; gsap.to(el, hidden); }
+let shown = { filter: "blur(0px)" };
+shown = { autoAlpha: 1 };
+gsap.to(word, shown);
+`,
+      { ext: "ts" },
+    );
+  });
+});
+
 describe("paint-property", () => {
   test("stays quiet on a clip-path reveal, which is the technique this skill teaches", () => {
     quiet(

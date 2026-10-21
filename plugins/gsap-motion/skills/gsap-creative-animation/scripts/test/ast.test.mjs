@@ -121,6 +121,18 @@ describe("names", () => {
     assert.equal(ownVars(expr(`gsap.to(a, vars)`), "to"), null);
   });
 
+  test("ownVars follows a const bound once, and unfolds its spread", () => {
+    const { ast } = parse(`const loop = { repeat: -1 };\ngsap.to(a, loop);\ngsap.to(b, { ...loop, x: 1 });\n`, "a.ts");
+    const [byName, bySpread] = findAll(ast, (node) => node.type === "CallExpression");
+    assert.equal(ownVars(byName, "to", ast).properties[0].key.name, "repeat");
+    assert.deepEqual(
+      ownVars(bySpread, "to", ast).properties.map((property) => property.key.name),
+      ["repeat", "x"],
+    );
+    /** Without the root, only what is written in place is read. */
+    assert.equal(ownVars(byName, "to"), null);
+  });
+
   test("resolveFunction follows a name to its single declaration, and nothing else", () => {
     const { ast } = parse(
       `const onMove = (e) => e;\nfunction onScroll() {}\nconst dup = () => 1;\n{ const dup = () => 2; }\nconst notAFunction = 1;\n`,
