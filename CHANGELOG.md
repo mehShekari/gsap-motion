@@ -90,6 +90,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **Frames are no longer committed by accident.** `inspect` writes into
+  `.gsap-motion/inspect` by default, and that folder now gets a `.gitignore` of
+  `*` when it is created — a real project committed four frames in its first
+  commit. The project's own `.gitignore` is left alone, and so is any other
+  `--out`.
 - **Vars kept in a `const` are read.** A vars argument that names a `const`
   bound to an object, or spreads one, was invisible to every rule that reads
   vars — `layout-property`, `paint-property`, `eased-loop`, `unowned-loop` and

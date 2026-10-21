@@ -10,7 +10,28 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { parseOptions, pointable, probe, report } from "../capture-motion.mjs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { parseOptions, pointable, prepareOut, probe, report } from "../capture-motion.mjs";
+
+describe("where frames go", () => {
+  test("the default folder ignores itself, and nothing else is touched", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "gsap-motion-out-"));
+    try {
+      const out = prepareOut(join(".gsap-motion", "inspect"), cwd);
+      assert.equal(out, join(cwd, ".gsap-motion", "inspect"));
+      assert.match(readFileSync(join(cwd, ".gsap-motion", ".gitignore"), "utf8"), /^\*$/m);
+      assert.equal(existsSync(join(cwd, ".gitignore")), false);
+
+      prepareOut("frames", cwd);
+      assert.equal(existsSync(join(cwd, "frames", ".gitignore")), false);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("inspect options", () => {
   test("needs a URL, and says so rather than starting a browser", () => {

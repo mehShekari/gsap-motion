@@ -23,11 +23,11 @@
  * `--probe install` and `--probe read` it drives no browser at all, and prints
  * the two functions to run in one you already have.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { connect, findChrome } from "./capture-motion.mjs";
+import { connect, findChrome, prepareOut } from "./capture-motion.mjs";
 
 // --- What a recording means ---------------------------------------------------
 
@@ -640,9 +640,9 @@ async function watch(options) {
 
     let shot = null;
     if (options.out) {
-      mkdirSync(resolve(options.out), { recursive: true });
+      const out = prepareOut(options.out);
       const png = await call("Page.captureScreenshot", { format: "png" });
-      shot = join(resolve(options.out), "review.png");
+      shot = join(out, "review.png");
       writeFileSync(shot, Buffer.from(png.data, "base64"));
     }
 

@@ -42,7 +42,7 @@
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // --- The browser -------------------------------------------------------------
@@ -351,6 +351,26 @@ const boxOf = (selector) => `(() => {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2, width: box.width, height: box.height };
 })()`;
 
+// --- Where output goes -------------------------------------------------------
+
+/**
+ * Creates `out` and returns its absolute path. When it is inside the project's
+ * `.gsap-motion/` — the default is — that folder gets a `.gitignore` of `*`,
+ * so the frames are never committed: a real project committed four of them in
+ * its first commit, and a knowledge-graph tool indexed them after that. The
+ * project's own `.gitignore` is left alone, and so is any other `--out`.
+ */
+export function prepareOut(out, cwd = process.cwd()) {
+  const path = resolve(cwd, out);
+  mkdirSync(path, { recursive: true });
+  const own = resolve(cwd, ".gsap-motion");
+  if (path === own || path.startsWith(own + sep)) {
+    const ignore = join(own, ".gitignore");
+    if (!existsSync(ignore)) writeFileSync(ignore, "# Written by gsap-motion: frames are not source.\n*\n");
+  }
+  return path;
+}
+
 // --- The run -----------------------------------------------------------------
 
 const wait = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -485,7 +505,7 @@ async function capture(options) {
       }
     }
 
-    mkdirSync(resolve(options.out), { recursive: true });
+    const out = prepareOut(options.out);
 
     const frames = [];
     let elapsed = 0;
@@ -496,7 +516,7 @@ async function capture(options) {
       }
       const shot = await call("Page.captureScreenshot", { format: "png" });
       const bytes = Buffer.from(shot.data, "base64");
-      const file = join(resolve(options.out), `frame-${String(at).padStart(5, "0")}ms.png`);
+      const file = join(out, `frame-${String(at).padStart(5, "0")}ms.png`);
       writeFileSync(file, bytes);
       frames.push({ at, file, bytes: bytes.length });
     }
