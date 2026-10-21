@@ -246,6 +246,34 @@ renderer.initTexture(texture);                 // uploads now, not on first samp
 
 Verified against `three@0.186`.
 
+## WebGL: losing the context, and reading it back
+
+**Every canvas is a WebGL context, and the browser caps how many a page may
+hold.** Past the cap it drops the oldest — a scene mounted earlier goes black,
+with only a console warning. One canvas drawing several views (scissored
+viewports) costs one context; a canvas per section costs one each. Remounting
+canvases on scroll creates new ones, so check that unmount releases each.
+
+A context can also be lost to the GPU process — a driver reset, memory pressure.
+Three handles the event: it stops rendering on `webglcontextlost` and rebuilds
+its state on `webglcontextrestored`, re-uploading from what the CPU still holds.
+Two things it cannot bring back: an image you released after upload, and what a
+render target contained. And it only draws again if something renders — with
+R3F's `frameloop="demand"`, invalidate on restore. Test both events on purpose:
+
+```ts
+renderer.forceContextLoss();      // then
+renderer.forceContextRestore();   // the scene should come back by itself
+```
+
+**Reading pixels back stalls.** `readPixels`, `readRenderTargetPixels`, and a
+`getImageData` on a canvas WebGL drew into all make the CPU wait for every GPU
+command queued before them. Read rarely, read a small region, and prefer
+`readRenderTargetPixelsAsync`, which waits on a fence instead of blocking. A 2D
+canvas you read often takes `getContext("2d", { willReadFrequently: true })`.
+
+Verified against `three@0.186`.
+
 ## Budget
 
 - A frame means everything in it — your handler, style, layout, paint,

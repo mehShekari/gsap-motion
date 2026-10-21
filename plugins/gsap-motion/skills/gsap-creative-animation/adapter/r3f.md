@@ -113,6 +113,7 @@ was created inside the body.
 | Memory grows across route changes | objects created outside JSX, never disposed |
 | Scroll-driven camera drifts out of sync | a scrub with an ease on a child, instead of `ease: "none"` |
 | One long frame the first time a section scrolls in | shaders compiled on first draw — see [performance.md](../reference/performance.md#webgl-the-first-frame-of-each-material) |
+| Scene stays black | WebGL context lost — see [performance.md](../reference/performance.md#webgl-losing-the-context-and-reading-it-back) |
 
 ## What the audit covers
 

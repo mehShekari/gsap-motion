@@ -46,6 +46,13 @@ All notable changes to this project are documented here. The format follows
   since post-processing draws a variant the screen compile never made; the state
   that changes the program; `scrollEnd` for what cannot be warmed. Verified
   against `three@0.186`; `r3f.md` and `three.md` point to it from their failures.
+- **`performance.md`: WebGL, losing the context and reading it back.** The
+  browser caps contexts per page and drops the oldest, so one canvas with
+  several views beats a canvas per section; what three restores by itself and
+  what it cannot — a released image, a render target's contents — and that
+  `frameloop="demand"` must invalidate; `forceContextLoss` and
+  `forceContextRestore` to test it. Readback stalls on every queued GPU command:
+  `readRenderTargetPixelsAsync`, and `willReadFrequently` for a 2D canvas.
 
 ### Changed
 
