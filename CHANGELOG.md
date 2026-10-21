@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-10-21
+
+From three field reports — two from one landing page a month apart, one from a
+scroll film — each read against the code before anything changed. What they
+found sits at GSAP's edge, where it meets the GPU, CSS, smooth scrolling and
+the browser, and that is where this release works. It also fixes the audit's
+first measured false negative.
+
 ### Added
 
 - **`inspect --seek <name>`.** Captures by the timeline instead of the clock:
@@ -894,7 +902,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.3.0...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.4.0...HEAD
+[4.4.0]: https://github.com/mehShekari/gsap-motion/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/mehShekari/gsap-motion/compare/v4.2.1...v4.3.0
 [4.2.1]: https://github.com/mehShekari/gsap-motion/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/mehShekari/gsap-motion/compare/v4.1.0...v4.2.0
