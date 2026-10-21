@@ -19,6 +19,7 @@ import {
   motionOverText,
   parseOptions,
   probe,
+  report,
   seamEvents,
   seams,
   starts,
@@ -271,6 +272,13 @@ describe("long frames and layout shifts", () => {
     const found = conclude({ recorded });
     assert.equal(found.longFrames, null);
     assert.equal(found.shift, null);
+  });
+
+  test("a canvas drawn without the GPU is said, and a headed run is not warned", () => {
+    const recorded = { frames: 1, elapsed: 16, viewport: VIEWPORT, text: [], log: [], canvases: 1 };
+    const result = { url: "u", notes: [], recorded };
+    assert.match(report(result, parseOptions(["u"])), /1 canvas on the page, and Chrome ran without its GPU/);
+    assert.doesNotMatch(report(result, parseOptions(["u", "--headed"])), /without its GPU/);
   });
 
   test("rounds the shift total, and keeps the largest", () => {

@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`--headed`, on `inspect` and `review`.** Headless Chrome runs without its
+  GPU, so a WebGL scene was drawn in software and its frames, rate and long
+  frames described that: on a Windows test machine, the Microsoft Basic Render
+  Driver headless and the Intel GPU headed. `--headed` opens a visible Chrome on
+  the machine's GPU. Both reports now warn when the page has a canvas and the run
+  was headless; the DOM's layout and style numbers are unaffected.
 - **`review` reports long frames and layout shifts.** Long Animation Frames over
   50ms, the longest with the sampler's own per-frame time taken out, so what is
   left is the page's; and the browser's layout-shift total, input excluded,

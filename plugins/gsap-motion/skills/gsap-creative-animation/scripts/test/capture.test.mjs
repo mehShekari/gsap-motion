@@ -146,6 +146,16 @@ describe("inspect report", () => {
   };
   const plain = parseOptions([base.url]);
 
+  test("warns that a canvas was drawn without the GPU, unless it ran headed", () => {
+    const result = { ...base, timeline: null, canvases: 2 };
+    assert.match(report(result, plain), /2 canvases on the page, and Chrome ran without its GPU/);
+    const headed = parseOptions([base.url, "--headed"]);
+    assert.equal(headed.headed, true);
+    assert.doesNotMatch(report(result, headed), /without its GPU/);
+    assert.match(report(result, headed), /headed, on the GPU/);
+    assert.doesNotMatch(report({ ...result, canvases: 0 }, plain), /without its GPU/);
+  });
+
   test("says nothing was there only when nothing was there", () => {
     const text = report({ ...base, timeline: null }, plain);
     assert.match(text, /no GSAP on the page/);

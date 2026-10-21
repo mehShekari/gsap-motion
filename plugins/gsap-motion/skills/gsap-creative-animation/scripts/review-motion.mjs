@@ -27,7 +27,7 @@ import { writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { connect, findChrome, prepareOut } from "./capture-motion.mjs";
+import { connect, findChrome, gpuNote, prepareOut } from "./capture-motion.mjs";
 
 // --- What a recording means ---------------------------------------------------
 
@@ -288,6 +288,7 @@ export function parseOptions(argv) {
     out: null,
     json: false,
     chrome: null,
+    headed: false,
     probe: null,
     errors: [],
   };
@@ -329,6 +330,9 @@ export function parseOptions(argv) {
       }
       case "--chrome":
         options.chrome = next() ?? null;
+        break;
+      case "--headed":
+        options.headed = true;
         break;
       case "--mobile":
         options.mobile = true;
@@ -554,6 +558,7 @@ const RECORDER = `(() => {
     longFrames,
     shift,
     cost,
+    canvases: document.querySelectorAll("canvas").length,
   });
   return true;
 })()`;
@@ -568,7 +573,7 @@ async function watch(options) {
     throw new Error("No Chrome found. Install Chrome, or pass --chrome <path>, or set CHROME_PATH.");
   }
 
-  const browser = connect(executable);
+  const browser = connect(executable, { headless: !options.headed });
   const notes = [];
 
   try {
@@ -714,6 +719,7 @@ export function conclude(result) {
     spread: began.length > 1 ? began.at(-1).at - began[0].at : 0,
     /** Both absent from a recording made before they were measured: unknown, not zero. */
     longFrames: longFrameSummary(recorded.longFrames, recorded.cost),
+    canvases: recorded.canvases ?? null,
     shift: recorded.shift
       ? { ...recorded.shift, total: Math.round(recorded.shift.total * 1000) / 1000 }
       : null,
@@ -766,9 +772,12 @@ export function report(result, options) {
     options.dark && "dark",
     options.mobile && "mobile 390x844",
     options.cpu > 1 && `CPU ÷${options.cpu}`,
+    options.headed && "headed, on the GPU",
   ].filter(Boolean);
   if (emulated.length) lines.push(`  as: ${emulated.join(", ")}`);
   for (const note of result.notes) lines.push(`  ${note}`);
+  const gpu = gpuNote(found.canvases, options);
+  if (gpu) lines.push(`  ${gpu}`);
 
   lines.push("", "What moved");
   if (found.firstMotion === null) {

@@ -29,6 +29,8 @@
  *   --cpu 4               throttle the CPU by this factor
  *   --json                machine-readable, for scripts
  *   --chrome <path>       a browser to use, overriding the search
+ *   --headed              a visible Chrome, on the machine's GPU: what a WebGL
+ *                         page needs for its frames and rate to mean anything
  *   --probe timeline      print the timeline reader as a function, for a
  *                         browser you already drive, and open none
  *
@@ -87,11 +89,11 @@ export function connect(executable, { headless = true } = {}) {
   const chrome = spawn(
     executable,
     [
-      ...(headless ? ["--headless=new"] : []),
+      /** Headless runs without a GPU, for a steady result; headed gets the machine's own. */
+      ...(headless ? ["--headless=new", "--disable-gpu"] : []),
       "--remote-debugging-pipe",
       "--no-first-run",
       "--no-default-browser-check",
-      "--disable-gpu",
       "--disable-extensions",
       `--user-data-dir=${profile}`,
       "about:blank",
@@ -178,6 +180,7 @@ export function parseOptions(argv) {
     cpu: 1,
     json: false,
     chrome: null,
+    headed: false,
     probe: null,
     errors: [],
   };
@@ -236,6 +239,9 @@ export function parseOptions(argv) {
         break;
       case "--chrome":
         options.chrome = value() ?? null;
+        break;
+      case "--headed":
+        options.headed = true;
         break;
       case "--probe":
         if (value() === "timeline") options.probe = "timeline";
@@ -354,6 +360,19 @@ const boxOf = (selector) => `(() => {
 // --- Where output goes -------------------------------------------------------
 
 /**
+ * What a report says when the page has a canvas and Chrome ran without its GPU:
+ * a WebGL scene was then drawn in software, and its frames, rate and long frames
+ * describe that, not the visitor's machine. Null when there is nothing to say.
+ */
+export function gpuNote(canvases, options) {
+  if (!canvases || options.headed) return null;
+  return (
+    `${canvases} canvas${canvases === 1 ? "" : "es"} on the page, and Chrome ran without its GPU:` +
+    " a WebGL scene's frames, rate and long frames are software rendering's. Measure it with --headed."
+  );
+}
+
+/**
  * Creates `out` and returns its absolute path. When it is inside the project's
  * `.gsap-motion/` — the default is — that folder gets a `.gitignore` of `*`,
  * so the frames are never committed: a real project committed four of them in
@@ -394,7 +413,7 @@ async function capture(options) {
     );
   }
 
-  const browser = connect(executable);
+  const browser = connect(executable, { headless: !options.headed });
   const notes = [];
 
   try {
@@ -525,6 +544,7 @@ async function capture(options) {
     const drawn = await evaluate(
       "({ frames: window.__gsapMotionFrames ?? null, since: window.__gsapMotionStart ?? null })",
     );
+    const canvases = await evaluate("document.querySelectorAll(\"canvas\").length");
     const after = await call("Performance.getMetrics");
 
     const delta = (name) => {
@@ -549,7 +569,7 @@ async function capture(options) {
       overMs: span,
     };
 
-    return { url: options.url, frames, timeline, measured, notes, chrome: executable };
+    return { url: options.url, frames, timeline, measured, notes, canvases, chrome: executable };
   } finally {
     await browser.close();
   }
@@ -565,9 +585,12 @@ export function report(result, options) {
     options.dark && "dark",
     options.mobile && "mobile 390x844",
     options.cpu > 1 && `CPU ÷${options.cpu}`,
+    options.headed && "headed, on the GPU",
   ].filter(Boolean);
   if (emulated.length) lines.push(`  as: ${emulated.join(", ")}`);
   for (const note of result.notes) lines.push(`  ${note}`);
+  const gpu = gpuNote(result.canvases, options);
+  if (gpu) lines.push(`  ${gpu}`);
 
   lines.push("", `Frames (${result.frames.length}), in ${options.out}`);
   for (const frame of result.frames) {

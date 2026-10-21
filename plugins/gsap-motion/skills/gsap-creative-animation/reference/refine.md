@@ -75,6 +75,11 @@ Reach the state first, and change the conditions that usually break things:
 - `--reduced`, `--dark`, `--mobile`, `--cpu 4`. `--mobile` makes input touch,
   so it cannot be combined with `--hover`: a coarse pointer has no hover, which
   is the thing worth knowing.
+- `--headed` for anything WebGL. Headless Chrome draws in software — on one
+  Windows machine, the Basic Render Driver headless and the Intel GPU headed —
+  so a 3D scene's frames, rate and long frames describe the wrong thing. A
+  report warns when the page has a canvas and the run was headless. The DOM's
+  layout and style numbers do not depend on it.
 
 **Without a browser, report the stage as not run.** Not "fine".
 
