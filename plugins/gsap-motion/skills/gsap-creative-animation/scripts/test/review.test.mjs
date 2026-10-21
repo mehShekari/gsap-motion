@@ -15,6 +15,7 @@ import {
   conclude,
   coverage,
   firstMotion,
+  longFrameSummary,
   motionOverText,
   parseOptions,
   probe,
@@ -245,6 +246,40 @@ describe("review options", () => {
   });
 });
 
+describe("long frames and layout shifts", () => {
+  test("takes the sampler's own time out of each long frame", () => {
+    const summary = longFrameSummary(
+      [
+        { at: 100, duration: 80, blocking: 30 },
+        { at: 900, duration: 120, blocking: 70 },
+      ],
+      /** Two sampler ticks inside the second frame, one outside both. */
+      [[50, 4], [910, 6], [960, 9]],
+    );
+    assert.equal(summary.count, 2);
+    assert.equal(summary.blocking, 100);
+    assert.deepEqual(summary.longest, { at: 900, duration: 120, blocking: 70, page: 105 });
+  });
+
+  test("is null when the browser could not measure, and zero when nothing was long", () => {
+    assert.equal(longFrameSummary(null), null);
+    assert.deepEqual(longFrameSummary([], []), { count: 0, longest: null, blocking: 0 });
+  });
+
+  test("a recording made before these were measured reports them unknown", () => {
+    const recorded = { frames: 1, elapsed: 16, viewport: VIEWPORT, text: [], log: [] };
+    const found = conclude({ recorded });
+    assert.equal(found.longFrames, null);
+    assert.equal(found.shift, null);
+  });
+
+  test("rounds the shift total, and keeps the largest", () => {
+    const shift = { total: 0.123456, count: 3, largest: { at: 1200, value: 0.1 } };
+    const recorded = { frames: 1, elapsed: 16, viewport: VIEWPORT, text: [], log: [], shift };
+    assert.deepEqual(conclude({ recorded }).shift, { ...shift, total: 0.123 });
+  });
+});
+
 /**
  * The probes run in a browser this file never sees, so what is tested is that
  * they are whole functions and that `read` reaches the same findings `conclude`
@@ -268,6 +303,9 @@ describe("probes for a browser something else drives", () => {
     const found = run(probe("read"));
     assert.equal(found.firstMotion, null);
     assert.equal(found.movers, 0);
+    /** Node's PerformanceObserver knows neither entry type: unmeasured, not zero. */
+    assert.equal(found.longFrames, null);
+    assert.equal(found.shift, null);
   });
 
   test("read concludes exactly as conclude does", () => {

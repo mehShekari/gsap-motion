@@ -99,6 +99,8 @@ that no source rule can reach.
 | **X% of the screen in motion** | Everything moving at once reads as noise, not as choreography. |
 | **seams** | A step far larger than that motion's own rhythm: a loop put back by hand instead of carried. |
 | **motion over text** | Something painted over a line a reader is in the middle of. Hit-tested, so it is what is really on top. |
+| **frames over 50ms** | Long Animation Frames, with the sampler's own time taken out of each: the rest is the page's. "Not measured" means the browser has no such API, not that nothing was long. |
+| **layout shift** | The browser's own shift total, input excluded. Sampling reads layout but never moves it, so this is the page's alone — a pin swapping its position at a section edge shows here. |
 
 Three things it deliberately does not do, so you do not read them into it:
 
@@ -137,7 +139,8 @@ What changes, so the report says it:
 - **Emulation is the driving tool's**: its CPU throttling, viewport and
   media features, set before `install`.
 - **No layout or style counts.** Those come from the DevTools protocol, which a
-  page cannot reach — read them from the tool's own performance trace.
+  page cannot reach — read them from the tool's own performance trace. Long
+  frames and layout shifts are observed in the page, so `read` has them.
 
 ## When to stop
 

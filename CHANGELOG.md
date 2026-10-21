@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`review` reports long frames and layout shifts.** Long Animation Frames over
+  50ms, the longest with the sampler's own per-frame time taken out, so what is
+  left is the page's; and the browser's layout-shift total, input excluded,
+  which sampling cannot cause. Both are observed in the page, so `--probe read`
+  returns them too, and both say "not measured" where the browser has no such
+  API rather than reporting zero.
 - **`allocation-per-frame`** (warn): a Three.js vector, colour, matrix or
   quaternion built with `new` inside `useFrame`, the ticker, an `onUpdate` or a
   rAF loop — garbage every frame, reclaimed in a pause that drops one. Only

@@ -231,6 +231,33 @@ export function seamEvents(torn, { window = 50 } = {}) {
   }));
 }
 
+/**
+ * The long frames, with the sampler's own time taken out of each.
+ *
+ * Reading every moving element's box and style is work inside every frame
+ * this records, so a long frame is partly the recorder's. `cost` is that work,
+ * per frame, as `[at, ms]`; what falls inside a long frame is subtracted, and
+ * the rest is the page's own. Null when the browser has no Long Animation
+ * Frames API, which is not the same as no long frames.
+ */
+export function longFrameSummary(longFrames, cost = []) {
+  if (!longFrames) return null;
+  const own = (frame) =>
+    cost
+      .filter(([at]) => at >= frame.at && at <= frame.at + frame.duration)
+      .reduce((sum, [, ms]) => sum + ms, 0);
+  const frames = longFrames.map((frame) => ({
+    ...frame,
+    page: Math.max(0, Math.round(frame.duration - own(frame))),
+  }));
+  const longest = frames.reduce((a, b) => (b.duration > (a?.duration ?? -1) ? b : a), null);
+  return {
+    count: frames.length,
+    longest,
+    blocking: frames.reduce((sum, frame) => sum + frame.blocking, 0),
+  };
+}
+
 /** Each element and the moment it first moved, in that order. */
 export function starts(log) {
   const first = new Map();
@@ -381,9 +408,46 @@ const RECORDER = `(() => {
     return id;
   };
 
+  /**
+   * Long frames and layout shifts, where the browser reports them. The sampler
+   * below is itself work inside every frame, so its own time is kept too, and a
+   * long frame is reported with that time taken out. A read never shifts
+   * layout, so the shifts are the page's alone.
+   */
+  const supported = (type) =>
+    typeof PerformanceObserver !== "undefined" &&
+    (PerformanceObserver.supportedEntryTypes || []).includes(type);
+  const longFrames = supported("long-animation-frame") ? [] : null;
+  const shift = supported("layout-shift") ? { total: 0, count: 0, largest: null } : null;
+  const cost = [];
+  if (longFrames) {
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        longFrames.push({
+          at: Math.round(entry.startTime - started),
+          duration: Math.round(entry.duration),
+          blocking: Math.round(entry.blockingDuration || 0),
+        });
+      }
+    }).observe({ type: "long-animation-frame" });
+  }
+  if (shift) {
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.hadRecentInput) continue;
+        shift.total += entry.value;
+        shift.count += 1;
+        if (!shift.largest || entry.value > shift.largest.value) {
+          shift.largest = { at: Math.round(entry.startTime - started), value: entry.value };
+        }
+      }
+    }).observe({ type: "layout-shift" });
+  }
+
   const tick =() => {
+    const began = performance.now();
     frames += 1;
-    const at = Math.round(performance.now() - started);
+    const at = Math.round(began - started);
     const now = new Map();
     const moved = [];
     /**
@@ -443,6 +507,7 @@ const RECORDER = `(() => {
 
     previous = now;
     if (moved.length) log.push({ at, moved, scrolled });
+    cost.push([at, Math.round((performance.now() - began) * 10) / 10]);
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
@@ -486,6 +551,9 @@ const RECORDER = `(() => {
     viewport: { width: innerWidth, height: innerHeight },
     text: textLines(),
     log,
+    longFrames,
+    shift,
+    cost,
   });
   return true;
 })()`;
@@ -644,6 +712,11 @@ export function conclude(result) {
     overText,
     began: began.slice(0, 8),
     spread: began.length > 1 ? began.at(-1).at - began[0].at : 0,
+    /** Both absent from a recording made before they were measured: unknown, not zero. */
+    longFrames: longFrameSummary(recorded.longFrames, recorded.cost),
+    shift: recorded.shift
+      ? { ...recorded.shift, total: Math.round(recorded.shift.total * 1000) / 1000 }
+      : null,
   };
 }
 
@@ -670,6 +743,7 @@ export function probe(kind) {
     seamEvents,
     starts,
     firstMotion,
+    longFrameSummary,
     conclude,
   };
   return `() => {
@@ -728,6 +802,28 @@ export function report(result, options) {
    * measures that without sampling, and is the honest place to read it.
    */
   lines.push("  layout work is not measured here — sampling forces it; use inspect for that");
+
+  const long = found.longFrames;
+  if (long === null) {
+    lines.push("  long frames: not measured — this browser has no Long Animation Frames API");
+  } else if (long.count === 0) {
+    lines.push("  no frame took longer than 50ms");
+  } else {
+    lines.push(
+      `  ${long.count} frame${long.count === 1 ? "" : "s"} over 50ms; the longest` +
+        ` ${long.longest.duration}ms at ${long.longest.at}ms, ${long.longest.page}ms of it` +
+        " the page's own rather than the sampler's",
+    );
+  }
+  const shift = found.shift;
+  if (shift === null) {
+    lines.push("  layout shift: not measured — this browser does not report it");
+  } else {
+    lines.push(
+      `  layout shift: ${shift.total} over ${shift.count} shift${shift.count === 1 ? "" : "s"}` +
+        `${shift.largest ? `, the largest ${Math.round(shift.largest.value * 1000) / 1000} at ${shift.largest.at}ms` : ""}`,
+    );
+  }
 
   if (found.seams.length) {
     lines.push("", "Seams — a step far larger than the motion's own rhythm");
