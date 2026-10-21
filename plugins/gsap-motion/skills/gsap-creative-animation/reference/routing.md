@@ -88,6 +88,7 @@ single hover takes [interaction](interaction.md) and nothing else from its row.
 |---|---|
 | SVG draw / morph / path | [svg](svg.md), [timeline](timeline.md) |
 | Scroll sequence, pin, scrub | [scrolltrigger](scrolltrigger.md), [timeline](timeline.md), [performance](performance.md) |
+| Smooth scroll, Lenis | [scrolltrigger](scrolltrigger.md#lenis), [devices](devices.md) |
 | Horizontal scroll | [scrolltrigger](scrolltrigger.md), [scroll-storytelling](../preset/scroll-storytelling.md) |
 | Text reveal, kinetic type | [text](text.md), [timeline](timeline.md) |
 | Magnetic, cursor, hover | [interaction](interaction.md), [performance](performance.md) |

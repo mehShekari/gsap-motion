@@ -162,6 +162,48 @@ interferes with `position: fixed`, anchor links, and native scroll on some
 touch devices. Do not add it to make a reveal smoother — fix the reveal. Add it
 only when the whole page is designed around smoothed scrolling.
 
+## Lenis
+
+Lenis smooths wheel input and writes the result to the real scroll position, so
+ScrollTrigger needs no `scrollerProxy` and pins behave as on a native page. What
+it needs is **one clock**, shared with GSAP:
+
+```ts
+const lenis = new Lenis();                         // autoRaf stays false, its default
+lenis.on("scroll", ScrollTrigger.update);          // triggers read this frame's scroll
+const raf = (time: number) => lenis.raf(time * 1000); // the ticker's time is seconds
+gsap.ticker.add(raf, false, true);                 // prioritized: before GSAP renders
+gsap.ticker.lagSmoothing(0);
+
+// Teardown. A context owns neither of these.
+gsap.ticker.remove(raf);
+lenis.destroy();
+```
+
+- **Prioritized, because GSAP renders in its own first ticker listener.** Added
+  after it, Lenis moves the scroll once GSAP has drawn the frame: a numeric
+  `scrub` — a tween — and anything tweened from the scroll position render one
+  frame late. `scrub: true` sets progress directly and is not affected.
+- **Never `autoRaf: true` as well.** Lenis steps by the difference between
+  consecutive `raf` calls, and the two loops pass clocks with different origins,
+  so the step swings and the scroll stutters.
+- **`lagSmoothing(0)`**: after a frame longer than 500ms, GSAP otherwise
+  advances its clock by 33ms, and Lenis on that clock crawls back to the
+  scroll. It applies to every tween on the page, which then jump after a long
+  frame instead of slowing.
+- **Touch is native by default.** With `syncTouch` off, Lenis smooths nothing on
+  a touch screen and only runs its loop. Leave it off — it takes over the
+  platform's momentum, and is unstable on older iOS — and consider not creating
+  Lenis at all without a fine pointer; see [devices.md](devices.md).
+- **Reduced motion is handled.** By default Lenis tracks the input 1:1 and makes
+  programmatic scrolls instant, and keeps running. Do not destroy it for reduced
+  motion: the ScrollTrigger sync above depends on it.
+- In-page links need `anchors: true`; a nested scroll container needs
+  `data-lenis-prevent`. In React, `ReactLenis` from `lenis/react` takes the same
+  options: `autoRaf: false`, and the ticker wiring in an effect.
+
+Verified against `lenis@1.3` and `gsap@3.15`.
+
 ## React
 
 The lifecycle is the hard part. `useGSAP` reverts its context on unmount, which
@@ -189,3 +231,5 @@ images settle. `ScrollTrigger.refresh()` on mount is usually needed. See
 | Janky while scrolling | layout-triggering properties — see [performance](performance.md) |
 | Works, then breaks after navigation | ScrollTriggers not killed on unmount |
 | Wrong on mobile after address-bar hide | viewport resize — `invalidateOnRefresh` |
+| Smooth scroll stutters | Lenis on two loops — `autoRaf` and the ticker |
+| A numeric scrub trails the scroll by a frame | Lenis's `raf` added to the ticker without `prioritize` |

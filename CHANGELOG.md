@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **`scrolltrigger.md`: Lenis.** One clock: Lenis's `raf` on GSAP's ticker,
+  prioritized ahead of GSAP's own render so a numeric scrub is not a frame late,
+  never alongside `autoRaf`; `ScrollTrigger.update` on its scroll event;
+  `lagSmoothing(0)` and what it costs; touch left native; reduced motion already
+  handled; teardown, which no context does for you. Verified against
+  `lenis@1.3`. The load map routes smooth-scroll requests to it.
+
 ### Changed
 
 - **`performance.md`: CSS `scale`, `rotate` and `translate` against `transform`**,
