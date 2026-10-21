@@ -115,6 +115,7 @@ is a live GPU context for a page that is gone.
 | Memory grows on every visit | geometries, materials or textures never disposed |
 | The camera snaps back every frame | `lookAt` overwriting a tweened rotation |
 | The page is slow on phones before anything moves | Three in the initial bundle instead of imported dynamically |
+| One long frame the first time a section scrolls in | shaders compiled on first draw — see [performance.md](../reference/performance.md#webgl-the-first-frame-of-each-material) |
 
 ## Cost and accessibility
 

@@ -206,6 +206,46 @@ If the trace shows time in Layout, you are animating a layout property. If it
 shows Paint, something is repainting — usually a filter or a shadow. If it shows
 Scripting, it is your handler, and usually React.
 
+## WebGL: the first frame of each material
+
+Three compiles a material's shader the first time it draws it, and uploads a
+texture the first time it samples it. Both run on the main thread, inside that
+frame's render — so an object first seen mid-scroll costs one frame of hundreds
+of milliseconds, once, and never shows again in a trace recorded after it.
+
+Compile ahead, behind the loader or before scroll can reach the object:
+
+```ts
+await renderer.compileAsync(scene, camera);   // R3F: gl, scene, camera from useThree
+renderer.initTexture(texture);                 // uploads now, not on first sample
+```
+
+- **Objects with `visible: false` are compiled too** — `compile` walks every
+  mesh. Lights are not: a light that is off at compile time and turned on later
+  changes the lighting state, and every lit material recompiles then.
+- **Inside a render target it is a different program.** Drawing into one turns
+  tone mapping off and outputs the working colour space, so post-processing,
+  a portal or a render-to-texture uses a variant the screen compile never made.
+  Compile once more with any render target bound:
+
+  ```ts
+  const warm = new WebGLRenderTarget(1, 1);
+  renderer.setRenderTarget(warm);
+  await renderer.compileAsync(scene, camera);
+  renderer.setRenderTarget(null);
+  warm.dispose();
+  ```
+
+- **Fog, shadows, clipping planes, a new environment map**, and a changed light
+  count or tone mapping, each change the program. Set them before compiling.
+- `compileAsync` waits on `KHR_parallel_shader_compile` where it exists. Where it
+  does not, the work still happens on the main thread — which is why it belongs
+  before the scroll, not at the moment the object appears.
+- What cannot be warmed can be timed: mount the heavy object on ScrollTrigger's
+  `scrollEnd` event, when a dropped frame costs nothing visible.
+
+Verified against `three@0.186`.
+
 ## Budget
 
 - A frame means everything in it — your handler, style, layout, paint,

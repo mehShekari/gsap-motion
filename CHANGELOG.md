@@ -14,6 +14,12 @@ All notable changes to this project are documented here. The format follows
   `lagSmoothing(0)` and what it costs; touch left native; reduced motion already
   handled; teardown, which no context does for you. Verified against
   `lenis@1.3`. The load map routes smooth-scroll requests to it.
+- **`performance.md`: WebGL, the first frame of each material.** Shaders compile
+  and textures upload on first draw, on the main thread: `compileAsync` and
+  `initTexture` ahead of the scroll; a second compile with a render target bound,
+  since post-processing draws a variant the screen compile never made; the state
+  that changes the program; `scrollEnd` for what cannot be warmed. Verified
+  against `three@0.186`; `r3f.md` and `three.md` point to it from their failures.
 
 ### Changed
 
