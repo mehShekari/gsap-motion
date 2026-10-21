@@ -80,6 +80,22 @@ Reach the state first, and change the conditions that usually break things:
   so a 3D scene's frames, rate and long frames describe the wrong thing. A
   report warns when the page has a canvas and the run was headless. The DOM's
   layout and style numbers do not depend on it.
+- `--seek <name>` for a moment too short or too far into the timeline for the
+  clock to land on. `--at` then means seconds of the timeline: before each
+  capture it calls `window.<name>(t)` and waits two rendered frames. A bundle
+  never exposes `gsap`, so the page has to export the function — in
+  development only, removed with the context:
+
+```ts
+if (process.env.NODE_ENV !== "production") {
+  Object.assign(window, { __seek: (t: number) => tl.pause(t) });
+  // and in the cleanup: Reflect.deleteProperty(window, "__seek");
+}
+```
+
+  Against a production build it is missing, and the run says so rather than
+  capturing the wrong frames. Through an MCP browser, call it from
+  `evaluate_script` instead.
 
 **Without a browser, report the stage as not run.** Not "fine".
 

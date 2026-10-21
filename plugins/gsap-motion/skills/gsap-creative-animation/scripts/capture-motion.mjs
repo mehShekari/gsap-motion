@@ -29,6 +29,8 @@
  *   --cpu 4               throttle the CPU by this factor
  *   --json                machine-readable, for scripts
  *   --chrome <path>       a browser to use, overriding the search
+ *   --seek <name>         call window.<name>(t) before each capture, and read
+ *                         --at as seconds of the timeline instead of the clock
  *   --headed              a visible Chrome, on the machine's GPU: what a WebGL
  *                         page needs for its frames and rate to mean anything
  *   --probe timeline      print the timeline reader as a function, for a
@@ -181,6 +183,8 @@ export function parseOptions(argv) {
     json: false,
     chrome: null,
     headed: false,
+    seek: null,
+    atGiven: false,
     probe: null,
     errors: [],
   };
@@ -198,6 +202,7 @@ export function parseOptions(argv) {
           options.errors.push("--at takes milliseconds, such as --at 0,300,900");
         } else {
           options.at = times.sort((a, b) => a - b);
+          options.atGiven = true;
         }
         break;
       }
@@ -243,6 +248,13 @@ export function parseOptions(argv) {
       case "--headed":
         options.headed = true;
         break;
+      case "--seek": {
+        /** A name the page exports, never an expression: it is spliced into the page's code. */
+        const name = value() ?? "";
+        if (/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(name)) options.seek = name;
+        else options.errors.push("--seek takes the name of a function on window, such as --seek __seek");
+        break;
+      }
       case "--probe":
         if (value() === "timeline") options.probe = "timeline";
         else options.errors.push("--probe takes timeline");
@@ -257,6 +269,11 @@ export function parseOptions(argv) {
   /** A probe is printed, not run, so it needs no page. */
   if (options.url === null && options.probe === null) {
     options.errors.push("No URL. Pass the page to watch.");
+  }
+
+  /** Seeking makes `--at` timeline seconds, so the millisecond default would mean minutes. */
+  if (options.seek && !options.atGiven) {
+    options.errors.push("--seek needs --at, in seconds of the timeline, such as --at 3,3.3,3.6");
   }
 
   /** A coarse pointer has no hover; emulating both would measure something no device is. */
@@ -348,6 +365,13 @@ const COUNT_FRAMES = `(() => {
  * they are not part of it.
  */
 export const probe = () => `() => ${READ_TIMELINE}`;
+
+/** Two rendered frames: a seek has been applied and painted once this resolves. */
+const SETTLED = "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(true))))";
+
+/** A frame's file name: milliseconds of the clock, or seconds of the timeline when seeking. */
+export const frameName = (at, options) =>
+  options.seek ? `frame-${at.toFixed(3).padStart(8, "0")}s.png` : `frame-${String(at).padStart(5, "0")}ms.png`;
 
 /** The live box of a selector, so a pointer lands on an element that is moving. */
 const boxOf = (selector) => `(() => {
@@ -528,14 +552,23 @@ async function capture(options) {
 
     const frames = [];
     let elapsed = 0;
+    if (options.seek && !(await evaluate(`typeof window.${options.seek} === "function"`))) {
+      throw new Error(
+        `--seek: window.${options.seek} is not a function on this page. Export it in development; see refine.md.`,
+      );
+    }
     for (const at of options.at) {
-      if (at > elapsed) {
+      if (options.seek) {
+        /** Seek, then let two frames render, so what is captured is that time drawn. */
+        await evaluate(`window.${options.seek}(${at})`);
+        await evaluate(SETTLED);
+      } else if (at > elapsed) {
         await wait(at - elapsed);
         elapsed = at;
       }
       const shot = await call("Page.captureScreenshot", { format: "png" });
       const bytes = Buffer.from(shot.data, "base64");
-      const file = join(out, `frame-${String(at).padStart(5, "0")}ms.png`);
+      const file = join(out, frameName(at, options));
       writeFileSync(file, bytes);
       frames.push({ at, file, bytes: bytes.length });
     }
@@ -586,6 +619,7 @@ export function report(result, options) {
     options.mobile && "mobile 390x844",
     options.cpu > 1 && `CPU ÷${options.cpu}`,
     options.headed && "headed, on the GPU",
+    options.seek && `seeking with window.${options.seek}`,
   ].filter(Boolean);
   if (emulated.length) lines.push(`  as: ${emulated.join(", ")}`);
   for (const note of result.notes) lines.push(`  ${note}`);
@@ -594,7 +628,8 @@ export function report(result, options) {
 
   lines.push("", `Frames (${result.frames.length}), in ${options.out}`);
   for (const frame of result.frames) {
-    lines.push(`  ${String(frame.at).padStart(5)}ms  ${frame.file}`);
+    const when = options.seek ? `${frame.at}s`.padStart(8) : `${String(frame.at).padStart(5)}ms`;
+    lines.push(`  ${when}  ${frame.file}`);
   }
 
   lines.push("", "Timeline, as the page is running it");

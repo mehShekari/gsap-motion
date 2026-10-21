@@ -8,6 +8,14 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`inspect --seek <name>`.** Captures by the timeline instead of the clock:
+  `--at` becomes seconds, and before each capture `window.<name>(t)` is called
+  and two frames are rendered. A real project's 0.6s card entrance was too short
+  for the clock to land on, and it built a `__seek` hook of its own to get there.
+  A bundle never exposes `gsap`, so the page exports the function, in
+  development; `refine.md` shows how. Only a name is accepted, since it is
+  spliced into the page, and a page without it fails the run instead of
+  capturing the wrong frames.
 - **`--headed`, on `inspect` and `review`.** Headless Chrome runs without its
   GPU, so a WebGL scene was drawn in software and its frames, rate and long
   frames described that: on a Windows test machine, the Microsoft Basic Render

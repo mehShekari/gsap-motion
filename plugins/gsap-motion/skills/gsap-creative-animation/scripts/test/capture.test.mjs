@@ -14,7 +14,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { parseOptions, pointable, prepareOut, probe, report } from "../capture-motion.mjs";
+import { frameName, parseOptions, pointable, prepareOut, probe, report } from "../capture-motion.mjs";
 
 describe("where frames go", () => {
   test("the default folder ignores itself, and nothing else is touched", () => {
@@ -37,6 +37,21 @@ describe("inspect options", () => {
   test("needs a URL, and says so rather than starting a browser", () => {
     const { errors } = parseOptions([]);
     assert.deepEqual(errors, ["No URL. Pass the page to watch."]);
+  });
+
+  test("--seek takes a name on window, and needs --at in seconds", () => {
+    const options = parseOptions(["u", "--seek", "__film.seek", "--at", "3.6,3,3.3"]);
+    assert.deepEqual(options.errors, []);
+    assert.equal(options.seek, "__film.seek");
+    assert.deepEqual(options.at, [3, 3.3, 3.6]);
+    assert.match(parseOptions(["u", "--seek", "__seek"]).errors.join(" "), /needs --at/);
+    /** Spliced into the page's code, so anything but a name is refused. */
+    assert.match(parseOptions(["u", "--seek", "x);alert(1", "--at", "1"]).errors.join(" "), /name of a function/);
+  });
+
+  test("names a seeked frame by its timeline second, and a clocked one by its millisecond", () => {
+    assert.equal(frameName(3.3, { seek: "__seek" }), "frame-0003.300s.png");
+    assert.equal(frameName(300, { seek: null }), "frame-00300ms.png");
   });
 
   test("prints the timeline probe without a URL, since it opens no page", () => {

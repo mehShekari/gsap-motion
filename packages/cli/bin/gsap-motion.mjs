@@ -82,6 +82,8 @@ Commands
     --mobile            390x844 with touch input
     --cpu 4             Throttle the CPU by this factor
     --headed            A visible Chrome on the GPU, for WebGL pages
+    --seek <name>       Call window.<name>(t) before each capture; --at is
+                        then seconds of the timeline
     --out <dir>         Where frames go. Default .gsap-motion/inspect
     --json              Machine-readable output
     --probe timeline    Print the timeline reader for a browser you drive
