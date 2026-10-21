@@ -62,6 +62,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **The load map sends a scroll sequence to `scroll-storytelling`.** The preset
+  is the pinned, scroll-driven sequence, vertical as often as not, yet only
+  horizontal scroll reached it; a scroll film built with the skill never opened
+  it.
 - **SKILL.md: two commands that fit are used together**, said in a line, rather
   than asked about — the example already composed them, as routing.md does.
   **The output format yields to a style the user or project asks for.** The
