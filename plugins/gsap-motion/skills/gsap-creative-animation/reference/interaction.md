@@ -187,4 +187,5 @@ Cheap, and the styling stays in CSS where it can follow the theme.
 | Magnetic pull feels wrong | strength too high, or rect measured once |
 | Follower stuck in a corner | mounted on a touch device |
 | Hover sticks after tap | no `(hover: hover)` gate |
+| A hover class's scale does nothing | GSAP transformed the element and set CSS `scale` to `none` — see [performance.md](performance.md#scale-rotate-and-translate-are-not-transform) |
 | Effects survive navigation | `Observer`/`Draggable` not killed, listeners not removed |

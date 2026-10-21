@@ -51,6 +51,25 @@ Two ways out:
 The same asymmetry applies to `left`/`x` and to any percentage `width` or
 `height` swapped for a scale.
 
+### `scale`, `rotate` and `translate` are not `transform`
+
+They are CSS properties of their own, and they **compose** with `transform`
+rather than being replaced by it. Tailwind v4 compiles its `scale-*`,
+`rotate-*` and `translate-*` utilities to them. GSAP accommodates them: the
+first time it reads an element's transform, it folds their computed values into
+its own and sets all three to `none` inline (verified against gsap 3.15). Two
+silent failures follow:
+
+- **Code that writes `style.transform` itself** — a rAF loop, a `useFrame`, a
+  scroll store — still composes with a class's `scale`. `scale-y-0` plus an
+  inline `scaleY(0.6)` is still zero, so the element never shows. Give the
+  initial state in the property the code writes: `gsap.set`, or an arbitrary
+  `transform` class in place of the utility.
+- **On an element GSAP has transformed, those classes stop working.** The inline
+  `none` outranks them, so a `hover:scale-105`, or a breakpoint's
+  `translate-x-*`, does nothing from then on. Animate those states with GSAP
+  too, or put them on a wrapper GSAP never touches.
+
 ## The pointer rule
 
 One tween per pointer event allocates an object per frame and creates tweens

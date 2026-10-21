@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **`performance.md`: CSS `scale`, `rotate` and `translate` against `transform`**,
+  with a row in `interaction.md`'s failures.
+  GSAP folds the three into its own transform and sets them to `none` inline, so
+  a Tailwind v4 `hover:scale-*` on an element it animates stops working; and code
+  writing `style.transform` itself still composes with them, so `scale-y-0`
+  keeps the element at zero.
+
 ## [4.3.0] - 2026-09-26
 
 From the creative A/B: 27 agent runs of one landing page, three briefs, three
