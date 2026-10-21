@@ -14,6 +14,12 @@ All notable changes to this project are documented here. The format follows
   a Tailwind v4 `hover:scale-*` on an element it animates stops working; and code
   writing `style.transform` itself still composes with them, so `scale-y-0`
   keeps the element at zero.
+- **`react.md`: React without `@gsap/react`.** A `gsap.context` or
+  `gsap.matchMedia` in `useLayoutEffect`, reverted from the cleanup, which the
+  audit already reads as it reads `useGSAP`; and `ctx.add(null, fn)` as the
+  `contextSafe` it lacks. To fit the word budget, next.md's Scope now defers to
+  react.md, whose `useId` note it repeated, and react.md's failures lose the
+  hover row interaction.md already has.
 
 ## [4.3.0] - 2026-09-26
 

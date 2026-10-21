@@ -27,8 +27,7 @@ must survive one belongs in the layout.
 
 ## Scope
 
-As in react.md, and `useId` matters more here: the markup is rendered on the
-server and again on the client, and a counter would disagree between them.
+As in react.md.
 
 ## Server rendering and hydration
 

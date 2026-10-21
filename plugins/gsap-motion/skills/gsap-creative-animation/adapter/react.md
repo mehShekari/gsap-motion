@@ -41,6 +41,11 @@ ref inside the callback trips React's "cannot access refs during render" rule â€
 build the timeline in the body, keep it on a ref, and expose a `useCallback`
 that plays it.
 
+**Without `@gsap/react`, write it by hand:** a `gsap.context(fn, root)` or
+`gsap.matchMedia()` created in `useLayoutEffect`, its `revert` returned as the
+cleanup. The audit reads that as it reads `useGSAP`. `ctx.add(null, fn)` is
+`contextSafe`; `ctx.add(fn)` runs `fn` at once (verified against gsap 3.15).
+
 ## Where it is torn down
 
 `useGSAP` reverts its context on unmount. Tweens, timelines, `ScrollTrigger`,
@@ -118,7 +123,6 @@ App Router. After a navigation, `ScrollTrigger.refresh()` once it settles.
 | Two components animate each other | missing `scope`, or a shared hardcoded id |
 | Hydration mismatch | storage or a media query read during render |
 | Janky pointer effect | React state in the handler |
-| Hover sticks halfway | no `overwrite: "auto"` on the retriggered tween |
 
 ## What the audit covers
 
