@@ -36,8 +36,10 @@ All notable changes to this project are documented here. The format follows
   default because native scrolling runs off the main thread, a reason Lenis
   removes for the wheel: on one landing page fixed pins under Lenis measured a
   CLS of 4 to 7.5 and 50 to 117ms frames per edge, and transform removed both.
-  Touch stays native, so stays fixed. The Lenis section no longer says pins
-  behave as on a native page.
+  Touch stays native, so stays fixed. A laptop with a touch screen reads
+  `(pointer: fine)` and trails when scrolled by finger; `(any-pointer: coarse)`
+  is the stricter branch, at the cost of fixed pins on every device with touch.
+  The Lenis section no longer says pins behave as on a native page.
 - **`performance.md`: WebGL, the first frame of each material.** Shaders compile
   and textures upload on first draw, on the main thread: `compileAsync` and
   `initTexture` ahead of the scroll; a second compile with a render target bound,

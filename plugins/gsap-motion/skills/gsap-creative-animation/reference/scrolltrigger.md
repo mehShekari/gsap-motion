@@ -122,6 +122,12 @@ gsap.matchMedia().add({ smoothed: "(pointer: fine)", touch: "(pointer: coarse)" 
 });
 ```
 
+A trackpad sends wheel events, so a laptop is smoothed too. A laptop with a
+touch screen still reads `(pointer: fine)`, and scrolled by finger its pin
+trails the native scroll. If that audience matters, branch on
+`(any-pointer: coarse)` instead: every device with touch gets `"fixed"`, and
+with it the cost at each edge.
+
 Without smooth scrolling, leave the default.
 
 ## Horizontal scroll
