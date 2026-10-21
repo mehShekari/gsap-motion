@@ -12,10 +12,12 @@ import { describe, test } from "node:test";
 
 import {
   afterScroll,
+  conclude,
   coverage,
   firstMotion,
   motionOverText,
   parseOptions,
+  probe,
   seamEvents,
   seams,
   starts,
@@ -235,6 +237,58 @@ describe("review options", () => {
 
   test("names an unknown option rather than ignoring it", () => {
     assert.deepEqual(parseOptions(["u", "--seams"]).errors, ["Unknown option: --seams"]);
+  });
+
+  test("prints a probe without a URL, since it opens no page", () => {
+    assert.deepEqual(parseOptions(["--probe", "read"]).errors, []);
+    assert.match(parseOptions(["--probe", "all"]).errors.join(" "), /--probe/);
+  });
+});
+
+/**
+ * The probes run in a browser this file never sees, so what is tested is that
+ * they are whole functions and that `read` reaches the same findings `conclude`
+ * does here — the reason it carries `conclude` rather than a copy of it.
+ */
+describe("probes for a browser something else drives", () => {
+  /** Runs a probe against stand-ins for the page globals it reads. */
+  const page = (globals) => (source) =>
+    new Function(...Object.keys(globals), `return (${source})();`)(...Object.values(globals));
+
+  test("install, then read, on a page where nothing moves", () => {
+    const window = { scrollX: 0, scrollY: 0 };
+    const run = page({
+      window,
+      document: { querySelectorAll: () => [] },
+      requestAnimationFrame: () => 0,
+      innerWidth: 1000,
+      innerHeight: 500,
+    });
+    assert.equal(run(probe("install")), true);
+    const found = run(probe("read"));
+    assert.equal(found.firstMotion, null);
+    assert.equal(found.movers, 0);
+  });
+
+  test("read concludes exactly as conclude does", () => {
+    /** A marquee that steps 2px a frame and is put back by hand once. */
+    const log = Array.from({ length: 30 }, (_, i) => ({
+      at: 100 + i * 16,
+      scrolled: false,
+      moved: [
+        { id: 1, key: "div.track", gsap: true, box: [0, 0, 500, 100], x: i === 24 ? 0 : i * 2, opacity: 1 },
+      ],
+    }));
+    const recorded = { frames: 30, elapsed: 480, viewport: VIEWPORT, text: [], log };
+    const window = { __gsapMotionReview: () => recorded };
+
+    const found = page({ window })(probe("read"));
+    assert.deepEqual(found, conclude({ recorded }));
+    assert.equal(found.seams.length, 1);
+  });
+
+  test("read says null when install never ran", () => {
+    assert.equal(page({ window: {} })(probe("read")), null);
   });
 });
 

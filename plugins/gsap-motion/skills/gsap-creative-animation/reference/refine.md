@@ -113,6 +113,32 @@ Three things it deliberately does not do, so you do not read them into it:
 A clean report is evidence, not proof: it watched one window, on one machine, at
 one size. Say which.
 
+## In a browser you already drive
+
+Both scripts open a Chrome of their own. Where a project allows only one — a
+DevTools MCP server, say — they print what they would have run instead, and
+open nothing:
+
+```bash
+node <skill-dir>/scripts/review-motion.mjs --probe install   # start recording
+node <skill-dir>/scripts/review-motion.mjs --probe read      # the findings
+node <skill-dir>/scripts/capture-motion.mjs --probe timeline # the running timeline
+```
+
+Each prints one function. Run `install` through the tool's `evaluate_script`,
+then reach the state — scroll, hover, wait — with that tool's own input, and
+then `read`. It returns what `review --json` would: the same conclusions,
+computed in the page, so the frame log never leaves it.
+
+What changes, so the report says it:
+
+- **First motion counts from `install`**, not from navigation. A reload discards
+  the recorder; install again after one.
+- **Emulation is the driving tool's**: its CPU throttling, viewport and
+  media features, set before `install`.
+- **No layout or style counts.** Those come from the DevTools protocol, which a
+  page cannot reach — read them from the tool's own performance trace.
+
 ## When to stop
 
 Stop when every check is clean, or after **three rounds**, reporting what is

@@ -83,6 +83,7 @@ Commands
     --cpu 4             Throttle the CPU by this factor
     --out <dir>         Where frames go. Default .gsap-motion/inspect
     --json              Machine-readable output
+    --probe timeline    Print the timeline reader for a browser you drive
   explain <file...>     Map an animation: scopes, branches, beats, triggers
                         Give it a URL instead to read the running page
     --json              Machine-readable output
@@ -95,6 +96,8 @@ Commands
     --cpu 4             Throttle the CPU by this factor
     --out <dir>         Save a frame alongside the measurements
     --json              Machine-readable output
+    --probe install|read  Print the recorder, or its findings, for a browser
+                        you drive — such as a DevTools MCP server
   patterns check [file] Check the Patterns section of your ANIMATION.md:
                         the fields each status needs, the uses behind
                         validated, the reviewer behind canonical

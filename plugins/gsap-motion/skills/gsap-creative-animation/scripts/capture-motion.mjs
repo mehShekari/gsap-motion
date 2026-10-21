@@ -29,6 +29,8 @@
  *   --cpu 4               throttle the CPU by this factor
  *   --json                machine-readable, for scripts
  *   --chrome <path>       a browser to use, overriding the search
+ *   --probe timeline      print the timeline reader as a function, for a
+ *                         browser you already drive, and open none
  *
  * `--scroll`, `--hover` and `--click` run in the order they are written, before
  * the first capture. An animation that needs a pointer or a scroll position is
@@ -176,6 +178,7 @@ export function parseOptions(argv) {
     cpu: 1,
     json: false,
     chrome: null,
+    probe: null,
     errors: [],
   };
 
@@ -234,6 +237,10 @@ export function parseOptions(argv) {
       case "--chrome":
         options.chrome = value() ?? null;
         break;
+      case "--probe":
+        if (value() === "timeline") options.probe = "timeline";
+        else options.errors.push("--probe takes timeline");
+        break;
       default:
         if (argument.startsWith("--")) options.errors.push(`Unknown option: ${argument}`);
         else if (options.url === null) options.url = argument;
@@ -241,7 +248,10 @@ export function parseOptions(argv) {
     }
   }
 
-  if (options.url === null) options.errors.push("No URL. Pass the page to watch.");
+  /** A probe is printed, not run, so it needs no page. */
+  if (options.url === null && options.probe === null) {
+    options.errors.push("No URL. Pass the page to watch.");
+  }
 
   /** A coarse pointer has no hover; emulating both would measure something no device is. */
   if (options.mobile && options.steps.some((step) => step.type === "hover")) {
@@ -324,6 +334,14 @@ const COUNT_FRAMES = `(() => {
   requestAnimationFrame(step);
   return true;
 })()`;
+
+/**
+ * The timeline reader as a function, for a browser something else already
+ * holds — a DevTools MCP server's `evaluate_script`. Layouts and style
+ * recalculations come from the DevTools protocol, which a page cannot reach, so
+ * they are not part of it.
+ */
+export const probe = () => `() => ${READ_TIMELINE}`;
 
 /** The live box of a selector, so a pointer lands on an element that is moving. */
 const boxOf = (selector) => `(() => {
@@ -589,6 +607,11 @@ async function main(argv) {
     for (const error of options.errors) console.error(error);
     console.error("\nUsage: node capture-motion.mjs <url> [--at 0,300,900] [--hover <sel>] …");
     process.exit(2);
+  }
+
+  if (options.probe) {
+    console.log(probe());
+    return;
   }
 
   try {

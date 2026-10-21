@@ -10,12 +10,24 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { parseOptions, pointable, report } from "../capture-motion.mjs";
+import { parseOptions, pointable, probe, report } from "../capture-motion.mjs";
 
 describe("inspect options", () => {
   test("needs a URL, and says so rather than starting a browser", () => {
     const { errors } = parseOptions([]);
     assert.deepEqual(errors, ["No URL. Pass the page to watch."]);
+  });
+
+  test("prints the timeline probe without a URL, since it opens no page", () => {
+    assert.deepEqual(parseOptions(["--probe", "timeline"]).errors, []);
+    assert.match(parseOptions(["--probe", "frames"]).errors.join(" "), /--probe/);
+  });
+
+  test("the timeline probe is a whole function, and says null without GSAP", () => {
+    const window = {};
+    const document = { querySelectorAll: () => [] };
+    const run = new Function("window", "document", `return (${probe()})();`);
+    assert.equal(run(window, document), null);
   });
 
   test("captures at three times by default, and settles first", () => {

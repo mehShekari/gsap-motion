@@ -8,6 +8,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`--probe`, for a browser you already drive.** `review --probe install` and
+  `--probe read`, and `inspect --probe timeline`, print the in-page functions
+  instead of opening a Chrome, for a DevTools MCP server's `evaluate_script`
+  where a project allows no second browser. `read` carries `conclude` itself, so
+  it returns exactly what `review --json` would, and the frame log never leaves
+  the page. `refine.md` says what changes: first motion counts from `install`,
+  emulation is the driving tool's, and there are no layout counts.
 - **`scrolltrigger.md`: Lenis.** One clock: Lenis's `raf` on GSAP's ticker,
   prioritized ahead of GSAP's own render so a numeric scrub is not a frame late,
   never alongside `autoRaf`; `ScrollTrigger.update` on its scroll event;

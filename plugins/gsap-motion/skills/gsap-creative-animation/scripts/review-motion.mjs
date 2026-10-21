@@ -19,7 +19,9 @@
  * for a reviewer looking at the filmstrip; this reports evidence, with the time
  * and the element, and leaves the verdict to them.
  *
- * Node.js 22+, no dependencies, whatever Chrome the machine already has.
+ * Node.js 22+, no dependencies, whatever Chrome the machine already has. With
+ * `--probe install` and `--probe read` it drives no browser at all, and prints
+ * the two functions to run in one you already have.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -259,6 +261,7 @@ export function parseOptions(argv) {
     out: null,
     json: false,
     chrome: null,
+    probe: null,
     errors: [],
   };
 
@@ -312,12 +315,24 @@ export function parseOptions(argv) {
       case "--json":
         options.json = true;
         break;
+      case "--probe": {
+        const kind = next();
+        if (kind !== "install" && kind !== "read") {
+          options.errors.push("--probe takes install or read.");
+        } else {
+          options.probe = kind;
+        }
+        break;
+      }
       default:
         options.errors.push(`Unknown option: ${argument}`);
     }
   }
 
-  if (options.url === null) options.errors.push("No URL. Pass the page to review.");
+  /** A probe is printed, not run, so it needs no page. */
+  if (options.url === null && options.probe === null) {
+    options.errors.push("No URL. Pass the page to review.");
+  }
   return options;
 }
 
@@ -632,6 +647,40 @@ export function conclude(result) {
   };
 }
 
+// --- In a browser this does not drive -----------------------------------------
+
+/**
+ * The recorder and its conclusions, as functions for a browser something else
+ * already holds — a DevTools MCP server's `evaluate_script`, where a project
+ * allows no second Chrome.
+ *
+ * `install` records from the moment it runs, not from navigation, so first
+ * motion is measured from there. `read` concludes in the page with the same
+ * functions this file uses, and returns only the findings: the frame log never
+ * crosses the wire. Emulation is the driving tool's own to set.
+ */
+export function probe(kind) {
+  if (kind === "install") return `() => ${RECORDER}`;
+  const helpers = {
+    overlap,
+    coverage,
+    seams,
+    motionOverText,
+    afterScroll,
+    seamEvents,
+    starts,
+    firstMotion,
+    conclude,
+  };
+  return `() => {
+  if (!window.__gsapMotionReview) return null;
+${Object.entries(helpers)
+  .map(([name, fn]) => `  const ${name} = ${fn};`)
+  .join("\n")}
+  return conclude({ recorded: window.__gsapMotionReview() });
+}`;
+}
+
 // --- Report --------------------------------------------------------------------
 
 export function report(result, options) {
@@ -712,6 +761,11 @@ async function main(argv) {
     for (const error of options.errors) console.error(error);
     console.error("\nUsage: node review-motion.mjs <url> [--watch 3000] [--scroll <px|sel>] …");
     process.exit(2);
+  }
+
+  if (options.probe) {
+    console.log(probe(options.probe));
+    return;
   }
 
   try {
