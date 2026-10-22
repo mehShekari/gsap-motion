@@ -753,6 +753,16 @@ export function useSection(anchors) {
 });
 
 describe("layout-property", () => {
+  test("on height, names the way that does not squash what is inside", () => {
+    const [finding] = fires(
+      "layout-property",
+      `${PLAIN}gsap.to(panel, { height: "auto", duration: 0.4 });\n`,
+      { ext: "ts" },
+    );
+    assert.match(finding.hint, /scaleY/);
+    assert.match(finding.hint, /grid-template-rows/);
+  });
+
   test("fires on width, suggesting scaleX", () => {
     const [finding] = fires(
       "layout-property",

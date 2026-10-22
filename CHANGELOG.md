@@ -13,6 +13,10 @@ All notable changes to this project are documented here. The format follows
   write hook now says where too. A project's report concluded there was no way
   to mark a finding deliberate: the mechanism existed, and nothing it read
   mentioned it.
+- **`layout-property` on `height` names the way that keeps content whole.**
+  `scaleY` squashes what is inside, so for an accordion's text the hint now
+  offers `grid-template-rows` from `0fr` to `1fr`, or Flip — what
+  `performance.md` already said, and the hint did not.
 
 ### Fixed
 

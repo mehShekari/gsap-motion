@@ -178,9 +178,18 @@ function layoutHint(property, percent) {
   const swap = TRANSFORM_FOR[property];
   return swap
     ? `Use \`${swap}\` instead — a compositor-only property.` +
+        (property === "height" ? ` ${HEIGHT_CAVEAT}` : "") +
         (percent ? ` ${PERCENT_CAVEAT}` : "")
     : "Prefer transform and opacity; they never touch layout.";
 }
+
+/**
+ * A scale squashes what is inside. An accordion's text is the usual case, and
+ * a real project kept its `height` tween for exactly that reason, which the
+ * hint above alone would have argued against.
+ */
+const HEIGHT_CAVEAT =
+  "Unless what is inside must keep its shape — an accordion's text: then transition `grid-template-rows` from `0fr` to `1fr`, or use Flip.";
 
 /** Whether a transform's from-value, as written, leaves the element untransformed. */
 function identityTransform(property, value) {
