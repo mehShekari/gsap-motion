@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.4.2] - 2026-10-22
+
+4.4.0 and 4.4.1 never reached npm. Their package unpacked to 717 kB, over the
+700 kB ceiling the pack check holds it to, so CI and the release workflow both
+failed at that check. The growth is the tools and guidance those releases
+added, so the ceiling is raised to 760 kB, in the comment that says why. The
+contents are 4.4.1's; npm goes from 4.3.0 to this one.
+
+### Fixed
+
+- **The npm package can be published again.** The pack check's size ceiling
+  is 760 kB, raised on purpose for what 4.4 added.
+
 ## [4.4.1] - 2026-10-22
 
 From a fourth field report, and released straight after 4.4.0 so that npm
@@ -936,7 +949,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.4.1...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.4.2...HEAD
+[4.4.2]: https://github.com/mehShekari/gsap-motion/compare/v4.4.1...v4.4.2
 [4.4.1]: https://github.com/mehShekari/gsap-motion/compare/v4.4.0...v4.4.1
 [4.4.0]: https://github.com/mehShekari/gsap-motion/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/mehShekari/gsap-motion/compare/v4.2.1...v4.3.0

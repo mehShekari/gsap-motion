@@ -60,10 +60,13 @@ try {
    * size is a cost users carry. Measured at 487 kB in 3.1.0, when the vendored
    * parser (229 kB) arrived, and at 606 kB in 3.4, when capture-motion.mjs and
    * explain-motion.mjs added a browser to the toolkit — both plain source, no
-   * second bundle. The ceiling leaves room for growth without letting one slip
-   * in unnoticed. Raise it on purpose, in the change that needs the room.
+   * second bundle. 717 kB in 4.4.1, when four field reports brought --probe,
+   * --headed and --seek, long frames and layout shifts in review, and the WebGL,
+   * Lenis and pinType guidance; raised from 700 then. The ceiling leaves room
+   * for growth without letting one slip in unnoticed. Raise it on purpose, in
+   * the change that needs the room.
    */
-  const UNPACKED_CEILING_KB = 700;
+  const UNPACKED_CEILING_KB = 760;
   check(
     pack.unpackedSize / 1024 <= UNPACKED_CEILING_KB,
     `unpacked size within ${UNPACKED_CEILING_KB} kB`,
