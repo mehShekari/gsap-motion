@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.4.1] - 2026-10-22
+
+From a fourth field report, and released straight after 4.4.0 so that npm
+goes from 4.3.0 to this one: `--headed`, new in 4.4.0, hung when its window was
+hidden, and that is fixed here.
+
 ### Changed
 
 - **The audit says how to waive.** Its text report ends with where a waiver goes
@@ -930,7 +936,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.4.0...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.4.1...HEAD
+[4.4.1]: https://github.com/mehShekari/gsap-motion/compare/v4.4.0...v4.4.1
 [4.4.0]: https://github.com/mehShekari/gsap-motion/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/mehShekari/gsap-motion/compare/v4.2.1...v4.3.0
 [4.2.1]: https://github.com/mehShekari/gsap-motion/compare/v4.2.0...v4.2.1
