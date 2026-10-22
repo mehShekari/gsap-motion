@@ -94,6 +94,15 @@ export function connect(executable, { headless = true } = {}) {
       /** Headless runs without a GPU, for a steady result; headed gets the machine's own. */
       ...(headless ? ["--headless=new", "--disable-gpu"] : []),
       "--remote-debugging-pipe",
+      /**
+       * A window nobody can see is a page Chrome stops animating: headed and
+       * moved off-screen, as a window behind an editor is, rAF went from 122 a
+       * second to none, and the run hung. With these it ran at 166. They are
+       * Puppeteer's defaults too.
+       */
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--disable-background-timer-throttling",
       "--no-first-run",
       "--no-default-browser-check",
       "--disable-extensions",

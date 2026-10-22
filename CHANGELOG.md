@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **`--headed` keeps drawing when its window is hidden.** Chrome stops
+  animating a window nobody can see, and the headed window is usually behind
+  the editor: moved off-screen, its rAF went from 122 a second to none and the
+  run hung. Both browser tools now launch with the three flags that keep it
+  drawing — the same defaults Puppeteer uses — and the same window ran at 166.
+
 ## [4.4.0] - 2026-10-21
 
 From three field reports — two from one landing page a month apart, one from a
