@@ -106,8 +106,8 @@ console.log(
         `gsap-motion audited ${name} after this edit and found ${findings.length} thing(s)${errors ? `, ${errors} at error level` : ""}:`,
         ...lines,
         errors
-          ? "An error-level finding fails `gsap-motion audit --quiet`, so it would fail a build that gates on it. Fix it, or waive it with `<rule-id>-ok` and a reason."
-          : "These are warnings: judge them. A deliberate one is waived with `<rule-id>-ok` and a reason.",
+          ? "An error-level finding fails `gsap-motion audit --quiet`, so it would fail a build that gates on it. Fix it, or waive it with `<rule-id>-ok` and a reason, on its line or in the eight above."
+          : "These are warnings: judge them. A deliberate one is waived with `<rule-id>-ok` and a reason, on its line or in the eight above.",
       ].join("\n"),
     },
   }),

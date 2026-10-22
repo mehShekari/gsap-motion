@@ -151,6 +151,10 @@ if (asJson) {
     .join(", ");
 
   console.log(`\n${tally}`);
+  /** Said here because a report that never mentions it reads as "there is no way". */
+  console.log(
+    "A deliberate finding is waived with `<rule-id>-ok` and a reason, on its line or in the eight above.",
+  );
 }
 
 process.exit(findings.some((f) => f.level === "error") ? 1 : 0);

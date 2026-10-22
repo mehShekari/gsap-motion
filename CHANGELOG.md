@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **The audit says how to waive.** Its text report ends with where a waiver goes
+  — `<rule-id>-ok` and a reason, on the line or in the eight above — and the
+  write hook now says where too. A project's report concluded there was no way
+  to mark a finding deliberate: the mechanism existed, and nothing it read
+  mentioned it.
+
 ### Fixed
 
 - **`--headed` keeps drawing when its window is hidden.** Chrome stops
