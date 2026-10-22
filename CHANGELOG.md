@@ -17,6 +17,14 @@ All notable changes to this project are documented here. The format follows
   `scaleY` squashes what is inside, so for an accordion's text the hint now
   offers `grid-template-rows` from `0fr` to `1fr`, or Flip — what
   `performance.md` already said, and the hint did not.
+- **`routing.md`: matching a reference one to one.** The reference is the
+  precedent and its motion the spec, measured from it and copied exactly;
+  "motion carries meaning or it goes" is not applied to a copy asked for
+  verbatim. A project copying a preloader found the skill leaning toward
+  simplifying it.
+- **`refine.md`: cost on a production build.** StrictMode mounts every effect
+  twice in development, WebGL contexts included, so a dev server's cost is not
+  what ships.
 
 ### Fixed
 

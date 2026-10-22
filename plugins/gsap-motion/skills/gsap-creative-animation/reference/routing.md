@@ -54,6 +54,15 @@ two is not a coin toss.
 | "it feels cheap" | linear easing, or one uniform duration | `tune` |
 | "it feels slow" | usually too sequential, not too long: try overlap | `tune` |
 
+### "Match this site, one to one"
+
+The reference is the precedent, and its motion is the spec. Measure its curves
+and durations from it — `inspect` on its URL with a dense `--at`, or a
+recording frame by frame — and copy them exactly. "Motion carries meaning or it
+goes" judged the reference when it was designed; applied to the copy, it
+simplifies what was asked for verbatim. Personalising is a second pass, after
+the copy matches.
+
 ### "Something crazy"
 
 A fade-and-scale is a failure of nerve; twelve techniques at once is a failure

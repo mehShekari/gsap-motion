@@ -75,6 +75,10 @@ Reach the state first, and change the conditions that usually break things:
 - `--reduced`, `--dark`, `--mobile`, `--cpu 4`. `--mobile` makes input touch,
   so it cannot be combined with `--hover`: a coarse pointer has no hover, which
   is the thing worth knowing.
+- **Cost on a production build, not the dev server.** In development React's
+  StrictMode mounts every effect twice — two contexts, two WebGL contexts — and
+  the bundle is unminified, so what a dev server measures is not what ships.
+  Motion and timing can be watched on either.
 - `--headed` for anything WebGL. Headless Chrome draws in software — on one
   Windows machine, the Basic Render Driver headless and the Intel GPU headed —
   so a 3D scene's frames, rate and long frames describe the wrong thing. A
