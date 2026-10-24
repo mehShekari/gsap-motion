@@ -96,7 +96,7 @@ const HINT = {
   unregisteredPlugin:
     "An unregistered plugin's properties are ignored without an error — the animation simply does nothing.",
   missingReducedMotion:
-    "Reduced motion is a design, not an off switch: decide what the motion was saying and say it without the travel. Note that the reduced branch must set the END state — a `from` that never runs leaves its target invisible.",
+    "Reduced motion is a design, not an off switch: decide what the motion was saying and say it without the travel. Note that the reduced branch must set the END state — a `from` that never runs leaves its target invisible. If the branch lives in the module that calls this one, waive it here and name that caller.",
   devToolImport:
     "A static import ships regardless of any `if` around the call. Load it with a dynamic `import()` behind a NODE_ENV check, or bake its output in and delete it.",
   markers: 'Gate it: `markers: process.env.NODE_ENV === "development"`.',

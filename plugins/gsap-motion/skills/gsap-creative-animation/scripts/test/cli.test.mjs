@@ -54,6 +54,24 @@ export function Box() {
 `;
 
 describe("audit-gsap.mjs", () => {
+  /** A stylesheet named on the command line used to come back "clean". */
+  test("says a file it cannot read was not scanned, rather than clean", () => {
+    const dir = project({ "card.css": ".card { translate: 60% 0; }\n", "src/Box.tsx": ORPHAN });
+
+    const alone = run("audit-gsap.mjs", ["card.css"], dir);
+    assert.equal(alone.status, 2);
+    assert.match(alone.stderr, /Not scanned: .*card\.css/);
+    assert.doesNotMatch(alone.stdout, /clean/);
+
+    const mixed = run("audit-gsap.mjs", ["src", "card.css"], dir);
+    assert.equal(mixed.status, 1, "the orphan tween still fails the run");
+    assert.match(mixed.stdout, /orphan-tween/);
+    assert.match(mixed.stdout, /Not scanned: .*card\.css/);
+
+    const asJson = JSON.parse(run("audit-gsap.mjs", ["src", "card.css", "--json"], dir).stdout);
+    assert.equal(asJson.notScanned.length, 1);
+  });
+
   test("reads a single-file component's script, and reports its real line", () => {
     const vue = `<template>
   <section ref="root"><p>Don't wait</p></section>

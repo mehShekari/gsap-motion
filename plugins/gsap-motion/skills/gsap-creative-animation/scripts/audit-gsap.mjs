@@ -32,12 +32,12 @@
  *
  * Exit code is 1 when any error-level finding is reported, 0 otherwise.
  */
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { check, mentionsGsap, notParsed } from "./lib/audit.mjs";
 import { pluginRegistrations, RULES } from "./lib/rules.mjs";
-import { collect, load } from "./lib/source.mjs";
+import { collect, hasSourceExtension, load } from "./lib/source.mjs";
 
 /**
  * The project being audited is wherever this is run from, not wherever the
@@ -66,6 +66,12 @@ for (const path of paths) {
 
 const findings = [];
 const sources = [];
+/**
+ * A file named on the command line that the audit cannot read — a stylesheet,
+ * say. It used to be skipped in silence and the run printed "clean", which
+ * reads as "checked and fine" about a file nothing looked at.
+ */
+const notScanned = [];
 
 /** A finding as the report shows it: under the file's display path, no column. */
 const reported = (source, finding) => ({
@@ -78,6 +84,10 @@ const reported = (source, finding) => ({
 });
 
 for (const path of paths) {
+  if (statSync(path).isFile() && !hasSourceExtension(path)) {
+    notScanned.push(path);
+    continue;
+  }
   for (const file of collect(path)) {
     const source = load(file, ROOT);
     if (!mentionsGsap(source)) continue;
@@ -124,8 +134,14 @@ findings.sort(
 
 const shown = quiet ? findings.filter((f) => f.level === "error") : findings;
 
+const READS = "the audit reads .ts, .tsx, .js, .jsx and .mjs, and the scripts of .vue, .svelte and .astro files";
+if (notScanned.length === paths.length) {
+  for (const path of notScanned) console.error(`Not scanned: ${path} — ${READS}.`);
+  process.exit(2);
+}
+
 if (asJson) {
-  console.log(JSON.stringify({ findings: shown }, null, 2));
+  console.log(JSON.stringify({ findings: shown, notScanned }, null, 2));
 } else if (!shown.length) {
   console.log(
     findings.length
@@ -155,6 +171,10 @@ if (asJson) {
   console.log(
     "A deliberate finding is waived with `<rule-id>-ok` and a reason, on its line or in the eight above.",
   );
+}
+
+if (!asJson) {
+  for (const path of notScanned) console.log(`Not scanned: ${path} — ${READS}.`);
 }
 
 process.exit(findings.some((f) => f.level === "error") ? 1 : 0);

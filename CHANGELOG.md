@@ -28,6 +28,12 @@ All notable changes to this project are documented here. The format follows
   `useReducedMotion()`, `prefersReducedMotion()`, `isReduced()` or
   `matchMedia(REDUCED_MOTION_QUERY)` has its branch in a shared module, and is
   no longer reported. "Reduced", not "reduce": an array's `.reduce()` is not one.
+  When the branch lives in the module that calls this one, the hint now says to
+  waive it there and name the caller.
+- **A file the audit cannot read is said to be unscanned, not clean.** A
+  stylesheet named on the command line was skipped in silence and the run said
+  `gsap-audit: clean`. It is now listed as not scanned — in `--json` too, as
+  `notScanned` — and a run where nothing named could be read exits 2.
 - **Handlers wrapped in `contextSafe`, `ctx.add(null, fn)` or `useCallback` are
   read.** Following a handler by name stopped at the wrapper, so a tween per
   pointer event in the handler the skill itself recommends — wrapped in
