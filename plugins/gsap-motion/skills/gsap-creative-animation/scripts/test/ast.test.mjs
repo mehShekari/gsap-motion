@@ -259,6 +259,14 @@ describe("single-file components", () => {
     ]) {
       assert.equal(fromText(`${line}\ngsap.to(el, { x: 1 });\n`, "a.ts").usesGsap, true, line);
     }
+    /** Loaded on demand: a real project's brand loader took gsap from a dynamic import. */
+    for (const lazy of [
+      'loadGsap().then(({ gsap }) => {\n  gsap.to(el, { x: 1 });\n});',
+      'const { gsap } = await import("gsap");\ngsap.to(el, { x: 1 });',
+      'import("./gsap").then(({ gsap: g }) => g.to(el, { x: 1 }));',
+    ]) {
+      assert.equal(fromText(`${lazy}\n`, "a.ts").usesGsap, true, lazy);
+    }
     /** A type-only import animates nothing. */
     assert.equal(fromText('import type { gsap } from "./gsap";\n', "a.ts").usesGsap, false);
   });

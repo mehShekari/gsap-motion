@@ -84,6 +84,61 @@ export function show(el) {
     assert.ok(rules(uncovered).includes("missing-reduced-motion"));
   });
 
+  /**
+   * A real project imported the same helper twice: relatively from one caller,
+   * through `@/` from another. Only the relative one was seen, so the verdict
+   * rested on half the callers.
+   */
+  test("missing-reduced-motion counts callers that import through a tsconfig alias", () => {
+    const helper = `import gsap from "gsap";
+export const fadeIn = (el) => gsap.from(el, { opacity: 0, y: 12, duration: 0.4 });
+`;
+    const covered = `import { fadeIn } from "./fadeIn";
+export function show(el) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  fadeIn(el);
+}
+`;
+    const viaAlias = (branch) =>
+      `import { fadeIn } from "@/lib/fadeIn";
+export function intro(el) {
+  ${branch ? 'if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;' : ""}
+  fadeIn(el);
+}
+`;
+    /** With the globs a real tsconfig carries: "**\/*.ts" is not the start of a comment. */
+    const tsconfig = `{
+  // Next writes comments here
+  "compilerOptions": { "paths": { "@/*": ["./src/*"] }, },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+}`;
+    const rules = (dir) => json(run("audit-gsap.mjs", ["src", "--json"], dir)).map((f) => f.rule);
+
+    const bothBranch = project({
+      "tsconfig.json": tsconfig,
+      "src/lib/fadeIn.ts": helper,
+      "src/lib/show.ts": covered,
+      "src/intro.ts": viaAlias(true),
+    });
+    assert.ok(!rules(bothBranch).includes("missing-reduced-motion"));
+
+    const aliasWithout = project({
+      "tsconfig.json": tsconfig,
+      "src/lib/fadeIn.ts": helper,
+      "src/lib/show.ts": covered,
+      "src/intro.ts": viaAlias(false),
+    });
+    assert.ok(rules(aliasWithout).includes("missing-reduced-motion"));
+
+    /** No tsconfig to resolve it: an alias that may name the helper keeps the warning. */
+    const unresolved = project({
+      "src/lib/fadeIn.ts": helper,
+      "src/lib/show.ts": covered,
+      "src/intro.ts": viaAlias(true),
+    });
+    assert.ok(rules(unresolved).includes("missing-reduced-motion"));
+  });
+
   /** A stylesheet named on the command line used to come back "clean". */
   test("says a file it cannot read was not scanned, rather than clean", () => {
     const dir = project({ "card.css": ".card { translate: 60% 0; }\n", "src/Box.tsx": ORPHAN });

@@ -1895,7 +1895,11 @@ export const RULES = [
        * returned early under reduced motion. Only the full audit knows the
        * importers; the editor and the write hook see one file, and report it.
        */
-      if (file.importers?.length && file.importers.every((importer) => !importer.parseError && hasReducedBranch(importer))) {
+      if (
+        file.importers?.length &&
+        !file.importersUnknown &&
+        file.importers.every((importer) => !importer.parseError && hasReducedBranch(importer))
+      ) {
         return [];
       }
 

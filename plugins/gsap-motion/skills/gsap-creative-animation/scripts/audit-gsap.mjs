@@ -32,8 +32,8 @@
  *
  * Exit code is 1 when any error-level finding is reported, 0 otherwise.
  */
-import { existsSync, statSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 
 import { check, mentionsGsap, notParsed } from "./lib/audit.mjs";
 import { pluginRegistrations, RULES } from "./lib/rules.mjs";
@@ -60,6 +60,54 @@ for (const path of paths) {
     console.error(`No such path: ${path}`);
     process.exit(2);
   }
+}
+
+/**
+ * `compilerOptions.paths` from the project's tsconfig.json, as
+ * `[prefix, [target prefixes]]`: `"@/*": ["./src/*"]` becomes
+ * `["@/", ["./src/"]]`, against `baseUrl` when one is set. A tsconfig is JSON
+ * with comments and trailing commas, so those are stripped first; one that
+ * still does not parse gives no aliases rather than an error.
+ */
+function tsconfigPaths(root) {
+  try {
+    const text = withoutComments(readFileSync(join(root, "tsconfig.json"), "utf8")).replace(/,(\s*[}\]])/g, "$1");
+    const { compilerOptions = {} } = JSON.parse(text);
+    const base = compilerOptions.baseUrl ?? ".";
+    return Object.entries(compilerOptions.paths ?? {}).map(([key, targets]) => [
+      key.replace(/\*$/, ""),
+      targets.map((target) => join(base, target.replace(/\*$/, ""))),
+    ]);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * JSON with its comments removed, outside strings only. A regex over the whole
+ * text took the `/*` in `"**\/*.ts"` — in every Next tsconfig's `include` — for
+ * the start of a comment, broke the JSON, and lost every alias.
+ */
+function withoutComments(text) {
+  let out = "";
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === '"') {
+      const end = text.slice(i + 1).search(/(?<!\\)"/);
+      const close = end === -1 ? text.length : i + 1 + end;
+      out += text.slice(i, close + 1);
+      i = close;
+    } else if (char === "/" && text[i + 1] === "/") {
+      while (i < text.length && text[i] !== "\n") i += 1;
+      out += "\n";
+    } else if (char === "/" && text[i + 1] === "*") {
+      const end = text.indexOf("*/", i + 2);
+      i = end === -1 ? text.length : end + 1;
+    } else {
+      out += char;
+    }
+  }
+  return out;
 }
 
 // --- Run ---------------------------------------------------------------------
@@ -115,17 +163,45 @@ const registered = new Set(sources.flatMap((source) => [...pluginRegistrations(s
 
 /**
  * Who imports each file, among everything read — a caller need not use GSAP
- * itself. Relative imports only: an alias such as `@/…` is not resolved, and a
- * file whose importers are unknown is judged on its own, as before.
+ * itself. Relative imports, and aliases the project's tsconfig maps in
+ * `compilerOptions.paths` (`"@/*": ["./src/*"]`).
+ *
+ * An alias that cannot be resolved may still name the file, and a verdict that
+ * rests on some of a file's callers is a guess. A real project imported one
+ * helper relatively from one caller and through `@/` from another; only the
+ * first was seen. So when an unresolved alias ends in a file's name, that
+ * file's importers are marked unknown, and it is judged alone.
  */
 const byPath = new Map(loaded.map((source) => [resolve(source.path), source]));
 const EXTENSIONS = ["", ".ts", ".tsx", ".js", ".jsx", ".mjs", "/index.ts", "/index.tsx", "/index.js"];
+const aliases = tsconfigPaths(ROOT);
+const resolveSpecifier = (from, specifier) => {
+  const bases = specifier.startsWith(".")
+    ? [resolve(dirname(from), specifier)]
+    : aliases.flatMap(([prefix, targets]) =>
+        specifier.startsWith(prefix) ? targets.map((target) => resolve(ROOT, target + specifier.slice(prefix.length))) : [],
+      );
+  for (const base of bases) {
+    const target = EXTENSIONS.map((ext) => byPath.get(base + ext)).find(Boolean);
+    if (target) return target;
+  }
+  return null;
+};
+/** A bare package name — `gsap`, `react`, `@scope/pkg` — is not an alias. */
+const looksLikeAlias = (specifier) => /^(?:@\/|~\/|#)/.test(specifier) || aliases.some(([prefix]) => specifier.startsWith(prefix));
+const stem = (path) => path.replace(/\\/g, "/").split("/").at(-1).replace(/\.[^.]+$/, "");
+
 for (const source of loaded) source.importers = [];
 for (const source of loaded) {
-  for (const [, specifier] of source.code.matchAll(/\bimport\s+(?!type\b)[^;]*?\bfrom\s*["'](\.{1,2}\/[^"']+)["']/g)) {
-    const base = resolve(dirname(source.path), specifier);
-    const target = EXTENSIONS.map((ext) => byPath.get(base + ext)).find(Boolean);
-    if (target && target !== source) target.importers.push(source);
+  for (const [, specifier] of source.code.matchAll(/\bimport\s+(?!type\b)[^;]*?\bfrom\s*["']([^"']+)["']/g)) {
+    if (!specifier.startsWith(".") && !looksLikeAlias(specifier)) continue;
+    const target = resolveSpecifier(source.path, specifier);
+    if (target && target !== source) {
+      target.importers.push(source);
+    } else if (!target && looksLikeAlias(specifier)) {
+      const name = specifier.split("/").at(-1);
+      for (const candidate of loaded) if (stem(candidate.path) === name) candidate.importersUnknown = true;
+    }
   }
 }
 

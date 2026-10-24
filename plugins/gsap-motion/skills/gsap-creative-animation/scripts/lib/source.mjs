@@ -249,7 +249,14 @@ export function fromText(raw, path, display = path) {
      */
     usesGsap:
       /\bfrom ["']gsap(?:\/|["'])/.test(code) ||
-      /\bimport\s+(?!type\b)(?:gsap\b|\{[^}]*\bgsap\b[^}]*\})[^;]*?\bfrom\s*["']/.test(code),
+      /\bimport\s+(?!type\b)(?:gsap\b|\{[^}]*\bgsap\b[^}]*\})[^;]*?\bfrom\s*["']/.test(code) ||
+      /**
+       * Loaded on demand: `loadGsap().then(({ gsap }) => …)` or
+       * `const { gsap } = await import(…)`. A real project's brand loader did
+       * this, and was the one file in eleven the lifecycle rules skipped.
+       */
+      /\(\s*\{[^}]*\bgsap\b[^}]*\}\s*\)\s*=>/.test(code) ||
+      /\{[^}]*\bgsap\b[^}]*\}\s*=\s*await\s+import\s*\(/.test(code),
   };
 }
 

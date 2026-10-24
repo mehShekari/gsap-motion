@@ -6,6 +6,25 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **`missing-reduced-motion` no longer decides on half the callers.** 4.6.0
+  followed only relative imports, and its changelog said an aliased file would
+  then be judged alone; in fact a file imported both ways was judged on its
+  relative callers only. On a real project a helper imported relatively from one
+  caller and through `@/` from another was cleared on the first alone — rightly
+  there, by luck. Aliases in the project's tsconfig `compilerOptions.paths` are
+  now resolved, and an alias that still cannot be resolved, but ends in a file's
+  name, leaves that file judged alone.
+- **A tsconfig's globs are not comments.** The `/*` in `"**/*.ts"`, in every
+  Next tsconfig's `include`, was read as a comment, and the JSON — and every
+  alias in it — was lost. Comments are now stripped outside strings only.
+- **GSAP loaded on demand is read.** `loadGsap().then(({ gsap }) => …)` and
+  `const { gsap } = await import(…)` now count as using GSAP, so the lifecycle
+  rules run there too. On the same project, they covered 2 of its 11 GSAP files
+  in 4.3.0, 10 in 4.6.0, and 11 now; it stays clean, and reading all eleven by
+  hand found nothing it misses.
+
 ## [4.6.0] - 2026-10-24
 
 From the first field report on 4.5.0, which confirmed its fixes on a real
