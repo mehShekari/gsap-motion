@@ -54,6 +54,36 @@ export function Box() {
 `;
 
 describe("audit-gsap.mjs", () => {
+  /**
+   * A helper that animates, called only by a module that holds the reduced
+   * branch. Three projects reported it; the audit reads every file before any
+   * rule runs, so it can see the callers.
+   */
+  test("missing-reduced-motion stays quiet when every importer holds the branch", () => {
+    const helper = `import gsap from "gsap";
+export const fadeIn = (el) => gsap.from(el, { opacity: 0, y: 12, duration: 0.4 });
+`;
+    const caller = `import { fadeIn } from "./fadeIn";
+const QUERY = "(prefers-reduced-motion: reduce)";
+export function show(el) {
+  if (window.matchMedia(QUERY).matches) return;
+  fadeIn(el);
+}
+`;
+    const rules = (dir) => json(run("audit-gsap.mjs", ["src", "--json"], dir)).map((f) => f.rule);
+
+    const covered = project({ "src/fadeIn.ts": helper, "src/show.ts": caller });
+    assert.ok(!rules(covered).includes("missing-reduced-motion"));
+
+    /** A second caller without the branch, and the helper is reported again. */
+    const uncovered = project({
+      "src/fadeIn.ts": helper,
+      "src/show.ts": caller,
+      "src/other.ts": 'import { fadeIn } from "./fadeIn";\nexport const go = (el) => fadeIn(el);\n',
+    });
+    assert.ok(rules(uncovered).includes("missing-reduced-motion"));
+  });
+
   /** A stylesheet named on the command line used to come back "clean". */
   test("says a file it cannot read was not scanned, rather than clean", () => {
     const dir = project({ "card.css": ".card { translate: 60% 0; }\n", "src/Box.tsx": ORPHAN });

@@ -27,6 +27,14 @@ All notable changes to this project are documented here. The format follows
   right there, an array method's callback, GSAP's own callbacks (`on…`, `.add`,
   `.call`), the returned cleanup, or a named function only ever called. No
   corpus finding changed.
+- **`missing-reduced-motion` asks the callers.** A helper that animates, whose
+  every importer holds a reduced-motion branch, is no longer reported: the
+  callers decide. Three projects reported the helper flagged while its only
+  caller returned early under reduced motion. The full audit reads every file
+  before any rule runs, so it follows relative imports, from callers that
+  never touch GSAP too; an alias such as `@/…` is not resolved, and then the
+  file is judged alone, as before. The editor plugin and the write hook see
+  one file and still report it. No corpus finding changed.
 - **A handler that calls `ref.current()` is followed.** A project kept a tween
   on `pulse.current` and called it from a pointermove listener; every rule that
   follows a handler now goes one hop through a function the file assigns to a

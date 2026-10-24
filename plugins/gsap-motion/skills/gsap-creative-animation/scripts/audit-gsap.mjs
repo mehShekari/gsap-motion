@@ -33,7 +33,7 @@
  * Exit code is 1 when any error-level finding is reported, 0 otherwise.
  */
 import { existsSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import { check, mentionsGsap, notParsed } from "./lib/audit.mjs";
 import { pluginRegistrations, RULES } from "./lib/rules.mjs";
@@ -66,6 +66,8 @@ for (const path of paths) {
 
 const findings = [];
 const sources = [];
+/** Every file read, GSAP or not: the import graph needs callers that never animate. */
+const loaded = [];
 /**
  * A file named on the command line that the audit cannot read — a stylesheet,
  * say. It used to be skipped in silence and the run printed "clean", which
@@ -90,6 +92,7 @@ for (const path of paths) {
   }
   for (const file of collect(path)) {
     const source = load(file, ROOT);
+    loaded.push(source);
     if (!mentionsGsap(source)) continue;
 
     if (source.parseError) {
@@ -109,6 +112,22 @@ for (const path of paths) {
  * the app's entry registers is not reported as unregistered.
  */
 const registered = new Set(sources.flatMap((source) => [...pluginRegistrations(source)]));
+
+/**
+ * Who imports each file, among everything read — a caller need not use GSAP
+ * itself. Relative imports only: an alias such as `@/…` is not resolved, and a
+ * file whose importers are unknown is judged on its own, as before.
+ */
+const byPath = new Map(loaded.map((source) => [resolve(source.path), source]));
+const EXTENSIONS = ["", ".ts", ".tsx", ".js", ".jsx", ".mjs", "/index.ts", "/index.tsx", "/index.js"];
+for (const source of loaded) source.importers = [];
+for (const source of loaded) {
+  for (const [, specifier] of source.code.matchAll(/\bimport\s+(?!type\b)[^;]*?\bfrom\s*["'](\.{1,2}\/[^"']+)["']/g)) {
+    const base = resolve(dirname(source.path), specifier);
+    const target = EXTENSIONS.map((ext) => byPath.get(base + ext)).find(Boolean);
+    if (target && target !== source) target.importers.push(source);
+  }
+}
 
 for (const source of sources) {
   source.registeredElsewhere = registered;

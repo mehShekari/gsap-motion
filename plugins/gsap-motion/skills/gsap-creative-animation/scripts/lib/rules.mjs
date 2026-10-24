@@ -422,6 +422,28 @@ const readsRef = (node) =>
       n.property.name === "current",
   ).length > 0;
 
+/**
+ * Whether a file holds a reduced-motion branch: the query written in code, or
+ * asked by name — `useReducedMotion()`, `prefersReducedMotion()`,
+ * `isReduced()`, `matchMedia(REDUCED_MOTION_QUERY)` — since it is often written
+ * once, in a shared module. "Reduced", not "reduce": an array's `.reduce()` is
+ * not one. A comment that mentions it is not a branch.
+ */
+function hasReducedBranch(file) {
+  if (findAll(file.ast, (node) => spells(node, "prefers-reduced-motion")).length) return true;
+  return (
+    findAll(file.ast, (node) => {
+      if (node.type !== "CallExpression") return false;
+      const name = calleeName(node)?.split(".").at(-1) ?? "";
+      if (/reduced/i.test(name)) return true;
+      return (
+        name === "matchMedia" &&
+        node.arguments.some((arg) => arg.type === "Identifier" && /reduced/i.test(arg.name))
+      );
+    }).length > 0
+  );
+}
+
 /** The calls that add a child to a timeline. */
 const CHILDREN = new Set(["to", "from", "fromTo", "add"]);
 
@@ -1866,25 +1888,16 @@ export const RULES = [
      */
     test(file) {
       if (!file.usesGsap) return [];
-      if (findAll(file.ast, (node) => spells(node, "prefers-reduced-motion")).length) {
+      if (hasReducedBranch(file)) return [];
+      /**
+       * Every caller decides instead: each file that imports this one holds a
+       * branch. Three projects reported a helper flagged while its only caller
+       * returned early under reduced motion. Only the full audit knows the
+       * importers; the editor and the write hook see one file, and report it.
+       */
+      if (file.importers?.length && file.importers.every((importer) => !importer.parseError && hasReducedBranch(importer))) {
         return [];
       }
-      /**
-       * The query is often written once, in a shared module, and asked by name:
-       * `useReducedMotion()`, `prefersReducedMotion()`, `isReduced()`, or
-       * `matchMedia(REDUCED_MOTION_QUERY)`. That is a branch too. "Reduced",
-       * not "reduce", so an array's `.reduce()` is not one.
-       */
-      const asksByName = findAll(file.ast, (node) => {
-        if (node.type !== "CallExpression") return false;
-        const name = calleeName(node)?.split(".").at(-1) ?? "";
-        if (/reduced/i.test(name)) return true;
-        return (
-          name === "matchMedia" &&
-          node.arguments.some((arg) => arg.type === "Identifier" && /reduced/i.test(arg.name))
-        );
-      });
-      if (asksByName.length) return [];
 
       const [first] = findAll(file.ast, (node) => {
         const method = tweenMethod(node);
