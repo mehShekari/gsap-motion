@@ -251,6 +251,18 @@ describe("single-file components", () => {
     assert.equal(findAll(file.ast, (node) => isGsapCall(node)).length, 1);
   });
 
+  test("gsap imported from the project's own wrapper still counts", () => {
+    for (const line of [
+      'import { gsap } from "@/core/motion/gsap";',
+      'import gsap from "../motion";',
+      'import { gsap, ScrollTrigger } from "./gsap";',
+    ]) {
+      assert.equal(fromText(`${line}\ngsap.to(el, { x: 1 });\n`, "a.ts").usesGsap, true, line);
+    }
+    /** A type-only import animates nothing. */
+    assert.equal(fromText('import type { gsap } from "./gsap";\n', "a.ts").usesGsap, false);
+  });
+
   test("a template is not code, so what it says never counts", () => {
     const svelte = ['<section>gsap.to is only text here</section>', ""].join("\n");
     const file = fromText(svelte, "Card.svelte");

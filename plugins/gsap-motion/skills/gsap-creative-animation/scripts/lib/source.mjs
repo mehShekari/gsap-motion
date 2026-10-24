@@ -241,7 +241,15 @@ export function fromText(raw, path, display = path) {
       /\bfrom ["']react["']/.test(code) ||
       /\bfrom ["']@gsap\/react["']/.test(code),
     isClient: /^\s*["']use client["']/m.test(code),
-    usesGsap: /\bfrom ["']gsap(?:\/|["'])/.test(code),
+    /**
+     * GSAP itself, or a binding named `gsap` from anywhere: a project's own
+     * wrapper (`import { gsap } from "@/core/motion/gsap"`) is common, and
+     * reading only the package left orphan-tween and missing-reduced-motion
+     * blind to every file in a real project that used one.
+     */
+    usesGsap:
+      /\bfrom ["']gsap(?:\/|["'])/.test(code) ||
+      /\bimport\s+(?!type\b)(?:gsap\b|\{[^}]*\bgsap\b[^}]*\})[^;]*?\bfrom\s*["']/.test(code),
   };
 }
 

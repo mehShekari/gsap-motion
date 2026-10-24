@@ -6,6 +6,35 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **`react.md`: what `contextSafe` costs.** The context keeps every tween the
+  wrapped function makes, killed ones too, until it reverts, so a handler that
+  runs often replays a timeline built in the body or calls a `quickTo`. Two
+  projects measured it: up to 78 retained entries per action, and 1000 calls
+  holding 1000 tweens. The `orphan-tween` hint, which recommends the wrapper,
+  now says the same.
+
+### Fixed
+
+- **GSAP imported through a project's own wrapper is read.** A file that took
+  `gsap` from anything but the package — `import { gsap } from "@/motion/gsap"`
+  — was invisible to `orphan-tween` and `missing-reduced-motion`. Two projects
+  had such wrappers, and on the corpus it hid 33 findings in one project; 31
+  are true. `orphan-tween`'s measured precision is now 94%: its two false
+  findings are an effect whose own cleanup kills the tween's target through a
+  captured element.
+- **`missing-reduced-motion` accepts a branch asked by name.** A file that calls
+  `useReducedMotion()`, `prefersReducedMotion()`, `isReduced()` or
+  `matchMedia(REDUCED_MOTION_QUERY)` has its branch in a shared module, and is
+  no longer reported. "Reduced", not "reduce": an array's `.reduce()` is not one.
+- **Handlers wrapped in `contextSafe`, `ctx.add(null, fn)` or `useCallback` are
+  read.** Following a handler by name stopped at the wrapper, so a tween per
+  pointer event in the handler the skill itself recommends — wrapped in
+  `contextSafe` — went unreported by `tween-per-event`, at error level. Two
+  projects found it. Every rule that follows a handler now sees through those
+  three. The corpus gives no new finding.
+
 ## [4.4.2] - 2026-10-22
 
 4.4.0 and 4.4.1 never reached npm. Their package unpacked to 717 kB, over the

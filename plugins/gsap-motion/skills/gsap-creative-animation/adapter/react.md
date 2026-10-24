@@ -34,8 +34,8 @@ body re-runs on change) and `revertOnUpdate` (the previous run reverts first).
 
 A tween created *outside* the body — in a handler, a promise, a callback — is
 never reverted. Wrap that function in `contextSafe`, from the same hook, and the
-context owns it again. Only wrap functions that *create* animations: playing an
-existing timeline creates nothing. Inside `mm.add`, use its own: the callback's
+context owns it — with every tween it makes, killed ones too, until it reverts.
+A frequent handler replays a timeline built in the body, or calls a `quickTo`. Inside `mm.add`, use its own: the callback's
 second argument, `(context, contextSafe) =>`. `contextSafe` runs during render, so reading a
 ref inside the callback trips React's "cannot access refs during render" rule —
 build the timeline in the body, keep it on a ref, and expose a `useCallback`
@@ -103,8 +103,7 @@ onMouseMove = (e) => moveX(e.clientX);
 ```
 
 State is for *what exists* — is the modal open, which tab is active. GSAP owns
-*how it moves*. Crossing that line is the most common performance bug in
-animated React.
+*how it moves*.
 
 ## Page and route changes
 

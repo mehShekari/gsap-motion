@@ -107,6 +107,138 @@
     "verdict": "true",
     "reason": "An onUpdate reads the card's getBoundingClientRect on every frame of a 0.5s tween that moves the card by transform, forcing a style recalculation each frame; the centre could be derived from the tweened x and y."
   },
+  "card-master|src/features/manager-interaction/useManagerCardGesture.ts|orphan-tween|214|72c8137624": {
+    "verdict": "true",
+    "reason": "Callback tween on the tilt element outside any context; the only unmount kill (L205) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardGesture.ts|orphan-tween|358|f26df5774a": {
+    "verdict": "true",
+    "reason": "rAF hover tween on the tilt element outside any context; the only unmount kill (L205) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardGesture.ts|orphan-tween|450|f26df5774a": {
+    "verdict": "true",
+    "reason": "rAF tween on the tilt element outside any context; the only unmount kill (L205) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardGesture.ts|orphan-tween|481|b623a6748d": {
+    "verdict": "true",
+    "reason": "rAF tween on the root element outside any context; this file never kills root on unmount, and the sibling hook's cleanup (lifecycle L427) reads root through a ref React has already set to null."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardGesture.ts|orphan-tween|487|f26df5774a": {
+    "verdict": "true",
+    "reason": "rAF tween on the tilt element outside any context; the only unmount kill (L205) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardLifecycleMotion.ts|orphan-tween|847|b623a6748d": {
+    "verdict": "true",
+    "reason": "Layout-effect tween with no cleanup of its own; the only unmount kill (L427) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardLifecycleMotion.ts|orphan-tween|900|e7a0fc91e8": {
+    "verdict": "true",
+    "reason": "Layout-effect tween with no cleanup of its own; the only unmount kill (L427) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardLifecycleMotion.ts|orphan-tween|925|b623a6748d": {
+    "verdict": "true",
+    "reason": "Layout-effect tween with no cleanup of its own; the only unmount kill (L427) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardLifecycleMotion.ts|orphan-tween|949|7870b07716": {
+    "verdict": "true",
+    "reason": "Layout-effect tween with no cleanup of its own; the only unmount kill (L427) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardLifecycleMotion.ts|orphan-tween|961|c8462b4d76": {
+    "verdict": "true",
+    "reason": "Layout-effect tween with no cleanup of its own; the only unmount kill (L427) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardLifecycleMotion.ts|orphan-tween|972|e7a0fc91e8": {
+    "verdict": "true",
+    "reason": "Layout-effect tween with no cleanup of its own; the only unmount kill (L427) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardLifecycleMotion.ts|orphan-tween|977|b623a6748d": {
+    "verdict": "true",
+    "reason": "Layout-effect tween with no cleanup of its own; the only unmount kill (L427) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardLifecycleMotion.ts|orphan-tween|1011|876e7b2fae": {
+    "verdict": "true",
+    "reason": "Layout-effect tween with no cleanup of its own; the only unmount kill (L427) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardLifecycleMotion.ts|orphan-tween|1018|b623a6748d": {
+    "verdict": "true",
+    "reason": "Layout-effect tween with no cleanup of its own; the only unmount kill (L427) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
+  },
+  "card-master|src/features/userscript-deck/CardCreationPreview.tsx|orphan-tween|132|50d1720f67": {
+    "verdict": "false",
+    "reason": "Timeline in an async chain started by a layout effect; that effect's cleanup kills it at L245 and its targets' tweens at L246 through captured elements."
+  },
+  "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|orphan-tween|489|0ede1ef823": {
+    "verdict": "true",
+    "reason": "Handler tween outside any context; the unmount killTweensOf at L451 is guarded on DOM refs that React has already set to null in a passive cleanup, so it never runs."
+  },
+  "card-master|src/features/userscript-deck/useCardActionController.ts|orphan-tween|312|d59be53d50": {
+    "verdict": "true",
+    "reason": "rAF tween on another component's card element outside any context; no unmount cleanup in this hook kills it or its target's tweens."
+  },
+  "card-master|src/hosts/extension/useInstallCardAnimation.ts|orphan-tween|187|5a4ab72b6f": {
+    "verdict": "false",
+    "reason": "Layout-effect tween; that effect's cleanup at L193 kills its target's tweens through the captured element."
+  },
+  "card-master|src/components/card-stage-motion.ts|missing-reduced-motion|14|c68a8b7c6b": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/components/ui/ContextPlaque.tsx|missing-reduced-motion|146|1056fa424b": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/features/manager-interaction/ActionAttachment.tsx|missing-reduced-motion|177|04da40d655": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/features/manager-interaction/animate-card-to-formation.ts|missing-reduced-motion|45|686b0a5a23": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/features/manager-interaction/ManagerActionField.tsx|missing-reduced-motion|96|112fc31d86": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardLifecycleMotion.ts|missing-reduced-motion|472|1056fa424b": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/features/userscript-deck/action-animations.ts|missing-reduced-motion|43|61ba404892": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/features/userscript-deck/CardCreationPreview.tsx|missing-reduced-motion|132|50d1720f67": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/features/userscript-deck/element-targeting.ts|missing-reduced-motion|122|61ba404892": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/features/userscript-deck/element-targeting.ts|paint-property|167|87cfb24e0c": {
+    "verdict": "true",
+    "reason": "Animates filter (brightness, saturate) on a page element, repainting every frame of the tween."
+  },
+  "card-master|src/features/userscript-deck/element-targeting.ts|paint-property|173|a53f3f9adf": {
+    "verdict": "true",
+    "reason": "Animates filter (brightness, saturate) on a page element, repainting every frame of the tween."
+  },
+  "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|missing-reduced-motion|303|12a92ff33c": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/features/userscript-deck/useCardActionController.ts|missing-reduced-motion|312|d59be53d50": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/hosts/extension/gamepad-easter-egg.ts|missing-reduced-motion|45|50d1720f67": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
+  "card-master|src/hosts/extension/gamepad-pointer-visual.ts|missing-reduced-motion|180|40d41ea79d": {
+    "verdict": "true",
+    "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
+  },
   "careercompass|src/components/ui/dot-flow.tsx|layout-property|33|ba6f3938cc": {
     "verdict": "true",
     "reason": "Tweens the container's width over 0.5s."

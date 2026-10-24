@@ -36,6 +36,23 @@ export function Box() {
     );
   });
 
+  test("fires when gsap comes from the project's own wrapper", () => {
+    fires(
+      "orphan-tween",
+      `"use client";
+import { useEffect, useRef } from "react";
+import { gsap } from "@/core/motion/gsap";
+
+export function Box() {
+  const ref = useRef(null);
+  useEffect(() => {
+    gsap.to(ref.current, { x: 100 });
+  }, []);
+  return <div ref={ref} />;
+}`,
+    );
+  });
+
   test("fires on a handler beside a bodiless useGSAP, outside contextSafe", () => {
     fires(
       "orphan-tween",
@@ -493,6 +510,49 @@ export function watch(onResize, controller) {
 });
 
 describe("tween-per-event", () => {
+  /**
+   * The handler the skill itself recommends: wrapped in contextSafe. Two
+   * projects found it slipped past this rule — and each of its tweens also stays
+   * in the context until it reverts.
+   */
+  test("fires through contextSafe, ctx.add(null, fn) and useCallback", () => {
+    for (const handler of [
+      "contextSafe((e) => { gsap.to(ref.current, { x: e.clientX }); })",
+      "ctx.add(null, (e) => { gsap.to(ref.current, { x: e.clientX }); })",
+      "useCallback((e) => { gsap.to(ref.current, { x: e.clientX }); }, [])",
+    ]) {
+      fires(
+        "tween-per-event",
+        `${REACT}
+export function Card({ ctx }) {
+  const ref = useRef(null);
+  const { contextSafe } = useGSAP({ scope: ref });
+  const onMove = ${handler};
+  useGSAP(() => {
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
+  });
+  return <div ref={ref} onPointerMove={onMove} />;
+}`,
+      );
+    }
+  });
+
+  test("stays quiet on a quickTo called through contextSafe", () => {
+    quiet(
+      "tween-per-event",
+      `${REACT}
+export function Card() {
+  const ref = useRef(null);
+  const { contextSafe } = useGSAP({ scope: ref });
+  const xTo = useRef(null);
+  useGSAP(() => { xTo.current = gsap.quickTo(ref.current, "x", { duration: 0.3 }); });
+  const onMove = contextSafe((e) => xTo.current?.(e.clientX));
+  return <div ref={ref} onPointerMove={onMove} />;
+}`,
+    );
+  });
+
   test("fires on a tween created per pointer event", () => {
     fires(
       "tween-per-event",
@@ -1211,6 +1271,36 @@ export function Hero() {
 }
 // TODO: add a prefers-reduced-motion branch
 export const play = (el) => gsap.to(el, { x: 10 });`,
+    );
+  });
+
+  /**
+   * The query written once in a shared module, and asked by name everywhere
+   * else. Two projects reported it, and a corpus project's twenty files all did
+   * it — through useReducedMotion() and prefersReducedMotion().
+   */
+  test("stays quiet on a reduced-motion helper called by name, or a shared query constant", () => {
+    for (const branch of [
+      'import { useReducedMotion } from "./useReducedMotion";\nconst reduced = useReducedMotion();',
+      'import { prefersReducedMotion } from "./preference";\nif (prefersReducedMotion()) {}',
+      'import { isReduced } from "./reduced";\nif (isReduced()) {}',
+      'import { REDUCED_MOTION_QUERY } from "./calm";\nconst q = window.matchMedia(REDUCED_MOTION_QUERY);',
+    ]) {
+      quiet(
+        "missing-reduced-motion",
+        `${PLAIN}${branch}\nexport const play = (el) => gsap.to(el, { x: 10 });\n`,
+        { ext: "ts" },
+      );
+    }
+  });
+
+  test("still fires when the only near match is an array's reduce", () => {
+    fires(
+      "missing-reduced-motion",
+      `${PLAIN}const total = [1, 2].reduce((a, b) => a + b, 0);
+export const play = (el) => gsap.to(el, { x: total });
+`,
+      { ext: "ts" },
     );
   });
 });

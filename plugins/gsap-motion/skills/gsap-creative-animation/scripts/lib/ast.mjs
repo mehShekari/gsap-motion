@@ -307,7 +307,7 @@ export const contains = (outer, inner) =>
  * returns `null`: an ambiguous handler is left unread rather than guessed at.
  */
 export function resolveFunction(root, node) {
-  const target = unwrap(node);
+  const target = wrappedFunction(unwrap(node));
   if (isFunction(target)) return target;
   if (target?.type !== "Identifier") return null;
 
@@ -318,13 +318,34 @@ export function resolveFunction(root, node) {
       (n.type === "VariableDeclarator" &&
         n.id.type === "Identifier" &&
         n.id.name === target.name &&
-        isFunction(unwrap(n.init))),
+        isFunction(wrappedFunction(unwrap(n.init)))),
   );
   if (declarations.length !== 1) return null;
   const [declaration] = declarations;
   return declaration.type === "FunctionDeclaration"
     ? declaration
-    : unwrap(declaration.init);
+    : wrappedFunction(unwrap(declaration.init));
+}
+
+/**
+ * The function inside a call that hands it back to run later, unchanged in
+ * what it does: `contextSafe(fn)`, `ctx.add(null, fn)` and `useCallback(fn, deps)`.
+ * The handler the skill recommends is wrapped in contextSafe, and following
+ * names stopped at the wrapper, so a tween per pointer event went unreported.
+ * Anything else is returned as it was.
+ */
+function wrappedFunction(node) {
+  if (node?.type !== "CallExpression") return node;
+  const name = calleeName(node)?.split(".").at(-1);
+  if (name === "contextSafe" || name === "useCallback") return unwrap(node.arguments[0]);
+  if (
+    name === "add" &&
+    unwrap(node.arguments[0])?.type === "Literal" &&
+    unwrap(node.arguments[0]).value === null
+  ) {
+    return unwrap(node.arguments[1]);
+  }
+  return node;
 }
 
 const PARENTS = new WeakMap();

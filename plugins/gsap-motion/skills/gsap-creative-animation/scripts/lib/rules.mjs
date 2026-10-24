@@ -54,7 +54,7 @@ const HINT = {
   stackedFrom:
     "A `from` or `fromTo` applies its start state the moment it is built. Built more than once against the same element, the last one wins, and holds that element at its start state until the playhead reaches it — invisible, if the start state hides it. Pass `immediateRender: false`, and set the element's first state yourself with `gsap.set`.",
   orphanTween:
-    "Nothing reverts it on unmount, and React StrictMode runs it twice in development. Move it into the useGSAP body, or wrap the handler in contextSafe. A helper counts as inside only when every use of it is a call from inside a context.",
+    "Nothing reverts it on unmount, and React StrictMode runs it twice in development. Move it into the useGSAP body, or wrap the handler in contextSafe. A helper counts as inside only when every use of it is a call from inside a context. Note that contextSafe keeps every tween it creates until the context reverts: a handler that runs often should replay a timeline built once, or call a quickTo.",
   unmanagedInstance:
     "Inside a context these register themselves and are reverted with it. Out here nothing is watching: move it into the useGSAP body, or keep the instance and revert/kill it from the cleanup.",
   unrevertedContext:
@@ -1685,6 +1685,22 @@ export const RULES = [
       if (findAll(file.ast, (node) => spells(node, "prefers-reduced-motion")).length) {
         return [];
       }
+      /**
+       * The query is often written once, in a shared module, and asked by name:
+       * `useReducedMotion()`, `prefersReducedMotion()`, `isReduced()`, or
+       * `matchMedia(REDUCED_MOTION_QUERY)`. That is a branch too. "Reduced",
+       * not "reduce", so an array's `.reduce()` is not one.
+       */
+      const asksByName = findAll(file.ast, (node) => {
+        if (node.type !== "CallExpression") return false;
+        const name = calleeName(node)?.split(".").at(-1) ?? "";
+        if (/reduced/i.test(name)) return true;
+        return (
+          name === "matchMedia" &&
+          node.arguments.some((arg) => arg.type === "Identifier" && /reduced/i.test(arg.name))
+        );
+      });
+      if (asksByName.length) return [];
 
       const [first] = findAll(file.ast, (node) => {
         const method = tweenMethod(node);
