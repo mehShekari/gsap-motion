@@ -163,10 +163,6 @@
     "verdict": "true",
     "reason": "Layout-effect tween with no cleanup of its own; the only unmount kill (L427) reads a DOM ref in a passive useEffect cleanup, which React 18 has already set to null, so nothing kills it."
   },
-  "card-master|src/features/userscript-deck/CardCreationPreview.tsx|orphan-tween|132|50d1720f67": {
-    "verdict": "false",
-    "reason": "Timeline in an async chain started by a layout effect; that effect's cleanup kills it at L245 and its targets' tweens at L246 through captured elements."
-  },
   "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|orphan-tween|489|0ede1ef823": {
     "verdict": "true",
     "reason": "Handler tween outside any context; the unmount killTweensOf at L451 is guarded on DOM refs that React has already set to null in a passive cleanup, so it never runs."
@@ -174,10 +170,6 @@
   "card-master|src/features/userscript-deck/useCardActionController.ts|orphan-tween|312|d59be53d50": {
     "verdict": "true",
     "reason": "rAF tween on another component's card element outside any context; no unmount cleanup in this hook kills it or its target's tweens."
-  },
-  "card-master|src/hosts/extension/useInstallCardAnimation.ts|orphan-tween|187|5a4ab72b6f": {
-    "verdict": "false",
-    "reason": "Layout-effect tween; that effect's cleanup at L193 kills its target's tweens through the captured element."
   },
   "card-master|src/components/card-stage-motion.ts|missing-reduced-motion|14|c68a8b7c6b": {
     "verdict": "true",

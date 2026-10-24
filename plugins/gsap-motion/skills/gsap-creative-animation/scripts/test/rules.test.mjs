@@ -36,6 +36,90 @@ export function Box() {
     );
   });
 
+  /**
+   * Two corpus findings were false: the effect's own cleanup killed what it
+   * made — through the element it captured, or through a second name the
+   * timeline was kept under.
+   */
+  test("stays quiet when the effect's cleanup kills its captured target", () => {
+    quiet(
+      "orphan-tween",
+      `${REACT}
+export function Badge() {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const decision = ref.current;
+    if (!decision) return;
+    gsap.fromTo(decision, { x: -20 }, { x: 0, duration: 0.5 });
+    return () => {
+      gsap.killTweensOf(decision);
+    };
+  }, []);
+  return <div ref={ref} />;
+}`,
+    );
+  });
+
+  test("still fires when the kill is at the top of the body, not in the cleanup", () => {
+    fires(
+      "orphan-tween",
+      `${REACT}
+export function Card({ mode }) {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const root = ref.current;
+    gsap.killTweensOf(root);
+    gsap.to(root, { x: mode === "open" ? 100 : 0 });
+  }, [mode]);
+  return <div ref={ref} />;
+}`,
+    );
+  });
+
+  test("stays quiet when a second name for the timeline is killed", () => {
+    quiet(
+      "orphan-tween",
+      `${REACT}
+export function Preview() {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    let active = null;
+    const play = () => {
+      const timeline = gsap.timeline();
+      active = timeline;
+      timeline.to(ref.current, { x: 10 });
+    };
+    play();
+    return () => {
+      active?.kill();
+    };
+  }, []);
+  return <div ref={ref} />;
+}`,
+    );
+  });
+
+  /**
+   * At unmount React clears a DOM ref before a passive cleanup runs, so killing
+   * through ref.current there kills nothing. That is not a teardown.
+   */
+  test("still fires when the cleanup kills through ref.current", () => {
+    fires(
+      "orphan-tween",
+      `${REACT}
+export function Tilt() {
+  const ref = useRef(null);
+  useEffect(() => () => {
+    if (ref.current) gsap.killTweensOf(ref.current);
+  }, []);
+  const settle = () => {
+    gsap.to(ref.current, { rotation: 0 });
+  };
+  return <div ref={ref} onPointerLeave={settle} />;
+}`,
+    );
+  });
+
   test("fires when gsap comes from the project's own wrapper", () => {
     fires(
       "orphan-tween",

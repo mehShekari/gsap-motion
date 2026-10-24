@@ -431,7 +431,7 @@ source and labelled true or false with a reason in
 | `layout-property` | warn | 10 | 10 | 0 | 100% |
 | `layout-read-per-frame` | info | 1 | 1 | 0 | 100% |
 | `missing-reduced-motion` | warn | 53 | 53 | 0 | 100% |
-| `orphan-tween` | error | 35 | 33 | 2 | 94% |
+| `orphan-tween` | error | 33 | 33 | 0 | 100% |
 | `paint-property` | warn | 34 | 34 | 0 | 100% |
 | `trigger-per-item` | warn | 2 | 2 | 0 | 100% |
 | `tween-per-event` | error | 2 | 2 | 0 | 100% |

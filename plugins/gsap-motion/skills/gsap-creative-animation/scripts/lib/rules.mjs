@@ -310,6 +310,74 @@ function debounced(handler, node) {
   );
 }
 
+/**
+ * Whether a tween's target is a local the enclosing effect captured, and that
+ * effect's code kills that local's tweens: `const el = ref.current` in the body,
+ * `gsap.killTweensOf(el)` in the cleanup. Found on the corpus, where it was
+ * reported as an orphan.
+ *
+ * Only a captured local counts. `killTweensOf(ref.current)` in a passive
+ * cleanup kills nothing at unmount — React has already cleared the ref — and
+ * that is `ref-read-in-cleanup`'s to say.
+ */
+function killedThroughCapture(ast, node) {
+  if (!isGsapCall(node)) return false;
+  const target = unwrap(node.arguments[0]);
+  if (target?.type !== "Identifier") return false;
+
+  const effect = ancestorsOf(ast, node).find((fn) => {
+    if (!isFunction(fn)) return false;
+    const call = parentOf(ast, fn);
+    return (
+      call?.type === "CallExpression" &&
+      call.arguments[0] === fn &&
+      EFFECTS.has(calleeName(call)?.split(".").at(-1))
+    );
+  });
+  if (!effect) return false;
+
+  const captured = findAll(
+    effect,
+    (n) => n.type === "VariableDeclarator" && n.id.type === "Identifier" && n.id.name === target.name,
+  ).length > 0;
+  if (!captured) return false;
+
+  /**
+   * In the cleanup — the function the effect returns — and nowhere else. A
+   * kill at the top of the body stops the previous run's tweens before
+   * starting new ones; it does nothing at unmount. Nine true corpus findings
+   * did exactly that, and the first version of this check let them go.
+   */
+  const cleanups = findAll(
+    effect,
+    (n) => n.type === "ReturnStatement" && n.argument && scopeOf(ast, n) === effect,
+  )
+    .map((n) => unwrap(n.argument))
+    .filter(isFunction);
+  if (effect.type === "ArrowFunctionExpression" && effect.expression && isFunction(unwrap(effect.body))) {
+    cleanups.push(unwrap(effect.body));
+  }
+
+  const names = (arg) => {
+    const value = unwrap(arg);
+    if (value?.type === "Identifier") return [value.name];
+    if (value?.type === "ArrayExpression") return value.elements.flatMap((e) => (e ? names(e) : []));
+    return [];
+  };
+  return cleanups.some(
+    (cleanup) =>
+      findAll(
+        cleanup,
+        (n) =>
+          n.type === "CallExpression" &&
+          calleeName(n)?.endsWith("killTweensOf") &&
+          n.arguments.some((arg) => names(arg).includes(target.name)),
+      ).length > 0,
+  );
+}
+
+const EFFECTS = new Set(["useEffect", "useLayoutEffect"]);
+
 /** The calls that add a child to a timeline. */
 const CHILDREN = new Set(["to", "from", "fromTo", "add"]);
 
@@ -340,6 +408,22 @@ function tornDown(ast, node) {
 
   const kept = keptUnder(ast, node);
   if (endsUnder(kept?.name)) return true;
+
+  /**
+   * A second name for it: `active = timeline`, then `active?.kill()` in the
+   * cleanup. Found on the corpus, in a preview whose timeline was built in a
+   * helper and handed to a variable the effect owns.
+   */
+  if (kept?.name) {
+    const aliases = findAll(ast, (n) => {
+      const from = n.type === "AssignmentExpression" ? n.right : n.type === "VariableDeclarator" ? n.init : null;
+      const to = n.type === "AssignmentExpression" ? n.left : n.type === "VariableDeclarator" ? n.id : null;
+      return unwrap(from)?.type === "Identifier" && unwrap(from).name === kept.name && to?.type === "Identifier";
+    }).map((n) => (n.type === "AssignmentExpression" ? n.left.name : n.id.name));
+    if (aliases.some(endsUnder)) return true;
+  }
+
+  if (killedThroughCapture(ast, node)) return true;
 
   const fn = scopeOf(ast, node);
   if (!isFunction(fn)) return false;

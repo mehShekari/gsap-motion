@@ -46,9 +46,15 @@ All notable changes to this project are documented here. The format follows
   `gsap` from anything but the package — `import { gsap } from "@/motion/gsap"`
   — was invisible to `orphan-tween` and `missing-reduced-motion`. Two projects
   had such wrappers, and on the corpus it hid 33 findings in one project; 31
-  are true. `orphan-tween`'s measured precision is now 94%: its two false
-  findings are an effect whose own cleanup kills the tween's target through a
-  captured element.
+  are true.
+- **`orphan-tween` knows an effect that cleans up after itself.** The two false
+  findings among those 33 were effects whose own cleanup killed what they made:
+  `killTweensOf` on the element the effect had captured, or `.kill()` on a
+  second name the timeline was kept under. Both are torn down now, the kill
+  counting only inside the cleanup — a kill at the top of the body stops the
+  last run, not the component, and nine true findings did that. Through
+  `ref.current` it still does not count: React has cleared the ref by then.
+  Measured precision is 100% again, over 33 findings.
 - **`missing-reduced-motion` accepts a branch asked by name.** A file that calls
   `useReducedMotion()`, `prefersReducedMotion()`, `isReduced()` or
   `matchMedia(REDUCED_MOTION_QUERY)` has its branch in a shared module, and is
