@@ -427,9 +427,18 @@ export const pointAt = (selector) => `(() => {
     box = el.getBoundingClientRect();
   }
   const clamp = (v, max) => Math.min(max - 1, Math.max(0, v));
+  /** Where the other matches a pointer could reach are, so the reader can narrow the selector. */
+  const others = all
+    .filter((other, i) => i !== index && shown(other))
+    .slice(0, 4)
+    .map((other) => {
+      const b = other.getBoundingClientRect();
+      return [Math.round(b.x + b.width / 2), Math.round(b.y + b.height / 2)];
+    });
   return {
     matches: all.length,
     index,
+    others,
     scrolled: !inView,
     x: clamp(box.x + box.width / 2, innerWidth),
     y: clamp(box.y + box.height / 2, innerHeight),
@@ -635,9 +644,13 @@ async function capture(options) {
           }
         }
         const which = box.matches > 1 ? ` (match ${box.index + 1} of ${box.matches})` : "";
+        const elsewhere = box.others?.length
+          ? `; other matches a pointer could reach at ${box.others.map((p) => p.join(",")).join(" · ")} — narrow the selector to pick one`
+          : "";
         notes.push(
           `${step.type}: ${step.value}${which} at ${Math.round(box.x)},${Math.round(box.y)}` +
-            (box.scrolled ? ", scrolled into view first" : ""),
+            (box.scrolled ? ", scrolled into view first" : "") +
+            elsewhere,
         );
         await wait(120);
       }

@@ -17,6 +17,7 @@ import {
   firstMotion,
   longFrameSummary,
   motionOverText,
+  movingElements,
   parseOptions,
   probe,
   report,
@@ -130,6 +131,18 @@ describe("loop seams", () => {
     const track = [];
     for (let i = 0; i < 24; i += 1) track.push({ at: i * 16, x: i % 2 ? 0.2 : 0 });
     track.push({ at: 384, x: 7.6 });
+    assert.deepEqual(seams(track), []);
+  });
+
+  /**
+   * From a real page: a dev-only badge placed itself in a corner with one jump
+   * of 1000-1500px and never moved again. A loop carries on after its seam; a
+   * placement does not, so only a jump that motion resumes after is a seam.
+   */
+  test("says nothing about a single placement that motion does not resume after", () => {
+    const track = [];
+    for (let i = 0; i < 20; i += 1) track.push({ at: i * 16, x: i * 10 });
+    track.push({ at: 320, x: 1500 });
     assert.deepEqual(seams(track), []);
   });
 
@@ -405,6 +418,18 @@ describe("grouping seams into events", () => {
       { key: "a", seams: [{ at: 1200, jump: 40 }] },
     ]);
     assert.equal(events.length, 2);
+  });
+
+  test("lists what moved, once each, with what moved it", () => {
+    const log = [
+      { at: 10, moved: [{ id: 1, key: "div.card", kind: "gsap", box: [0, 0, 10, 10] }, { id: 2, key: "span", kind: "css", box: [5, 5, 1, 1] }] },
+      { at: 26, moved: [{ id: 1, key: "div.card", kind: "gsap", box: [1, 0, 10, 10] }, { id: 3, key: "i", gsap: false }] },
+    ];
+    assert.deepEqual(movingElements(log), [
+      { key: "div.card", kind: "gsap", box: [0, 0, 10, 10] },
+      { key: "span", kind: "css", box: [5, 5, 1, 1] },
+      { key: "i", kind: "other", box: null },
+    ]);
   });
 
   test("says where the torn element was, since its key can name hundreds", () => {

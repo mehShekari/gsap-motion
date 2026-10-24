@@ -134,8 +134,15 @@ export function seams(track, { factor = 6, minimum = 4, least = 16 } = {}) {
   /** A still element has no normal step to be unlike, so nothing is a seam. */
   if (!median) return [];
 
+  /**
+   * A loop carries on after its seam; a placement does not. A dev-only badge
+   * on a real page jumped once, 1000-1500px into a corner, and was reported as
+   * a tear. So a jump counts only when a step of ordinary size follows it.
+   */
+  const resumes = (index) => steps.slice(index + 1).some((step) => step.delta >= median / 2);
+
   return steps
-    .filter((step) => step.delta > median * factor && step.delta >= least)
+    .filter((step, index) => step.delta > median * factor && step.delta >= least && resumes(index))
     .map((step) => ({ at: step.at, jump: Math.round(step.delta * 10) / 10 }));
 }
 
@@ -272,6 +279,29 @@ export function longFrameSummary(longFrames, cost = []) {
     longest,
     blocking: frames.reduce((sum, frame) => sum + frame.blocking, 0),
   };
+}
+
+/**
+ * Every element that moved, once each, with what moved it and where it first
+ * was: `[{ key, kind, box }]`, at most `limit`. A count alone left a project
+ * unable to find the thirteen non-GSAP elements still moving under reduced
+ * motion. `kind` is "gsap", "css" (CSS animation, transition or Web Animation)
+ * or "script"; a recording made before kinds were read says "gsap" or "other".
+ */
+export function movingElements(log, { limit = 50 } = {}) {
+  const seen = new Map();
+  for (const frame of log) {
+    for (const moved of frame.moved) {
+      const id = moved.id ?? moved.key;
+      if (seen.has(id)) continue;
+      seen.set(id, {
+        key: moved.key,
+        kind: moved.kind ?? (moved.gsap ? "gsap" : "other"),
+        box: moved.box ?? null,
+      });
+    }
+  }
+  return [...seen.values()].slice(0, limit);
 }
 
 /** Each element and the moment it first moved, in that order. */
@@ -527,6 +557,11 @@ const RECORDER = `(() => {
           id: idOf(el),
           key: keyOf(el),
           gsap: Boolean(el._gsap),
+          /**
+           * What is moving it: GSAP's cache, a running CSS animation, transition
+           * or Web Animation, or neither — a script writing styles itself.
+           */
+          kind: el._gsap ? "gsap" : el.getAnimations && el.getAnimations().length ? "css" : "script",
           box: state.screen,
           x: state.x,
           opacity: state.o,
@@ -744,6 +779,7 @@ export function conclude(result) {
     gsapMovers: new Set(
       log.flatMap((frame) => frame.moved.filter((m) => m.gsap).map((m) => m.id ?? m.key)),
     ).size,
+    movingElements: movingElements(log),
     seams: seamEvents(torn),
     overText,
     began: began.slice(0, 8),
@@ -781,6 +817,7 @@ export function probe(kind) {
     starts,
     firstMotion,
     longFrameSummary,
+    movingElements,
     conclude,
   };
   return `() => {
@@ -818,9 +855,16 @@ export function report(result, options) {
     lines.push("  or it needs a scroll or a pointer to begin");
   } else {
     lines.push(`  first motion at ${found.firstMotion}ms`);
+    const by = (kind) => found.movingElements.filter((element) => element.kind === kind).length;
+    const rest = [
+      by("css") && `${by("css")} CSS or Web Animations`,
+      by("script") && `${by("script")} written by other script`,
+      by("other") && `${by("other")} not GSAP's`,
+    ].filter(Boolean);
     lines.push(
       `  ${found.movers} elements moved, ${found.gsapMovers} of them GSAP's` +
-        `${found.movers > found.gsapMovers ? " (the rest is CSS, Web Animations or other script, which the source audit cannot see)" : ""}`,
+        `${rest.length ? `; ${rest.join(", ")}, which the source audit cannot see` : ""}` +
+        `${found.movers > found.movingElements.length ? ` (kinds read for the first ${found.movingElements.length})` : ""}`,
     );
     if (found.spread) lines.push(`  they started over a span of ${found.spread}ms`);
   }

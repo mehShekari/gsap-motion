@@ -16,8 +16,21 @@ All notable changes to this project are documented here. The format follows
 - **The `orphan-tween` hint says StrictMode *may* run it twice.** A ref guard
   can make the second run a no-op.
 
+### Added
+
+- **`review` names what moved, and how.** Each moving element is read as GSAP,
+  CSS or Web Animations, or other script writing styles; the report gives the
+  split, and `--json` lists every element as `movingElements`, with its kind
+  and box. A count alone left a project unable to find the thirteen non-GSAP
+  elements still moving under reduced motion.
+- **`--hover` and `--click` say where the other reachable matches are**, so a
+  selector that matched the wrong one of two can be narrowed.
+
 ### Fixed
 
+- **A one-time jump into place is not a seam.** A dev-only badge placed itself
+  once, 1000–1500px into a corner, and `review` reported a tear. A seam now
+  needs the motion to carry on after it, as a loop's does.
 - **A function the context body defers is outside the context.** GSAP sets the
   context only while the body runs, so a function the body hands to a
   listener, a timer, a promise or a ref runs later, outside it, and nothing it

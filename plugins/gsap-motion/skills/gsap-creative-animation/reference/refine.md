@@ -129,9 +129,9 @@ that no source rule can reach.
 | It says | Read it as |
 | --- | --- |
 | **first motion at N ms** | How long the page is still. Late enough and the visitor has scrolled past the thing you built. |
-| **N elements moved, M of them GSAP's** | The gap is motion the audit never sees. A surprise there is worth chasing. |
+| **N elements moved, M of them GSAP's** | The rest is split into CSS or Web Animations, and other script writing styles: motion the audit never sees. `--json` lists each element with its kind and box, so a surprise can be found. |
 | **X% of the screen in motion** | Everything moving at once reads as noise, not as choreography. |
-| **seams** | A step far larger than that motion's own rhythm: a loop put back by hand instead of carried. |
+| **seams** | A step far larger than that motion's own rhythm, after which the motion carries on: a loop put back by hand instead of carried. A one-time jump into place is not one. |
 | **motion over text** | Something painted over a line a reader is in the middle of. Hit-tested, so it is what is really on top. |
 | **frames over 50ms** | Long Animation Frames, with the sampler's own time taken out of each: the rest is the page's. "Not measured" means the browser has no such API, not that nothing was long. |
 | **layout shift** | The browser's own shift total, input excluded. Sampling reads layout but never moves it, so this is the page's alone — a pin swapping its position at a section edge shows here. |
