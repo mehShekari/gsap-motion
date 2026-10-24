@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.5.0] - 2026-10-24
+
+From three more field reports, each with reproductions run against the audit
+and the browser tools before anything changed. The audit was blind to GSAP
+imported through a project's own wrapper, and to a handler wrapped in
+`contextSafe` — the shape the skill recommends — so on the corpus 36 findings
+appeared that had always been there; all are labelled, and every rule's
+measured precision is 100%. The browser tools no longer report a step that did
+nothing as done.
+
 ### Added
 
 - **`ref-read-in-cleanup`** (warn): `killTweensOf` given a ref's `.current` in a
@@ -1023,7 +1033,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.4.2...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.5.0...HEAD
+[4.5.0]: https://github.com/mehShekari/gsap-motion/compare/v4.4.2...v4.5.0
 [4.4.2]: https://github.com/mehShekari/gsap-motion/compare/v4.4.1...v4.4.2
 [4.4.1]: https://github.com/mehShekari/gsap-motion/compare/v4.4.0...v4.4.1
 [4.4.0]: https://github.com/mehShekari/gsap-motion/compare/v4.3.0...v4.4.0
