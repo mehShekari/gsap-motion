@@ -120,6 +120,53 @@ export function Tilt() {
     );
   });
 
+  /**
+   * GSAP sets the context only while the body runs. A function the body hands
+   * to a listener, a timer, a promise or a ref runs later, outside it.
+   */
+  test("fires on a tween in a function the useGSAP body defers", () => {
+    for (const deferred of [
+      'pulse.current = () => { gsap.to(box.current, { scale: 1.05 }); };',
+      'window.addEventListener("resize", () => { gsap.to(box.current, { x: 0 }); });',
+      "setTimeout(() => { gsap.to(box.current, { x: 0 }); }, 300);",
+      "document.fonts.ready.then(() => { gsap.from(box.current, { autoAlpha: 0 }); });",
+    ]) {
+      fires(
+        "orphan-tween",
+        `${REACT}
+export function Tilt() {
+  const box = useRef(null);
+  const pulse = useRef(() => {});
+  useGSAP(() => {
+    ${deferred}
+  }, { scope: box });
+  return <div ref={box} />;
+}`,
+      );
+    }
+  });
+
+  test("stays quiet on what the body runs in place", () => {
+    quiet(
+      "orphan-tween",
+      `${REACT}
+export function List() {
+  const root = useRef(null);
+  useGSAP(() => {
+    const build = () => gsap.timeline().to(".a", { x: 1 });
+    build();
+    gsap.utils.toArray(".card").forEach((card) => {
+      gsap.from(card, { y: 20, onComplete: () => gsap.to(card, { scale: 1 }) });
+    });
+    (() => gsap.to(".b", { x: 1 }))();
+    const mm = gsap.matchMedia();
+    mm.add("(min-width: 800px)", () => gsap.to(".c", { x: 1 }));
+  }, { scope: root });
+  return <div ref={root} />;
+}`,
+    );
+  });
+
   test("fires when gsap comes from the project's own wrapper", () => {
     fires(
       "orphan-tween",

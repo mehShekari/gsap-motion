@@ -602,10 +602,56 @@ export function gsapContexts(root) {
     functions.set(name, node.type === "FunctionDeclaration" ? node : unwrap(node.init));
   }
 
+  /**
+   * Whether a function nested in a context body runs while the body runs, and
+   * so inside the context. GSAP sets the context only for the duration of the
+   * body (Context.add, gsap-core 3.15): a function the body hands to a listener,
+   * a timer, a promise or a ref runs later, outside it, and nothing it creates
+   * is reverted. A real project built a tween in `pulse.current = () => …`
+   * inside useGSAP and called it from pointermove; the audit read it as inside.
+   *
+   * In place: called right there, an array method's callback, GSAP's own
+   * callbacks (`on…` keys, `.add`, `.call`, which GSAP runs in the context),
+   * the cleanup the body returns, or a named function only ever called.
+   */
+  const ITERATORS = new Set(["forEach", "map", "filter", "flatMap", "reduce", "reduceRight", "some", "every", "find", "findIndex", "sort"]);
+  const runsInPlace = (fn) => {
+    const parent = parentOf(root, fn);
+    if (!parent) return false;
+    if (parent.type === "CallExpression") {
+      if (unwrap(parent.callee) === fn) return true;
+      const name = methodName(parent) ?? bareName(parent);
+      return ITERATORS.has(name) || name === "add" || name === "call" || isHook(parent) || safe.has(name) || calleeName(parent) === "gsap.context";
+    }
+    if (parent.type === "Property") return /^on[A-Z]/.test(keyName(parent) ?? "");
+    if (parent.type === "ReturnStatement" || (parent.type === "ArrowFunctionExpression" && parent.body === fn)) return true;
+    const bound =
+      parent.type === "VariableDeclarator" && parent.id.type === "Identifier" && unwrap(parent.init) === fn
+        ? parent.id.name
+        : fn.type === "FunctionDeclaration"
+          ? fn.id?.name
+          : null;
+    if (!bound) return false;
+    const uses = findAll(root, (n) => n.type === "Identifier" && n.name === bound && isReference(root, n));
+    return uses.every((id) => {
+      const call = parentOf(root, id);
+      return call?.type === "CallExpression" && call.callee === id;
+    });
+  };
+  /** Inside `scope`, with no function between that runs later. */
+  const runsWithin = (scope, node) => {
+    if (!contains(scope, node)) return false;
+    for (const ancestor of ancestorsOf(root, node)) {
+      if (ancestor === scope) return true;
+      if (isFunction(ancestor) && !runsInPlace(ancestor)) return false;
+    }
+    return false;
+  };
+
   const contained = new Set();
   const inside = (node) =>
-    scopes.some((argument) => contains(argument, node)) ||
-    [...contained].some((fn) => contains(fn, node));
+    scopes.some((argument) => runsWithin(argument, node)) ||
+    [...contained].some((fn) => runsWithin(fn, node));
   const identifiers = findAll(root, (node) => node.type === "Identifier");
 
   for (let changed = true; changed; ) {

@@ -18,6 +18,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **A function the context body defers is outside the context.** GSAP sets the
+  context only while the body runs, so a function the body hands to a
+  listener, a timer, a promise or a ref runs later, outside it, and nothing it
+  creates is reverted. The audit counted anything written inside the body as
+  inside; a project's `pulse.current = () => gsap.to(…)`, called from
+  pointermove, came back clean. Now only what runs in place counts: called
+  right there, an array method's callback, GSAP's own callbacks (`on…`, `.add`,
+  `.call`), the returned cleanup, or a named function only ever called. No
+  corpus finding changed.
 - **A handler that calls `ref.current()` is followed.** A project kept a tween
   on `pulse.current` and called it from a pointermove listener; every rule that
   follows a handler now goes one hop through a function the file assigns to a
