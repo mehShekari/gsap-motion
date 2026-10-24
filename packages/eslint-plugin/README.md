@@ -81,6 +81,7 @@ so a finding waived that way still fails `gsap-motion audit`.
 | `unregistered-plugin` | error | A plugin imported and never registered, whose properties are silently ignored |
 | `never-completes` | error | An `onComplete` that can never run: on a timeline holding a `repeat: -1` child, or on a tween or timeline that repeats forever |
 | `dev-tool-shipped` | error | `GSDevTools` or `MotionPathHelper` imported statically, or unconditional `markers: true` |
+| `ref-read-in-cleanup` | warn | `killTweensOf` given a ref's `.current` in a `useEffect` cleanup, where React has already cleared it at unmount |
 | `dangling-listener` | warn | An event listener that is never removed, including inline handlers that cannot be |
 | `layout-property` | warn | Animating `width`, `height`, `top`, `left`, margins or padding, which forces layout every frame |
 | `trigger-per-item` | warn | A ScrollTrigger created per item in a loop |

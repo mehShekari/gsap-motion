@@ -48,7 +48,7 @@ This skill gives the agent two things it lacks:
   They load only when a request needs them.
 - **Presets and worked examples** for reveals, marquees, card stacks, loaders,
   site intros, page transitions and scroll storytelling.
-- **`audit-gsap`**: 27 rules for leaks, per-frame cost, eased loops, shared
+- **`audit-gsap`**: 28 rules for leaks, per-frame cost, eased loops, shared
   plugin ids, unregistered plugins and shipped dev tooling — from the command
   line, or in your editor as an ESLint plugin.
 - **`audit-svg`**: what an SVG can do before you animate it — what DrawSVG can
@@ -292,6 +292,7 @@ With the skill installed, the same scripts are in its folder:
 | `unregistered-plugin` | error | A plugin imported and never registered, whose properties are silently ignored |
 | `never-completes` | error | An `onComplete` that can never run: on a timeline holding a `repeat: -1` child, or on a tween or timeline that repeats forever |
 | `dev-tool-shipped` | error | `GSDevTools` or `MotionPathHelper` imported statically, or unconditional `markers: true` |
+| `ref-read-in-cleanup` | warn | `killTweensOf` given a ref's `.current` in a `useEffect` cleanup, where React has already cleared it at unmount |
 | `dangling-listener` | warn | An event listener that is never removed, including inline handlers that cannot be |
 | `layout-property` | warn | Animating `width`, `height`, `top`, `left`, margins or padding, which forces layout every frame |
 | `trigger-per-item` | warn | A ScrollTrigger created per item in a loop |
@@ -433,6 +434,7 @@ source and labelled true or false with a reason in
 | `missing-reduced-motion` | warn | 53 | 53 | 0 | 100% |
 | `orphan-tween` | error | 33 | 33 | 0 | 100% |
 | `paint-property` | warn | 34 | 34 | 0 | 100% |
+| `ref-read-in-cleanup` | warn | 3 | 3 | 0 | 100% |
 | `trigger-per-item` | warn | 2 | 2 | 0 | 100% |
 | `tween-per-event` | error | 2 | 2 | 0 | 100% |
 | `ungated-hover` | warn | 1 | 1 | 0 | 100% |

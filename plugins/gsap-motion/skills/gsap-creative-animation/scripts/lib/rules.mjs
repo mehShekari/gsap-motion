@@ -61,6 +61,8 @@ const HINT = {
     "Keep it under a name and revert it when the component goes: `onUnmounted` in Vue, the function returned from `onMount` or `$effect` in Svelte, the `useEffect` cleanup in React, `astro:before-swap` in Astro. Everything created inside the context goes with it.",
   tweenPerFrame:
     "A tween per frame allocates an object per frame, and each one fights the last. Create a `gsap.quickTo()` or `quickSetter()` once outside the callback and call it inside — or, for scroll, scrub a timeline instead of writing values by hand.",
+  refReadInCleanup:
+    "So nothing is killed, and the tweens outlive the component. Capture the element in the effect body — `const el = ref.current` — and kill through that in the cleanup, or build the tweens in a useGSAP or gsap.context body, whose revert needs no ref.",
   allocationPerFrame:
     "Every frame's object is garbage by the next, and the collector reclaims it in a pause that lands as a dropped frame. Build it once, outside the callback — at module scope, or in a ref or useMemo — and reuse it with `.set()` or `.copy()`.",
   layoutReadPerFrame:
@@ -348,15 +350,7 @@ function killedThroughCapture(ast, node) {
    * starting new ones; it does nothing at unmount. Nine true corpus findings
    * did exactly that, and the first version of this check let them go.
    */
-  const cleanups = findAll(
-    effect,
-    (n) => n.type === "ReturnStatement" && n.argument && scopeOf(ast, n) === effect,
-  )
-    .map((n) => unwrap(n.argument))
-    .filter(isFunction);
-  if (effect.type === "ArrowFunctionExpression" && effect.expression && isFunction(unwrap(effect.body))) {
-    cleanups.push(unwrap(effect.body));
-  }
+  const cleanups = cleanupsOf(ast, effect);
 
   const names = (arg) => {
     const value = unwrap(arg);
@@ -377,6 +371,31 @@ function killedThroughCapture(ast, node) {
 }
 
 const EFFECTS = new Set(["useEffect", "useLayoutEffect"]);
+
+/** The functions an effect callback returns: its cleanups. */
+function cleanupsOf(ast, effect) {
+  const cleanups = findAll(
+    effect,
+    (n) => n.type === "ReturnStatement" && n.argument && scopeOf(ast, n) === effect,
+  )
+    .map((n) => unwrap(n.argument))
+    .filter(isFunction);
+  if (effect.type === "ArrowFunctionExpression" && effect.expression && isFunction(unwrap(effect.body))) {
+    cleanups.push(unwrap(effect.body));
+  }
+  return cleanups;
+}
+
+/** Whether `node` reads a ref: a `.current` anywhere inside it. */
+const readsRef = (node) =>
+  findAll(
+    node,
+    (n) =>
+      n.type === "MemberExpression" &&
+      !n.computed &&
+      n.property.type === "Identifier" &&
+      n.property.name === "current",
+  ).length > 0;
 
 /** The calls that add a child to a timeline. */
 const CHILDREN = new Set(["to", "from", "fromTo", "add"]);
@@ -968,6 +987,62 @@ export const RULES = [
           },
         ];
       });
+    },
+  },
+  {
+    id: "ref-read-in-cleanup",
+    level: "warn",
+    description:
+      "`killTweensOf` given a ref's `.current` in a `useEffect` cleanup, where React has already cleared it at unmount",
+    /**
+     * At unmount React detaches a DOM ref before it runs passive cleanups, so
+     * `ref.current` is null there and the kill finds nothing. A corpus project
+     * did this in three cleanups, and fifteen tweens outlived their component.
+     *
+     * Narrow on purpose. Only `useEffect`: when a layout cleanup runs relative
+     * to ref detachment is not something this rule is sure of. Only
+     * `killTweensOf`, whose argument is the element: a ref that holds a timeline
+     * — `tlRef.current?.kill()` — is not cleared by React, and is correct.
+     */
+    test(file) {
+      if (!file.isReact) return [];
+      const effects = findAll(
+        file.ast,
+        (n) => n.type === "CallExpression" && calleeName(n)?.split(".").at(-1) === "useEffect",
+      )
+        .map((call) => unwrap(call.arguments[0]))
+        .filter(isFunction);
+
+      return effects.flatMap((effect) =>
+        cleanupsOf(file.ast, effect).flatMap((cleanup) => {
+          /** A local the cleanup itself reads from a ref: `const root = rootRef.current`. */
+          const fromRef = new Set(
+            findAll(
+              cleanup,
+              (n) =>
+                n.type === "VariableDeclarator" &&
+                n.id.type === "Identifier" &&
+                n.init &&
+                readsRef(n.init),
+            ).map((n) => n.id.name),
+          );
+          const viaRef = (arg) =>
+            readsRef(arg) ||
+            findAll(arg, (n) => n.type === "Identifier" && fromRef.has(n.name)).length > 0;
+
+          return findAll(
+            cleanup,
+            (n) =>
+              n.type === "CallExpression" &&
+              calleeName(n)?.endsWith("killTweensOf") &&
+              n.arguments.some(viaRef),
+          ).map((call) => ({
+            index: call.start,
+            message: "`killTweensOf` reads a ref in a useEffect cleanup, which React has already cleared at unmount.",
+            hint: HINT.refReadInCleanup,
+          }));
+        }),
+      );
     },
   },
   {

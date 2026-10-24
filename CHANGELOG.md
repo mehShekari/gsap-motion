@@ -8,6 +8,14 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`ref-read-in-cleanup`** (warn): `killTweensOf` given a ref's `.current` in a
+  `useEffect` cleanup. React detaches a DOM ref before passive cleanups run, so
+  at unmount the kill finds nothing and the tweens outlive the component. A
+  corpus project did it in three cleanups, behind fifteen of its true
+  `orphan-tween` findings; the rule finds those three and nothing else there.
+  Narrow on purpose: only `useEffect`, and only `killTweensOf` — a ref holding a
+  timeline is not cleared by React.
+
 - **`--viewport WxH`, on `inspect` and `review`, and the viewport in every
   report.** Without it the window is whatever headless Chrome opens at, about
   760×480, where two projects' pages had switched to their compact layout

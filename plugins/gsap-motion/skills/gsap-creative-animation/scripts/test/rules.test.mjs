@@ -497,6 +497,56 @@ export function Box() {
   });
 });
 
+/**
+ * A corpus project killed its tweens at unmount through ref.current in a
+ * useEffect cleanup, in three places. React clears a DOM ref before a passive
+ * cleanup runs, so all three killed nothing, and fifteen tweens outlived their
+ * component.
+ */
+describe("ref-read-in-cleanup", () => {
+  test("fires on killTweensOf through ref.current in a useEffect cleanup", () => {
+    for (const cleanup of [
+      "if (tiltRef.current) gsap.killTweensOf(tiltRef.current);",
+      "gsap.killTweensOf([rootRef.current, tiltRef.current].filter(Boolean));",
+      "const root = rootRef.current;\n    if (root) gsap.killTweensOf(root);",
+    ]) {
+      fires(
+        "ref-read-in-cleanup",
+        `${REACT}
+export function Card() {
+  const rootRef = useRef(null);
+  const tiltRef = useRef(null);
+  useEffect(() => () => {
+    ${cleanup}
+  }, []);
+  return <div ref={rootRef}><div ref={tiltRef} /></div>;
+}`,
+        { count: 1 },
+      );
+    }
+  });
+
+  test("stays quiet on an element captured in the body, and on a ref that holds a timeline", () => {
+    quiet(
+      "ref-read-in-cleanup",
+      `${REACT}
+export function Card() {
+  const rootRef = useRef(null);
+  const tlRef = useRef(null);
+  useEffect(() => {
+    const root = rootRef.current;
+    tlRef.current = gsap.timeline().to(root, { x: 10 });
+    return () => {
+      tlRef.current?.kill();
+      gsap.killTweensOf(root);
+    };
+  }, []);
+  return <div ref={rootRef} />;
+}`,
+    );
+  });
+});
+
 describe("dangling-listener", () => {
   test("fires on a listener that is never removed", () => {
     fires(

@@ -231,6 +231,18 @@
     "verdict": "true",
     "reason": "No reduced-motion branch in the file; the project's wrapper (motion/gsap.ts) only speeds the global timeline 4x under the preference, which keeps every travel, so the motion has no reduced design."
   },
+  "card-master|src/features/manager-interaction/useManagerCardGesture.ts|ref-read-in-cleanup|205|b0fe24172d": {
+    "verdict": "true",
+    "reason": "useEffect cleanup kills the tilt element's tweens through tiltRef.current, which React has set to null at unmount, so it kills nothing."
+  },
+  "card-master|src/features/manager-interaction/useManagerCardLifecycleMotion.ts|ref-read-in-cleanup|427|99a2acd690": {
+    "verdict": "true",
+    "reason": "useEffect cleanup kills through [rootRef.current, flipperRef.current].filter(Boolean); both DOM refs are null at unmount, so the array is empty."
+  },
+  "card-master|src/features/userscript-deck/MediaSpeedRadialMenu.tsx|ref-read-in-cleanup|451|d087a3f774": {
+    "verdict": "true",
+    "reason": "useEffect cleanup reads rootRef/ringRef.current into locals and guards killTweensOf on them; both are null at unmount, so it never runs."
+  },
   "careercompass|src/components/ui/dot-flow.tsx|layout-property|33|ba6f3938cc": {
     "verdict": "true",
     "reason": "Tweens the container's width over 0.5s."
