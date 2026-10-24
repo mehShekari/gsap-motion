@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.6.0] - 2026-10-24
+
+From the first field report on 4.5.0, which confirmed its fixes on a real
+project and found what they had left. The audit now reads a context the way
+GSAP runs it, not the way the code is laid out: a function the body defers
+runs outside it. `missing-reduced-motion` asks a helper's callers, a handler
+called through a ref is followed, and a React project on Vite gets the React
+adapter. `review` names what moved and how. No corpus finding changed, and
+every rule's measured precision is still 100%.
+
 ### Changed
 
 - **SKILL.md loads the React adapter for any React project.** Setup step 3
@@ -1080,7 +1090,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.5.0...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.6.0...HEAD
+[4.6.0]: https://github.com/mehShekari/gsap-motion/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/mehShekari/gsap-motion/compare/v4.4.2...v4.5.0
 [4.4.2]: https://github.com/mehShekari/gsap-motion/compare/v4.4.1...v4.4.2
 [4.4.1]: https://github.com/mehShekari/gsap-motion/compare/v4.4.0...v4.4.1
