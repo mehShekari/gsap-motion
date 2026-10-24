@@ -211,6 +211,23 @@ describe("doctor", () => {
     assert.doesNotMatch(result.stdout, /add installs it at/);
   });
 
+  /**
+   * Found in a real project: a copy in .claude/skills beside the plugin, so the
+   * skill was listed twice. Even at the same version, one of them is redundant.
+   */
+  test("calls a current local copy beside the plugin a duplicate", () => {
+    const box = sandbox({
+      "package.json": JSON.stringify({ dependencies: { gsap: "^3.15.0" } }),
+      ".claude/settings.json": JSON.stringify({
+        enabledPlugins: { "gsap-motion@mehshekari": true },
+      }),
+    });
+    run(box, "add");
+    const result = run(box, "doctor");
+    assert.match(result.stdout, /! Installed for this project/);
+    assert.match(result.stdout, /listed twice/);
+  });
+
   test("still offers the install when no plugin provides it", () => {
     const box = sandbox({ "package.json": JSON.stringify({ dependencies: { gsap: "^3.15.0" } }) });
     const result = run(box, "doctor");

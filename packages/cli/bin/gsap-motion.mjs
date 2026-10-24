@@ -300,7 +300,15 @@ function doctor(args = []) {
       if (provider) report("info", `No separate copy for ${scope}`);
       else report("info", `Not installed for ${scope}`, `${command} installs it at ${location}`);
     } else if (installed.version === bundled.version) {
-      report("ok", `Installed for ${scope}: ${installed.version}`);
+      if (provider) {
+        report(
+          "warn",
+          `Installed for ${scope}: ${installed.version}`,
+          `The ${provider} plugin provides it too, so the skill is listed twice. Remove ${location}.`,
+        );
+      } else {
+        report("ok", `Installed for ${scope}: ${installed.version}`);
+      }
     } else {
       report(
         "warn",

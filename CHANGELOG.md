@@ -29,6 +29,9 @@ All notable changes to this project are documented here. The format follows
 - **Honest wording.** `--at` counts from a fixed `--wait`, which detects no
   loader; `review` no longer calls all non-GSAP motion "CSS"; and a seam names
   where its element was on screen, since `div.absolute` names hundreds.
+- **`doctor` calls a local copy beside the plugin a duplicate, even at the same
+  version.** A project had both, and the skill was listed twice. A copy at
+  another version was already reported.
 
 - **`react.md`: what `contextSafe` costs.** The context keeps every tween the
   wrapped function makes, killed ones too, until it reverts, so a handler that
