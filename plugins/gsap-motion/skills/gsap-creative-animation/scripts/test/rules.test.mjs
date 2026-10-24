@@ -467,6 +467,52 @@ export function Swipe() {
     );
   });
 
+  /**
+   * GSAP runs a tween's callbacks in the context that made it, so a helper
+   * called directly and also handed over as `onComplete` runs inside both
+   * times. A real project's film hook did exactly this, and read as an error.
+   */
+  test("stays quiet on a context helper also passed by name as a GSAP callback", () => {
+    for (const [name, handoff] of [
+      ["takeOver", "onComplete: takeOver"],
+      ["onComplete", "onComplete"],
+    ]) {
+      quiet(
+        "unmanaged-instance",
+        `${OBSERVER}
+export function Film() {
+  const root = useRef(null);
+  useGSAP(() => {
+    const ${name} = () => {
+      Observer.create({ target: window, onUp: () => {} });
+    };
+    if (window.scrollY > 10) ${name}();
+    else gsap.to(".intro", { x: 1, ${handoff} });
+  }, { scope: root });
+  return <div ref={root} />;
+}`,
+      );
+    }
+  });
+
+  test("still fires on a context helper a listener calls", () => {
+    fires(
+      "unmanaged-instance",
+      `${OBSERVER}
+export function Film() {
+  const root = useRef(null);
+  useGSAP(() => {
+    const takeOver = () => {
+      Observer.create({ target: window, onUp: () => {} });
+    };
+    takeOver();
+    window.addEventListener("wheel", takeOver);
+  }, { scope: root });
+  return <div ref={root} />;
+}`,
+    );
+  });
+
   test("fires on an instance kept in a variable but never torn down", () => {
     fires(
       "unmanaged-instance",
@@ -1350,6 +1396,30 @@ export function pop(dot, ring, bar, pin) {
 }`,
       { ext: "ts" },
     );
+  });
+
+  /** Only SVG is offset; a real project's hero `<img>` was reported anyway. */
+  const settle = (target, markup) => `${REACT}
+export function Settle() {
+  const root = useRef(null);
+  const view = useRef(null);
+  useGSAP(() => {
+    const q = gsap.utils.selector(root);
+    gsap.fromTo(${target}, { scale: 1.06 }, { scale: 1, transformOrigin: "50% 45%" });
+  }, { scope: root });
+  return <div ref={root}>${markup}</div>;
+}`;
+
+  test("stays quiet when the file's JSX shows the target is HTML", () => {
+    quiet("late-transform-origin", settle(`q("[data-view]")`, `<img data-view src="/a.webp" alt="" />`));
+    quiet("late-transform-origin", settle("view.current", `<img ref={view} src="/a.webp" alt="" />`));
+    quiet("late-transform-origin", settle(`".cover"`, `<div className="cover hero" />`));
+  });
+
+  test("still fires when the target is SVG, a component, or not in the file", () => {
+    fires("late-transform-origin", settle(`q("[data-view]")`, `<svg><circle data-view r="4" /></svg>`));
+    fires("late-transform-origin", settle(`q("[data-view]")`, `<Picture data-view />`));
+    fires("late-transform-origin", settle(`q("[data-view]")`, `<img data-other />`));
   });
 });
 

@@ -869,6 +869,53 @@ function hoverHandlers(ast) {
   return handlers;
 }
 
+const SVG_TAGS = new Set([
+  "svg", "g", "path", "circle", "ellipse", "rect", "line", "polyline", "polygon", "text", "tspan",
+  "textPath", "use", "image", "symbol", "mask", "clipPath", "defs", "foreignObject", "marker",
+  "pattern", "stop", "linearGradient", "radialGradient", "filter",
+]);
+
+/**
+ * Whether this file's own JSX shows `target` to be HTML, and only HTML: a
+ * selector — `"[data-view]"`, `q(".hero")`, `"#cover"` — or `ref.current`,
+ * every element it names here a lowercase tag that is not SVG. Anything it
+ * cannot read, a component it renders through, or nothing found, is not.
+ */
+function htmlOnly(ast, target) {
+  const node = unwrap(target);
+  const attribute = (element, name) =>
+    element.attributes.find((a) => a.type === "JSXAttribute" && a.name.type === "JSXIdentifier" && a.name.name === name);
+  const text = (a) => (a?.value?.type === "Literal" ? String(a.value.value) : null);
+
+  let names;
+  const selector =
+    staticString(node) ?? (node?.type === "CallExpression" && node.arguments.length === 1 ? staticString(node.arguments[0]) : null);
+  const simple = selector && /^(?:\[([\w-]+)(?:=["']?([^"'\]]*)["']?)?\]|#([\w-]+)|\.([\w-]+))$/.exec(selector.trim());
+  if (simple) {
+    const [, attr, value, id, className] = simple;
+    names = (element) =>
+      attr
+        ? Boolean(attribute(element, attr)) && (value === undefined || text(attribute(element, attr)) === value)
+        : id
+          ? text(attribute(element, "id")) === id
+          : (text(attribute(element, "className")) ?? "").split(/\s+/).includes(className);
+  } else if (node?.type === "MemberExpression" && dottedName(node)?.match(/^\w+\.current$/)) {
+    const ref = node.object.name;
+    names = (element) => {
+      const value = attribute(element, "ref")?.value;
+      return value?.type === "JSXExpressionContainer" && value.expression.type === "Identifier" && value.expression.name === ref;
+    };
+  } else {
+    return false;
+  }
+
+  const elements = findAll(ast, (n) => n.type === "JSXOpeningElement" && names(n));
+  return (
+    elements.length > 0 &&
+    elements.every((element) => element.name.type === "JSXIdentifier" && /^[a-z]/.test(element.name.name) && !SVG_TAGS.has(element.name.name))
+  );
+}
+
 /** Whether anything in the file pauses, kills or reverts what is kept as `name`. */
 function stopped(ast, name) {
   if (!name) return false;
@@ -1478,7 +1525,9 @@ export const RULES = [
    * left; rotation and skew offset it too; a translation, an identity start or
    * an HTML element does not.
    *
-   * `warn`, not `error`: nothing here can tell an SVG target from an HTML one.
+   * `warn`, not `error`: a target is rarely visible from here as SVG or HTML.
+   * When the file's own JSX shows it to be HTML only — a real project's
+   * `<img>`, a hero image settling from `scale: 1.06` — it is not reported.
    */
   {
     id: "late-transform-origin",
@@ -1508,6 +1557,7 @@ export const RULES = [
         if (from.properties.some((property) => ORIGIN.has(keyName(property)))) return [];
         const smooth = unwrap(propertyOf(to, "smoothOrigin")?.value);
         if (smooth?.type === "Literal" && smooth.value === false) return [];
+        if (htmlOnly(file.ast, call.arguments[0])) return [];
 
         const moves = from.properties.some(
           (property) =>
@@ -1911,11 +1961,18 @@ export const RULES = [
       }).sort((a, b) => a.start - b.start);
       if (!first) return [];
 
+      /**
+       * Said, when the callers were not all read, because a real project's
+       * helper was flagged on every edit while its one caller had the branch.
+       */
+      const unseen = file.importers === undefined || file.importersUnknown || file.callersUnread;
       return [
         {
           index: first.start,
           message: "No `prefers-reduced-motion` branch in an animating file.",
-          hint: HINT.missingReducedMotion,
+          hint: unseen
+            ? `${HINT.missingReducedMotion} Not every file that imports this one was read here; an audit of the folder reads them, and is quiet when each has the branch.`
+            : HINT.missingReducedMotion,
         },
       ];
     },

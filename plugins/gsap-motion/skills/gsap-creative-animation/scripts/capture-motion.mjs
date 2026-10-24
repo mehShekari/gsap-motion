@@ -47,7 +47,7 @@
  * device with a coarse pointer has no hover, which is the point.
  */
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -406,6 +406,11 @@ export const frameName = (at, options) =>
  * and one outside the viewport is scrolled into it first. An invalid selector
  * is said to be one, rather than matching nothing.
  */
+const SHOWN = `(el) => {
+    const box = el.getBoundingClientRect();
+    return box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== "hidden";
+  }`;
+
 export const pointAt = (selector) => `(() => {
   let all;
   try {
@@ -413,10 +418,7 @@ export const pointAt = (selector) => `(() => {
   } catch {
     return { invalid: true };
   }
-  const shown = (el) => {
-    const box = el.getBoundingClientRect();
-    return box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== "hidden";
-  };
+  const shown = ${SHOWN};
   const index = all.findIndex(shown);
   if (index === -1) return { matches: all.length, index };
   const el = all[index];
@@ -451,21 +453,31 @@ export const pointAt = (selector) => `(() => {
  * Scrolls instantly, then reports where the page is once two frames have drawn.
  * A page with `scroll-behavior: smooth` used to animate the jump, so the
  * position was read as 0 while it travelled, and frames were captured mid-way.
+ *
+ * A selector scrolls to its first match with a box, as `pointAt` points. The
+ * first match alone was a `display: none` copy on a real page: the scroll went
+ * nowhere, and the run reported `scroll: to 0px` as done.
  */
 export function scrollExpression(value) {
   const pixels = /^\d+$/.test(String(value)) ? Number(value) : null;
   const move =
     pixels === null
-      ? `let el;
-    try { el = document.querySelector(${JSON.stringify(value)}); } catch { done({ invalid: true }); return; }
-    if (!el) { done({ matches: 0 }); return; }
-    el.scrollIntoView({ block: "center", behavior: "instant" });`
+      ? `let all;
+    try { all = [...document.querySelectorAll(${JSON.stringify(value)})]; } catch { done({ invalid: true }); return; }
+    const index = all.findIndex(${SHOWN});
+    if (index === -1) { done({ matches: all.length, index }); return; }
+    all[index].scrollIntoView({ block: "center", behavior: "instant" });`
       : `window.scrollTo({ top: ${pixels}, behavior: "instant" });`;
+  const which = pixels === null ? "matches: all.length, index, " : "";
   return `new Promise((done) => {
     ${move}
-    requestAnimationFrame(() => requestAnimationFrame(() => done({ y: Math.round(window.scrollY) })));
+    requestAnimationFrame(() => requestAnimationFrame(() => done({ ${which}y: Math.round(window.scrollY) })));
   })`;
 }
+
+/** The note a scroll that happened leaves, naming the match when it was not the first. */
+export const scrollNote = (moved) =>
+  `scroll: to ${moved.y}px${moved.index > 0 ? ` (match ${moved.index + 1} of ${moved.matches}; the earlier ones have no box)` : ""}`;
 
 /** What a step that did nothing says, or null when it did something. */
 export function undone(step, result) {
@@ -491,6 +503,16 @@ export const exitFor = (notDone) =>
 export function parseViewport(text) {
   const match = /^(\d{2,5})x(\d{2,5})$/.exec(String(text ?? ""));
   return match ? { width: Number(match[1]), height: Number(match[2]) } : null;
+}
+
+/**
+ * `--help`: the Usage section of a script's own header, so there is one copy to
+ * keep true. It used to be "Unknown option: --help", and a non-zero exit.
+ */
+export const wantsHelp = (argv) => argv.includes("--help") || argv.includes("-h");
+export function usage(moduleUrl) {
+  const header = readFileSync(fileURLToPath(moduleUrl), "utf8").match(/\/\*\*([\s\S]*?)\*\//)[1];
+  return header.slice(header.indexOf("Usage")).replace(/^ \* ?/gm, "").trim();
 }
 
 /** What the page measured itself at, for every report: a default nobody chose is still a size. */
@@ -607,7 +629,7 @@ async function capture(options) {
         const moved = await evaluate(scrollExpression(step.value));
         const missed = undone(step, moved);
         if (missed) notDone.push(missed);
-        else notes.push(`scroll: to ${moved.y}px`);
+        else notes.push(scrollNote(moved));
       }
 
       if (step.type === "hover" || step.type === "click") {
@@ -752,8 +774,9 @@ export function report(result, options) {
         " so its timeline cannot be read from outside.",
     );
     lines.push(
-      `  ${controlled} element${controlled === 1 ? " carries" : "s carry"} GSAP's cache,` +
-        " so it has touched the page.",
+      controlled
+        ? `  ${controlled} element${controlled === 1 ? " carries" : "s carry"} GSAP's cache, so it has touched the page.`
+        : "  No element carries GSAP's cache yet, so it has not touched the page so far.",
     );
     lines.push("  To read the timeline here, call gsap.install(window) in development.");
   } else if (result.timeline.children.length === 0) {
@@ -794,6 +817,7 @@ export function report(result, options) {
 // --- Entry -------------------------------------------------------------------
 
 async function main(argv) {
+  if (wantsHelp(argv)) return console.log(usage(import.meta.url));
   const options = parseOptions(argv);
 
   if (options.errors.length) {

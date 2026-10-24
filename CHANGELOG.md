@@ -6,6 +6,42 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.6.2] - 2026-10-24
+
+From a field report on 4.6.0, and a regression 4.6.0 itself brought. No rule
+was added and no level changed; no corpus finding changed.
+
+### Fixed
+
+- **A helper also handed to GSAP as a callback is inside its context.** 4.6.0
+  counted a named function as running in place only when every use was a
+  direct call. A real project's film hook called `takeOver()` and also passed
+  it as `onComplete: takeOver`, which GSAP runs in the same context, and its
+  `ScrollTrigger.create` was reported as an `unmanaged-instance` error. A use
+  as an `on…` value, or as an argument to `.add`, `.call` or an array method,
+  now counts too; one handed to a listener or a timer still does not.
+- **`--scroll` to a selector lands on the first match with a box.** `inspect`
+  and `review` took the first match alone, as `--hover` and `--click` did before
+  4.5.0. On a real page that was a `display: none` copy: the scroll went nowhere,
+  and the run said `scroll: to 0px` and exited 0. It now skips matches with no
+  box, names the one it used when that was not the first, and is a step not
+  done, exit 3, when no match has one.
+- **`late-transform-origin` stays quiet on HTML it can see.** Its own hint says
+  only SVG is offset, and it fired on a hero `<img>`. When the file's JSX shows
+  that every element the target names — by a simple selector or a ref — is a
+  non-SVG tag, it is not reported. A component, an SVG tag, or a target it
+  cannot find keeps the warning.
+- **`missing-reduced-motion` says when it could not see the callers.** Run on
+  one file — as the editor and the write hook do — it cannot read the files
+  that import it, and a helper whose caller holds the branch was flagged on
+  every edit. The hint now says so, and that an audit of the folder reads them.
+- **`--help` prints the usage.** `audit`, `inspect`, `review` and `explain`
+  answered "Unknown option: --help" with a non-zero exit. They now print the
+  Usage section of their own header and exit 0; `review` gained one.
+- **`inspect` no longer says GSAP touched the page when it touched nothing.**
+  With GSAP loaded but no element carrying its cache, the report read
+  "0 elements carry GSAP's cache, so it has touched the page."
+
 ## [4.6.1] - 2026-10-24
 
 From running 4.6.0 against a real Next project, where it found nothing to
@@ -1115,7 +1151,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.6.1...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.6.2...HEAD
+[4.6.2]: https://github.com/mehShekari/gsap-motion/compare/v4.6.1...v4.6.2
 [4.6.1]: https://github.com/mehShekari/gsap-motion/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/mehShekari/gsap-motion/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/mehShekari/gsap-motion/compare/v4.4.2...v4.5.0

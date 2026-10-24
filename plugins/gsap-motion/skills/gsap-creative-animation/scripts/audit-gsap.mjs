@@ -35,6 +35,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
+import { usage, wantsHelp } from "./capture-motion.mjs";
 import { check, mentionsGsap, notParsed } from "./lib/audit.mjs";
 import { pluginRegistrations, RULES } from "./lib/rules.mjs";
 import { collect, hasSourceExtension, load } from "./lib/source.mjs";
@@ -49,6 +50,10 @@ import { collect, hasSourceExtension, load } from "./lib/source.mjs";
 const ROOT = process.cwd();
 
 const argv = process.argv.slice(2);
+if (wantsHelp(argv)) {
+  console.log(usage(import.meta.url));
+  process.exit(0);
+}
 const asJson = argv.includes("--json");
 const quiet = argv.includes("--quiet");
 const targets = argv.filter((a) => !a.startsWith("--"));
@@ -191,7 +196,12 @@ const resolveSpecifier = (from, specifier) => {
 const looksLikeAlias = (specifier) => /^(?:@\/|~\/|#)/.test(specifier) || aliases.some(([prefix]) => specifier.startsWith(prefix));
 const stem = (path) => path.replace(/\\/g, "/").split("/").at(-1).replace(/\.[^.]+$/, "");
 
-for (const source of loaded) source.importers = [];
+/** Given only files, the run read only the callers it was given: the rest are unread, not absent. */
+const filesOnly = paths.every((path) => statSync(path).isFile());
+for (const source of loaded) {
+  source.importers = [];
+  source.callersUnread = filesOnly;
+}
 for (const source of loaded) {
   for (const [, specifier] of source.code.matchAll(/\bimport\s+(?!type\b)[^;]*?\bfrom\s*["']([^"']+)["']/g)) {
     if (!specifier.startsWith(".") && !looksLikeAlias(specifier)) continue;

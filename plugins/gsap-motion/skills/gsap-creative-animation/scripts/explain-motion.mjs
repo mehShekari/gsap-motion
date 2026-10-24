@@ -25,7 +25,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { connect, findChrome } from "./capture-motion.mjs";
+import { connect, findChrome, usage, wantsHelp } from "./capture-motion.mjs";
 import { check, mentionsGsap } from "./lib/audit.mjs";
 import {
   calleeName,
@@ -543,6 +543,7 @@ export function parseArguments(argv) {
 }
 
 async function main(argv) {
+  if (wantsHelp(argv)) return console.log(usage(import.meta.url));
   const options = parseArguments(argv);
   if (options.errors.length) {
     for (const error of options.errors) console.error(error);

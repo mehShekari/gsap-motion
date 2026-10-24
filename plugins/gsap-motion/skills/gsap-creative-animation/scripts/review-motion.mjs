@@ -22,6 +22,22 @@
  * Node.js 22+, no dependencies, whatever Chrome the machine already has. With
  * `--probe install` and `--probe read` it drives no browser at all, and prints
  * the two functions to run in one you already have.
+ *
+ * Usage, from the project root:
+ *   node <skill-dir>/scripts/review-motion.mjs <url> [options]
+ *
+ *   --watch 3000          how long to watch, in ms (default 3000, at least 200)
+ *   --scroll <px|sel>     scroll after watching, then watch as long again
+ *   --out <dir>           also save a screenshot of the end state there
+ *   --viewport 1440x900   the window's size; every report prints it
+ *   --mobile              390x844 at dpr 3, with touch input
+ *   --reduced             emulate prefers-reduced-motion: reduce
+ *   --dark                emulate prefers-color-scheme: dark
+ *   --cpu 4               throttle the CPU by this factor
+ *   --headed              a visible Chrome, on the machine's GPU
+ *   --chrome <path>       a browser to use, overriding the search
+ *   --json                machine-readable, for scripts
+ *   --probe install|read  print the recorder for a browser you already drive
  */
 import { writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -35,7 +51,10 @@ import {
   parseViewport,
   prepareOut,
   scrollExpression,
+  scrollNote,
   undone,
+  usage,
+  wantsHelp,
 } from "./capture-motion.mjs";
 
 // --- What a recording means ---------------------------------------------------
@@ -684,7 +703,7 @@ async function watch(options) {
       const moved = await evaluate(scrollExpression(options.scroll));
       const missed = undone(step, moved);
       if (missed) notDone.push(missed);
-      else notes.push(`scroll: to ${moved.y}px`);
+      else notes.push(scrollNote(moved));
       await wait(options.watch);
     }
 
@@ -944,6 +963,7 @@ export function report(result, options) {
 // --- Entry ---------------------------------------------------------------------
 
 async function main(argv) {
+  if (wantsHelp(argv)) return console.log(usage(import.meta.url));
   const options = parseOptions(argv);
   if (options.errors.length) {
     for (const error of options.errors) console.error(error);

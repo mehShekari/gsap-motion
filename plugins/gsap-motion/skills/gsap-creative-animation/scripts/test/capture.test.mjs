@@ -23,8 +23,50 @@ import {
   prepareOut,
   probe,
   report,
+  scrollExpression,
+  scrollNote,
   undone,
+  usage,
 } from "../capture-motion.mjs";
+
+/**
+ * A scroll to a selector, run against a stand-in page: a real one put a
+ * `display: none` copy first, and the scroll went nowhere and called it done.
+ */
+describe("scrolling to a selector", () => {
+  const page = (boxes) => {
+    const window = { scrollY: 0 };
+    const all = boxes.map((size, i) => ({
+      getBoundingClientRect: () => ({ width: size, height: size }),
+      scrollIntoView: () => (window.scrollY = 1000 * (i + 1)),
+    }));
+    const run = new Function(
+      "document", "window", "getComputedStyle", "requestAnimationFrame",
+      `return ${scrollExpression(".target")};`,
+    );
+    return run({ querySelectorAll: () => all }, window, () => ({ visibility: "visible" }), (fn) => fn());
+  };
+
+  test("lands on the first match with a box, and says which it was", async () => {
+    const moved = await page([0, 10, 10]);
+    assert.deepEqual(moved, { matches: 3, index: 1, y: 2000 });
+    assert.equal(scrollNote(moved), "scroll: to 2000px (match 2 of 3; the earlier ones have no box)");
+    assert.equal(scrollNote({ matches: 1, index: 0, y: 40 }), "scroll: to 40px");
+    assert.equal(scrollNote({ y: 300 }), "scroll: to 300px");
+  });
+
+  test("is not done when no match has a box", async () => {
+    const moved = await page([0, 0]);
+    assert.equal(undone({ type: "scroll", value: ".target" }, moved), "scroll: .target matched 2 elements, none with a box on screen");
+  });
+});
+
+test("--help prints the Usage section of the script's own header", () => {
+  const text = usage(new URL("../capture-motion.mjs", import.meta.url));
+  assert.match(text, /^Usage/);
+  assert.match(text, /--scroll <px\|sel>/);
+  assert.doesNotMatch(text, /^ ?\*/m);
+});
 
 describe("steps that did nothing", () => {
   const click = { type: "click", value: ".toggle" };
@@ -250,6 +292,15 @@ describe("inspect report", () => {
       plain,
     );
     assert.match(text, /1 element carries GSAP's cache/);
+  });
+
+  test("does not claim GSAP touched the page when no element carries its cache", () => {
+    const text = report(
+      { ...base, timeline: { readable: false, version: "3.15.0", controlled: 0 } },
+      plain,
+    );
+    assert.match(text, /No element carries GSAP's cache yet/);
+    assert.doesNotMatch(text, /0 elements carry/);
   });
 
   test("still reads a timeline it can reach", () => {

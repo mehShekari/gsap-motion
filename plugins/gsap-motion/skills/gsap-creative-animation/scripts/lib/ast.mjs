@@ -612,18 +612,26 @@ export function gsapContexts(root) {
    *
    * In place: called right there, an array method's callback, GSAP's own
    * callbacks (`on…` keys, `.add`, `.call`, which GSAP runs in the context),
-   * the cleanup the body returns, or a named function only ever called.
+   * the cleanup the body returns, or a named function every use of which is
+   * one of the first three. A real project called `takeOver()` and also passed
+   * it as `onComplete: takeOver`; read as "only ever called", that second use
+   * made it deferred, and its tween an unmanaged instance.
    */
   const ITERATORS = new Set(["forEach", "map", "filter", "flatMap", "reduce", "reduceRight", "some", "every", "find", "findIndex", "sort"]);
-  const runsInPlace = (fn) => {
-    const parent = parentOf(root, fn);
-    if (!parent) return false;
-    if (parent.type === "CallExpression") {
-      if (unwrap(parent.callee) === fn) return true;
+  /** Whether `node`, a function or a name for one, is called or handed on where it stands. */
+  const calledHere = (node, parent) => {
+    if (parent?.type === "CallExpression") {
+      if (unwrap(parent.callee) === node) return true;
       const name = methodName(parent) ?? bareName(parent);
       return ITERATORS.has(name) || name === "add" || name === "call" || isHook(parent) || safe.has(name) || calleeName(parent) === "gsap.context";
     }
-    if (parent.type === "Property") return /^on[A-Z]/.test(keyName(parent) ?? "");
+    /** Shorthand `{ onComplete }` reads its one name twice, as key and as value. */
+    return parent?.type === "Property" && (parent.value === node || parent.shorthand) && /^on[A-Z]/.test(keyName(parent) ?? "");
+  };
+  const runsInPlace = (fn) => {
+    const parent = parentOf(root, fn);
+    if (!parent) return false;
+    if (parent.type === "CallExpression" || parent.type === "Property") return calledHere(fn, parent);
     if (parent.type === "ReturnStatement" || (parent.type === "ArrowFunctionExpression" && parent.body === fn)) return true;
     const bound =
       parent.type === "VariableDeclarator" && parent.id.type === "Identifier" && unwrap(parent.init) === fn
@@ -633,10 +641,7 @@ export function gsapContexts(root) {
           : null;
     if (!bound) return false;
     const uses = findAll(root, (n) => n.type === "Identifier" && n.name === bound && isReference(root, n));
-    return uses.every((id) => {
-      const call = parentOf(root, id);
-      return call?.type === "CallExpression" && call.callee === id;
-    });
+    return uses.every((id) => calledHere(id, parentOf(root, id)));
   };
   /** Inside `scope`, with no function between that runs later. */
   const runsWithin = (scope, node) => {

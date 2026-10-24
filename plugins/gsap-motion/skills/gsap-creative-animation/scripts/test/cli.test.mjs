@@ -82,6 +82,19 @@ export function show(el) {
       "src/other.ts": 'import { fadeIn } from "./fadeIn";\nexport const go = (el) => fadeIn(el);\n',
     });
     assert.ok(rules(uncovered).includes("missing-reduced-motion"));
+
+    /** Given the helper alone, the callers were never read, and the finding says so. */
+    const [alone] = json(run("audit-gsap.mjs", ["src/fadeIn.ts", "--json"], covered));
+    assert.equal(alone.rule, "missing-reduced-motion");
+    assert.match(alone.hint, /Not every file that imports this one was read here/);
+    const [whole] = json(run("audit-gsap.mjs", ["src", "--json"], uncovered)).filter((f) => f.rule === "missing-reduced-motion");
+    assert.doesNotMatch(whole.hint, /Not every file/);
+  });
+
+  test("--help prints usage and exits 0", () => {
+    const result = run("audit-gsap.mjs", ["--help"], project({ "src/a.ts": "export {};\n" }));
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /^Usage/);
   });
 
   /**
