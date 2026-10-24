@@ -14,7 +14,63 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { frameName, parseOptions, pointable, prepareOut, probe, report } from "../capture-motion.mjs";
+import {
+  exitFor,
+  frameName,
+  parseOptions,
+  parseViewport,
+  pointable,
+  prepareOut,
+  probe,
+  report,
+  undone,
+} from "../capture-motion.mjs";
+
+describe("steps that did nothing", () => {
+  const click = { type: "click", value: ".toggle" };
+
+  test("are named, with how many matched", () => {
+    assert.equal(undone(click, { invalid: true }), "click: .toggle is not a valid selector");
+    assert.equal(undone(click, { matches: 0 }), "click: nothing matched .toggle");
+    assert.equal(
+      undone(click, { matches: 2, index: -1 }),
+      "click: .toggle matched 2 elements, none with a box on screen",
+    );
+    assert.equal(undone(click, { matches: 2, index: 1, x: 10, y: 10, width: 5, height: 5 }), null);
+  });
+
+  test("fail the run: 2 for an invalid selector, 3 for a step that did nothing", () => {
+    assert.equal(exitFor([]), 0);
+    assert.equal(exitFor(["hover: nothing matched a"]), 3);
+    assert.equal(exitFor(["hover: nothing matched a", "click: . is not a valid selector"]), 2);
+  });
+
+  test("come last in the report, after everything a reader might cut", () => {
+    const text = report(
+      { url: "u", frames: [], timeline: null, notes: [], measured: { frames: 1, layouts: 0, recalcs: 0 }, notDone: ["click: nothing matched .x"] },
+      parseOptions(["u"]),
+    );
+    assert.match(text.split("\n").at(-1), /click: nothing matched \.x/);
+  });
+});
+
+describe("the viewport", () => {
+  test("is set with --viewport WxH, and never together with --mobile", () => {
+    assert.deepEqual(parseViewport("1440x900"), { width: 1440, height: 900 });
+    assert.equal(parseViewport("wide"), null);
+    assert.deepEqual(parseOptions(["u", "--viewport", "1440x900"]).viewport, { width: 1440, height: 900 });
+    assert.match(parseOptions(["u", "--viewport", "big"]).errors.join(" "), /--viewport/);
+    assert.match(parseOptions(["u", "--viewport", "1440x900", "--mobile"]).errors.join(" "), /--mobile/);
+  });
+
+  test("is printed in every report", () => {
+    const text = report(
+      { url: "u", frames: [], timeline: null, notes: [], measured: { frames: 1, layouts: 0, recalcs: 0 }, viewport: { width: 758, height: 482 } },
+      parseOptions(["u"]),
+    );
+    assert.match(text, /viewport: 758x482/);
+  });
+});
 
 describe("where frames go", () => {
   test("the default folder ignores itself, and nothing else is touched", () => {

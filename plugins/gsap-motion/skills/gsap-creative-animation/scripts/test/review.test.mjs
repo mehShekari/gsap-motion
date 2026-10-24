@@ -407,6 +407,11 @@ describe("grouping seams into events", () => {
     assert.equal(events.length, 2);
   });
 
+  test("says where the torn element was, since its key can name hundreds", () => {
+    const [event] = seamEvents([{ key: "div.absolute", box: [120.4, 80, 300, 40], seams: [{ at: 2162, jump: 466 }] }]);
+    assert.deepEqual(event.box, [120.4, 80, 300, 40]);
+  });
+
   test("a page with no seams has no events", () => {
     assert.deepEqual(seamEvents([]), []);
   });

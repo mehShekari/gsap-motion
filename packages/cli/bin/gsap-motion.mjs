@@ -74,12 +74,14 @@ Commands
     --morph <a> <b>     Compare a morph pair
     --hues              Also report hard-coded hues
   inspect <url>         Watch a page animate and report what it did
-    --at 0,300,900      When to capture, in ms after the page settles
+    --at 0,300,900      When to capture, in ms after --wait
+    --wait 400          A fixed wait after navigation; it does not detect a loader
     --scroll <px|sel>   Scroll before capturing
     --hover <selector>  Move the pointer onto an element
     --click <selector>  Click an element
     --reduced --dark    Emulate a preference
     --mobile            390x844 with touch input
+    --viewport 1440x900 The window's size; every report prints the one used
     --cpu 4             Throttle the CPU by this factor
     --headed            A visible Chrome on the GPU, for WebGL pages
     --seek <name>       Call window.<name>(t) before each capture; --at is
@@ -96,6 +98,7 @@ Commands
     --scroll <px|sel>   Scroll, then watch again
     --reduced --dark    Emulate a preference
     --mobile            390x844 with touch input
+    --viewport 1440x900 The window's size; every report prints the one used
     --cpu 4             Throttle the CPU by this factor
     --headed            A visible Chrome on the GPU, for WebGL pages
     --out <dir>         Save a frame alongside the measurements

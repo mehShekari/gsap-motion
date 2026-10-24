@@ -75,6 +75,15 @@ Reach the state first, and change the conditions that usually break things:
 - `--reduced`, `--dark`, `--mobile`, `--cpu 4`. `--mobile` makes input touch,
   so it cannot be combined with `--hover`: a coarse pointer has no hover, which
   is the thing worth knowing.
+- `--viewport 1440x900` for a desktop layout. Without it the window is whatever
+  headless Chrome opens at — about 760×480 — where many sites switch to their
+  compact layout. Every report prints the viewport it ran at.
+- `--wait` is a fixed wait after navigation; it does not detect a loader. Raise
+  it, or use `--seek`.
+- **A step that did nothing fails the run.** Nothing matched, no match on
+  screen, or an invalid selector: it is listed last, under *Not done*, and the
+  run exits 3 — 2 for an invalid selector. A hidden match is passed over for
+  the next one, and one off screen is scrolled to first.
 - **Cost on a production build, not the dev server.** In development React's
   StrictMode mounts every effect twice — two contexts, two WebGL contexts — and
   the bundle is unminified, so what a dev server measures is not what ships.

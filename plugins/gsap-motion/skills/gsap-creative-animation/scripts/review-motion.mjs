@@ -27,7 +27,16 @@ import { writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { connect, findChrome, gpuNote, prepareOut } from "./capture-motion.mjs";
+import {
+  connect,
+  exitFor,
+  findChrome,
+  gpuNote,
+  parseViewport,
+  prepareOut,
+  scrollExpression,
+  undone,
+} from "./capture-motion.mjs";
 
 // --- What a recording means ---------------------------------------------------
 
@@ -201,7 +210,7 @@ export function afterScroll(found, scrolledAt, { settle = 300 } = {}) {
  */
 export function seamEvents(torn, { window = 50 } = {}) {
   const flat = torn.flatMap((element) =>
-    element.seams.map((seam) => ({ key: element.key, at: seam.at, jump: seam.jump })),
+    element.seams.map((seam) => ({ key: element.key, box: element.box, at: seam.at, jump: seam.jump })),
   );
   flat.sort((a, b) => a.at - b.at);
 
@@ -217,6 +226,7 @@ export function seamEvents(torn, { window = 50 } = {}) {
     events.push({
       at: seam.at,
       elements: new Set([seam.key]),
+      box: seam.box,
       least: seam.jump,
       most: seam.jump,
     });
@@ -226,6 +236,12 @@ export function seamEvents(torn, { window = 50 } = {}) {
     at: event.at,
     count: event.elements.size,
     example: [...event.elements][0],
+    /**
+     * Where the example was on screen, as [x, y, width, height]. A key like
+     * `div.absolute` names hundreds of elements in a Tailwind project; a real
+     * report could not find the one that tore.
+     */
+    box: event.box ?? null,
     least: event.least,
     most: event.most,
   }));
@@ -282,6 +298,7 @@ export function parseOptions(argv) {
     watch: 3000,
     scroll: null,
     mobile: false,
+    viewport: null,
     reduced: false,
     dark: false,
     cpu: 1,
@@ -337,6 +354,12 @@ export function parseOptions(argv) {
       case "--mobile":
         options.mobile = true;
         break;
+      case "--viewport": {
+        const size = parseViewport(next());
+        if (size) options.viewport = size;
+        else options.errors.push("--viewport takes a width and height, such as --viewport 1440x900.");
+        break;
+      }
       case "--reduced":
         options.reduced = true;
         break;
@@ -363,6 +386,9 @@ export function parseOptions(argv) {
   /** A probe is printed, not run, so it needs no page. */
   if (options.url === null && options.probe === null) {
     options.errors.push("No URL. Pass the page to review.");
+  }
+  if (options.mobile && options.viewport) {
+    options.errors.push("--mobile sets its own viewport; drop one of --mobile and --viewport.");
   }
   return options;
 }
@@ -606,6 +632,9 @@ async function watch(options) {
       });
       await call("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
     }
+    if (options.viewport) {
+      await call("Emulation.setDeviceMetricsOverride", { ...options.viewport, deviceScaleFactor: 1, mobile: false });
+    }
     if (options.cpu > 1) await call("Emulation.setCPUThrottlingRate", { rate: options.cpu });
 
     await call("Page.addScriptToEvaluateOnNewDocument", { source: RECORDER });
@@ -614,19 +643,13 @@ async function watch(options) {
     await call("Page.navigate", { url: options.url });
     await wait(options.watch);
 
+    const notDone = [];
     if (options.scroll !== null) {
-      const pixels = asNumber(options.scroll);
-      const moved = await evaluate(
-        pixels === null
-          ? `(() => {
-              const element = document.querySelector(${JSON.stringify(options.scroll)});
-              if (!element) return null;
-              element.scrollIntoView({ block: "center" });
-              return Math.round(window.scrollY);
-            })()`
-          : `(window.scrollTo(0, ${pixels}), Math.round(window.scrollY))`,
-      );
-      notes.push(moved === null ? `scroll: nothing matched ${options.scroll}` : `scroll: to ${moved}px`);
+      const step = { type: "scroll", value: options.scroll };
+      const moved = await evaluate(scrollExpression(options.scroll));
+      const missed = undone(step, moved);
+      if (missed) notDone.push(missed);
+      else notes.push(`scroll: to ${moved.y}px`);
       await wait(options.watch);
     }
 
@@ -658,6 +681,7 @@ async function watch(options) {
       recalcs: delta("RecalcStyleCount"),
       shot,
       notes,
+      notDone,
     };
   } finally {
     await browser.close();
@@ -678,6 +702,7 @@ export function conclude(result) {
   /** One track per element, to find the loops that tear. */
   const tracks = new Map();
   const named = new Map();
+  const boxes = new Map();
   for (const frame of log) {
     for (const moved of frame.moved) {
       const id = moved.id ?? moved.key;
@@ -685,6 +710,7 @@ export function conclude(result) {
       track.push({ at: frame.at, x: moved.x });
       tracks.set(id, track);
       named.set(id, moved.key);
+      boxes.set(id, moved.box);
     }
   }
   const scrolledAt = log.filter((frame) => frame.scrolled).map((frame) => frame.at);
@@ -694,7 +720,12 @@ export function conclude(result) {
     if (track.length < 20) continue;
     const found = afterScroll(seams(track), scrolledAt);
     if (found.length) {
-      torn.push({ key: named.get(key) ?? key, seams: found.slice(0, 3), frames: track.length });
+      torn.push({
+        key: named.get(key) ?? key,
+        box: boxes.get(key) ?? null,
+        seams: found.slice(0, 3),
+        frames: track.length,
+      });
     }
   }
 
@@ -775,6 +806,8 @@ export function report(result, options) {
     options.headed && "headed, on the GPU",
   ].filter(Boolean);
   if (emulated.length) lines.push(`  as: ${emulated.join(", ")}`);
+  const { viewport } = result.recorded;
+  if (viewport) lines.push(`  viewport: ${viewport.width}x${viewport.height}`);
   for (const note of result.notes) lines.push(`  ${note}`);
   const gpu = gpuNote(found.canvases, options);
   if (gpu) lines.push(`  ${gpu}`);
@@ -787,7 +820,7 @@ export function report(result, options) {
     lines.push(`  first motion at ${found.firstMotion}ms`);
     lines.push(
       `  ${found.movers} elements moved, ${found.gsapMovers} of them GSAP's` +
-        `${found.movers > found.gsapMovers ? " (the rest is CSS, which the source audit cannot see)" : ""}`,
+        `${found.movers > found.gsapMovers ? " (the rest is CSS, Web Animations or other script, which the source audit cannot see)" : ""}`,
     );
     if (found.spread) lines.push(`  they started over a span of ${found.spread}ms`);
   }
@@ -838,9 +871,10 @@ export function report(result, options) {
     lines.push("", "Seams — a step far larger than the motion's own rhythm");
     for (const event of found.seams.slice(0, 6)) {
       const size = event.least === event.most ? `${event.most}px` : `${event.least}-${event.most}px`;
+      const where = event.box ? ` at ${event.box.map(Math.round).join(",")}` : "";
       lines.push(
         `  ${event.at}ms  ${event.count === 1 ? event.example : `${event.count} elements (${event.example})`}` +
-          ` jumps ${size}`,
+          `${where} jumps ${size}`,
       );
     }
   }
@@ -855,6 +889,11 @@ export function report(result, options) {
   if (result.shot) lines.push("", `Frame: ${result.shot}`);
 
   lines.push("", "These are measurements. Composition, rhythm and taste are yours to judge.");
+  /** Last, so a reader who sees only the end still sees it. */
+  if (result.notDone?.length) {
+    lines.push("", "Not done — the run exits non-zero");
+    for (const line of result.notDone) lines.push(`  ${line}`);
+  }
   return lines.join("\n");
 }
 
@@ -877,9 +916,10 @@ async function main(argv) {
     const result = await watch(options);
     console.log(
       options.json
-        ? JSON.stringify({ url: result.url, ...conclude(result) }, null, 2)
+        ? JSON.stringify({ url: result.url, ...conclude(result), notDone: result.notDone }, null, 2)
         : report(result, options),
     );
+    process.exitCode = exitFor(result.notDone);
   } catch (error) {
     console.error(error.message);
     process.exit(1);

@@ -6,7 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **`--viewport WxH`, on `inspect` and `review`, and the viewport in every
+  report.** Without it the window is whatever headless Chrome opens at, about
+  760×480, where two projects' pages had switched to their compact layout
+  without a word in the output.
+
 ### Changed
+
+- **A step that did nothing fails the run.** A hover, click or scroll that
+  matched nothing, matched nothing on screen, or used an invalid selector used
+  to leave a note mid-report and exit 0; two projects lost a round to it, one
+  reading the output through `| tail`. It is now listed last, under *Not done*,
+  and the run exits 3 — 2 for an invalid selector. `--json` carries `notDone`.
+- **`--hover` and `--click` use the first match a pointer can reach.** A hidden
+  or boxless match is passed over for the next, and one outside the viewport is
+  scrolled into it first; the note says which match, of how many.
+- **Scrolling is instant, and its position is read after it lands.** On a page
+  with `scroll-behavior: smooth` every scroll reported 0px and frames were
+  caught mid-travel.
+- **Honest wording.** `--at` counts from a fixed `--wait`, which detects no
+  loader; `review` no longer calls all non-GSAP motion "CSS"; and a seam names
+  where its element was on screen, since `div.absolute` names hundreds.
 
 - **`react.md`: what `contextSafe` costs.** The context keeps every tween the
   wrapped function makes, killed ones too, until it reverts, so a handler that

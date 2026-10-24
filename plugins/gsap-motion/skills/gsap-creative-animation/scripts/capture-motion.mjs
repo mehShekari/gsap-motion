@@ -17,8 +17,11 @@
  * Usage, from the project root:
  *   node <skill-dir>/scripts/capture-motion.mjs <url> [options]
  *
- *   --at 0,300,900        when to capture, in ms after the page settles
- *   --wait 400            settle time before the first capture (default 400)
+ *   --at 0,300,900        when to capture, in ms after --wait
+ *   --wait 400            a fixed wait after navigation, before any step or
+ *                         capture (default 400). It does not detect a loader.
+ *   --viewport 1440x900   the window's size; the default is whatever headless
+ *                         Chrome opens at, and every report prints it
  *   --out <dir>           where frames go (default .gsap-motion/inspect)
  *   --scroll <px|sel>     scroll before capturing: a number, or to a selector
  *   --hover <selector>    move the pointer onto an element, at its live box
@@ -188,6 +191,7 @@ export function parseOptions(argv) {
     reduced: false,
     dark: false,
     mobile: false,
+    viewport: null,
     cpu: 1,
     json: false,
     chrome: null,
@@ -242,6 +246,12 @@ export function parseOptions(argv) {
       case "--mobile":
         options.mobile = true;
         break;
+      case "--viewport": {
+        const size = parseViewport(value());
+        if (size) options.viewport = size;
+        else options.errors.push("--viewport takes a width and height, such as --viewport 1440x900");
+        break;
+      }
       case "--cpu": {
         const rate = asNumber(value());
         if (rate === null || rate < 1) options.errors.push("--cpu takes a factor of 1 or more");
@@ -283,6 +293,10 @@ export function parseOptions(argv) {
   /** Seeking makes `--at` timeline seconds, so the millisecond default would mean minutes. */
   if (options.seek && !options.atGiven) {
     options.errors.push("--seek needs --at, in seconds of the timeline, such as --at 3,3.3,3.6");
+  }
+
+  if (options.mobile && options.viewport) {
+    options.errors.push("--mobile sets its own viewport; drop one of --mobile and --viewport.");
   }
 
   /** A coarse pointer has no hover; emulating both would measure something no device is. */
@@ -382,13 +396,96 @@ const SETTLED = "new Promise((done) => requestAnimationFrame(() => requestAnimat
 export const frameName = (at, options) =>
   options.seek ? `frame-${at.toFixed(3).padStart(8, "0")}s.png` : `frame-${String(at).padStart(5, "0")}ms.png`;
 
-/** The live box of a selector, so a pointer lands on an element that is moving. */
-const boxOf = (selector) => `(() => {
-  const element = document.querySelector(${JSON.stringify(selector)});
-  if (!element) return null;
-  const box = element.getBoundingClientRect();
-  return { x: box.x + box.width / 2, y: box.y + box.height / 2, width: box.width, height: box.height };
+/**
+ * The first match a pointer can reach, read live so it lands on an element that
+ * is moving. Three real pages defeated "the first match": a header holding two
+ * copies of a button with the first in a collapsed container, five links of
+ * which only the last was on screen, and a match scrolled out of the viewport,
+ * where the pointer landed at a negative y and the run still said it clicked.
+ * So every match is tried in order, one with no box or hidden is passed over,
+ * and one outside the viewport is scrolled into it first. An invalid selector
+ * is said to be one, rather than matching nothing.
+ */
+export const pointAt = (selector) => `(() => {
+  let all;
+  try {
+    all = [...document.querySelectorAll(${JSON.stringify(selector)})];
+  } catch {
+    return { invalid: true };
+  }
+  const shown = (el) => {
+    const box = el.getBoundingClientRect();
+    return box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== "hidden";
+  };
+  const index = all.findIndex(shown);
+  if (index === -1) return { matches: all.length, index };
+  const el = all[index];
+  let box = el.getBoundingClientRect();
+  const inView = box.bottom > 0 && box.right > 0 && box.top < innerHeight && box.left < innerWidth;
+  if (!inView) {
+    el.scrollIntoView({ block: "center", behavior: "instant" });
+    box = el.getBoundingClientRect();
+  }
+  const clamp = (v, max) => Math.min(max - 1, Math.max(0, v));
+  return {
+    matches: all.length,
+    index,
+    scrolled: !inView,
+    x: clamp(box.x + box.width / 2, innerWidth),
+    y: clamp(box.y + box.height / 2, innerHeight),
+    width: box.width,
+    height: box.height,
+  };
 })()`;
+
+/**
+ * Scrolls instantly, then reports where the page is once two frames have drawn.
+ * A page with `scroll-behavior: smooth` used to animate the jump, so the
+ * position was read as 0 while it travelled, and frames were captured mid-way.
+ */
+export function scrollExpression(value) {
+  const pixels = /^\d+$/.test(String(value)) ? Number(value) : null;
+  const move =
+    pixels === null
+      ? `let el;
+    try { el = document.querySelector(${JSON.stringify(value)}); } catch { done({ invalid: true }); return; }
+    if (!el) { done({ matches: 0 }); return; }
+    el.scrollIntoView({ block: "center", behavior: "instant" });`
+      : `window.scrollTo({ top: ${pixels}, behavior: "instant" });`;
+  return `new Promise((done) => {
+    ${move}
+    requestAnimationFrame(() => requestAnimationFrame(() => done({ y: Math.round(window.scrollY) })));
+  })`;
+}
+
+/** What a step that did nothing says, or null when it did something. */
+export function undone(step, result) {
+  if (result?.invalid) return `${step.type}: ${step.value} is not a valid selector`;
+  if (!result || result.matches === 0) return `${step.type}: nothing matched ${step.value}`;
+  if (result.index === -1) {
+    const n = result.matches;
+    return `${step.type}: ${step.value} matched ${n} element${n === 1 ? "" : "s"}, none with a box on screen`;
+  }
+  return null;
+}
+
+/**
+ * The exit code a run earns: 2 for an invalid selector, 3 when a step asked for
+ * did nothing, 0 otherwise. A step that did nothing used to leave a note in the
+ * middle of the report and exit 0, which a script — or a reader with `| tail` —
+ * took as done.
+ */
+export const exitFor = (notDone) =>
+  notDone.some((line) => line.endsWith("is not a valid selector")) ? 2 : notDone.length ? 3 : 0;
+
+/** `--viewport 1440x900`, as numbers, or null. */
+export function parseViewport(text) {
+  const match = /^(\d{2,5})x(\d{2,5})$/.exec(String(text ?? ""));
+  return match ? { width: Number(match[1]), height: Number(match[2]) } : null;
+}
+
+/** What the page measured itself at, for every report: a default nobody chose is still a size. */
+export const VIEWPORT = "({ width: innerWidth, height: innerHeight })";
 
 // --- Where output goes -------------------------------------------------------
 
@@ -483,6 +580,9 @@ async function capture(options) {
       });
       await call("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
     }
+    if (options.viewport) {
+      await call("Emulation.setDeviceMetricsOverride", { ...options.viewport, deviceScaleFactor: 1, mobile: false });
+    }
 
     if (options.cpu > 1) await call("Emulation.setCPUThrottlingRate", { rate: options.cpu });
 
@@ -492,36 +592,20 @@ async function capture(options) {
     await call("Page.navigate", { url: options.url });
     await wait(options.wait);
 
+    const notDone = [];
     for (const step of options.steps) {
       if (step.type === "scroll") {
-        const pixels = asNumber(step.value);
-        const moved = await evaluate(
-          pixels === null
-            ? `(() => {
-                const element = document.querySelector(${JSON.stringify(step.value)});
-                if (!element) return null;
-                element.scrollIntoView({ block: "center" });
-                return Math.round(window.scrollY);
-              })()`
-            : `(window.scrollTo(0, ${pixels}), Math.round(window.scrollY))`,
-        );
-        notes.push(
-          moved === null
-            ? `scroll: nothing matched ${step.value}`
-            : `scroll: to ${moved}px`,
-        );
+        const moved = await evaluate(scrollExpression(step.value));
+        const missed = undone(step, moved);
+        if (missed) notDone.push(missed);
+        else notes.push(`scroll: to ${moved.y}px`);
       }
 
       if (step.type === "hover" || step.type === "click") {
-        const box = await evaluate(boxOf(step.value));
-        if (!box) {
-          notes.push(`${step.type}: nothing matched ${step.value}`);
-          continue;
-        }
-        if (!pointable(box)) {
-          notes.push(
-            `${step.type}: ${step.value} matched an element with no box on screen, so nothing was done`,
-          );
+        const box = await evaluate(pointAt(step.value));
+        const missed = undone(step, box) ?? (pointable(box) ? null : undone(step, { ...box, index: -1 }));
+        if (missed) {
+          notDone.push(missed);
           continue;
         }
         /**
@@ -550,8 +634,10 @@ async function capture(options) {
             });
           }
         }
+        const which = box.matches > 1 ? ` (match ${box.index + 1} of ${box.matches})` : "";
         notes.push(
-          `${step.type}: ${step.value} at ${Math.round(box.x)},${Math.round(box.y)}`,
+          `${step.type}: ${step.value}${which} at ${Math.round(box.x)},${Math.round(box.y)}` +
+            (box.scrolled ? ", scrolled into view first" : ""),
         );
         await wait(120);
       }
@@ -587,6 +673,7 @@ async function capture(options) {
       "({ frames: window.__gsapMotionFrames ?? null, since: window.__gsapMotionStart ?? null })",
     );
     const canvases = await evaluate("document.querySelectorAll(\"canvas\").length");
+    const viewport = await evaluate(VIEWPORT);
     const after = await call("Performance.getMetrics");
 
     const delta = (name) => {
@@ -611,7 +698,7 @@ async function capture(options) {
       overMs: span,
     };
 
-    return { url: options.url, frames, timeline, measured, notes, canvases, chrome: executable };
+    return { url: options.url, frames, timeline, measured, notes, notDone, canvases, viewport, chrome: executable };
   } finally {
     await browser.close();
   }
@@ -631,6 +718,7 @@ export function report(result, options) {
     options.seek && `seeking with window.${options.seek}`,
   ].filter(Boolean);
   if (emulated.length) lines.push(`  as: ${emulated.join(", ")}`);
+  if (result.viewport) lines.push(`  viewport: ${result.viewport.width}x${result.viewport.height}`);
   for (const note of result.notes) lines.push(`  ${note}`);
   const gpu = gpuNote(result.canvases, options);
   if (gpu) lines.push(`  ${gpu}`);
@@ -681,6 +769,11 @@ export function report(result, options) {
       ` · ${measured.recalcs} style recalculations (${measured.recalcSeconds}s)`,
   );
   lines.push("", "These are observations. What they mean is yours to judge.");
+  /** Last, so a reader who sees only the end still sees it. */
+  if (result.notDone?.length) {
+    lines.push("", "Not done — the run exits non-zero");
+    for (const line of result.notDone) lines.push(`  ${line}`);
+  }
 
   return lines.join("\n");
 }
@@ -704,6 +797,7 @@ async function main(argv) {
   try {
     const result = await capture(options);
     console.log(options.json ? JSON.stringify(result, null, 2) : report(result, options));
+    process.exitCode = exitFor(result.notDone);
   } catch (error) {
     console.error(error.message);
     process.exit(1);
