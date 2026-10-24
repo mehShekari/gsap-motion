@@ -672,6 +672,27 @@ export function Card({ ctx }) {
     }
   });
 
+  /** A real project kept the work on a ref and called it from the listener. */
+  test("fires through a function kept on a ref and called as ref.current()", () => {
+    fires(
+      "tween-per-event",
+      `${REACT}
+export function Tilt() {
+  const box = useRef(null);
+  const pulse = useRef(() => {});
+  useGSAP(() => {
+    pulse.current = () => {
+      gsap.to(box.current, { scale: 1.05, duration: 0.8, overwrite: "auto" });
+    };
+    const onMove = () => pulse.current();
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
+  }, { scope: box });
+  return <div ref={box} />;
+}`,
+    );
+  });
+
   test("stays quiet on a quickTo called through contextSafe", () => {
     quiet(
       "tween-per-event",

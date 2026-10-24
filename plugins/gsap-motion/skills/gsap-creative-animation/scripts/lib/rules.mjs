@@ -54,7 +54,7 @@ const HINT = {
   stackedFrom:
     "A `from` or `fromTo` applies its start state the moment it is built. Built more than once against the same element, the last one wins, and holds that element at its start state until the playhead reaches it — invisible, if the start state hides it. Pass `immediateRender: false`, and set the element's first state yourself with `gsap.set`.",
   orphanTween:
-    "Nothing reverts it on unmount, and React StrictMode runs it twice in development. Move it into the useGSAP body, or wrap the handler in contextSafe. A helper counts as inside only when every use of it is a call from inside a context. Note that contextSafe keeps every tween it creates until the context reverts: a handler that runs often should replay a timeline built once, or call a quickTo.",
+    "Nothing reverts it on unmount, and React StrictMode may run it twice in development. Move it into the useGSAP body, or wrap the handler in contextSafe. A helper counts as inside only when every use of it is a call from inside a context. Note that contextSafe keeps every tween it creates until the context reverts: a handler that runs often should replay a timeline built once, or call a quickTo.",
   unmanagedInstance:
     "Inside a context these register themselves and are reverted with it. Out here nothing is watching: move it into the useGSAP body, or keep the instance and revert/kill it from the cleanup.",
   unrevertedContext:
@@ -250,7 +250,32 @@ function listenerMethod(node) {
  * `followNames`, a handler passed by name is followed to its declaration when
  * the file declares exactly one function of that name.
  */
-function handlersFor(ast, events, { followNames = true, perFrame = false } = {}) {
+function handlersFor(ast, events, options = {}) {
+  const direct = directHandlers(ast, events, options);
+  /**
+   * One hop through a ref: a handler that calls `pulse.current()`, where the
+   * file assigns `pulse.current = () => { … }`. A real project kept a tween on
+   * a ref and called it from a pointermove listener, and the rule read the
+   * listener as clean.
+   */
+  const viaRef = direct.flatMap((h) =>
+    findAll(h.node, (n) => n.type === "CallExpression" && unwrap(n.callee)?.type === "MemberExpression")
+      .map((call) => dottedName(unwrap(call.callee)))
+      .filter((name) => name?.endsWith(".current"))
+      .flatMap((name) =>
+        findAll(
+          ast,
+          (n) =>
+            n.type === "AssignmentExpression" &&
+            dottedName(unwrap(n.left)) === name &&
+            isFunction(unwrap(n.right)),
+        ).map((n) => ({ name: h.name, node: unwrap(n.right) })),
+      ),
+  );
+  return [...direct, ...viaRef];
+}
+
+function directHandlers(ast, events, { followNames = true, perFrame = false } = {}) {
   const handler = (expression) => {
     const node = unwrap(expression);
     if (node?.type === "CallExpression") return node;

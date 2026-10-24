@@ -48,9 +48,9 @@ Core principles:
      [motion-design.md](reference/motion-design.md) and the command's own
      reference. Nothing else.
    - **A component or section:** also this project's adapter, from
-     `package.json`: `next` → [react](adapter/react.md) +
-     [next](adapter/next.md); `@react-three/fiber` → react +
-     [r3f](adapter/r3f.md); `three` → [three](adapter/three.md); `nuxt` →
+     `package.json`: `react` → [react](adapter/react.md), plus
+     [next](adapter/next.md) with `next` or [r3f](adapter/r3f.md) with
+     `@react-three/fiber`; `three` → [three](adapter/three.md); `nuxt` →
      [vue](adapter/vue.md); `svelte` → [svelte](adapter/svelte.md); `astro` →
      [astro](adapter/astro.md) plus any island's own; nothing detected →
      [vanilla](adapter/vanilla.md).

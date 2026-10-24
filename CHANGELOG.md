@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **SKILL.md loads the React adapter for any React project.** Setup step 3
+  mapped only `next` and `@react-three/fiber` to `react.md`, so a React project
+  on Vite fell through to "nothing detected → vanilla". `react` now loads
+  `react.md`, and `next` or `@react-three/fiber` add theirs on top — what
+  `doctor` already reported.
+- **The `orphan-tween` hint says StrictMode *may* run it twice.** A ref guard
+  can make the second run a no-op.
+
+### Fixed
+
+- **A handler that calls `ref.current()` is followed.** A project kept a tween
+  on `pulse.current` and called it from a pointermove listener; every rule that
+  follows a handler now goes one hop through a function the file assigns to a
+  ref. The corpus gives no new finding.
+
 ## [4.5.0] - 2026-10-24
 
 From three more field reports, each with reproductions run against the audit
