@@ -85,6 +85,7 @@ Then `ScrollTrigger.refresh()` once the new layout settles.
 | A reveal opens over an empty box | the tween did not wait for the image to load |
 | Positions are wrong after a navigation | no `ScrollTrigger.refresh()` once it settled |
 | The exit animation never plays | written in the page the navigation unmounts |
+| An intro replays when a kept route returns | `cacheComponents` re-runs its effects; guard outside them |
 
 ## What the audit covers
 

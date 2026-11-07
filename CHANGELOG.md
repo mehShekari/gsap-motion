@@ -6,6 +6,55 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.7.0] - 2026-11-07
+
+From a field report on 4.6.2, the most thorough yet: on a real Next 16 project
+the audit said "clean" only because of 51 waivers, 31 of them for one false
+finding, while three real problems went unreported. Two rules were added, both
+`info`; no level changed, and no corpus finding changed.
+
+### Fixed
+
+- **4.6.2's `onComplete: name` fix was half done.** It covered a helper
+  declared in a context body. One declared in the component — called from
+  `useGSAP` and passed as `onComplete: settle` — went through a second check that
+  still wanted direct calls only, and was still an `orphan-tween` error. Both
+  checks now read a hand-off to GSAP the same way.
+- **`missing-reduced-motion` recognises the skill's own pattern.**
+  reference/accessibility.md teaches `mm.add(QUERIES, (context) => …)` reading
+  `context.conditions.reduced`; with the conditions object in a shared module,
+  the audit saw no branch. It now reads `conditions.reduced` (or any key with
+  `reduce` in it), destructured or not, and `matchMedia(MOTION_QUERIES.motion)`.
+  The single-file hint no longer promises a folder audit will be quiet.
+- **`inspect` and `review` say what the page did after the steps.** A scroll
+  the page moved by the last frame, and a click that navigated, are now noted;
+  a report's frames showed the top of a page under `scroll: to 1576px`.
+
+### Added
+
+- **`stacked-runs`** (`info`): a `useGSAP` with `dependencies` and no
+  `revertOnUpdate` whose body builds a `matchMedia`, `ScrollTrigger`, `Observer`
+  or another live instance. @gsap/react adds every run to the same context and
+  reverts it only at unmount, so earlier runs keep working. Found 23 times on the
+  project the report came from, mostly on dependencies that change; `info`,
+  because whether one ever changes is not in the source.
+- **`context-safe-retention`** (`info`): a `contextSafe` handler on an event
+  `tween-per-event` does not cover — hover, focus, a custom event — that builds a
+  new tween on every call, each kept in the context until it reverts. Asked for
+  by four field reports.
+
+### Changed
+
+- **Guidance.** adapter/react.md says what `dependencies` without
+  `revertOnUpdate` keeps; the page-transition preset sets `revertOnUpdate`;
+  reference/svg.md explains that an SVG element's origin is its own bounding box
+  and when a `viewBox` camera needs `svgOrigin: "0 0"`; adapter/next.md has a row
+  for kept routes under `cacheComponents`; SKILL.md says a false finding is
+  waived with its reason and reported, where it said "never worked around"
+  while the audit said "waive it".
+- **Word budgets.** The component tier rose from 4,150 to 4,200 words and the
+  build tier from 5,200 to 5,250, to carry the two guidance additions.
+
 ## [4.6.2] - 2026-10-24
 
 From a field report on 4.6.0, and a regression 4.6.0 itself brought. No rule
@@ -1151,7 +1200,8 @@ production website.
   endless child complete. It does not; the example now hands over with `.call()`.
 - The date GSAP became free: version 3.13, in April 2025.
 
-[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.6.2...HEAD
+[Unreleased]: https://github.com/mehShekari/gsap-motion/compare/v4.7.0...HEAD
+[4.7.0]: https://github.com/mehShekari/gsap-motion/compare/v4.6.2...v4.7.0
 [4.6.2]: https://github.com/mehShekari/gsap-motion/compare/v4.6.1...v4.6.2
 [4.6.1]: https://github.com/mehShekari/gsap-motion/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/mehShekari/gsap-motion/compare/v4.5.0...v4.6.0

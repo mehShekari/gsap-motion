@@ -38,14 +38,16 @@ export function PageEnter({ children }: Readonly<{ children: React.ReactNode }>)
         ease: "power2.out",
       });
     },
-    { scope: root, dependencies: [pathname] },
+    { scope: root, dependencies: [pathname], revertOnUpdate: true },
   );
 
   return <div ref={root}>{children}</div>;
 }
 ```
 
-`dependencies: [pathname]` re-runs it per navigation. Keep the travel small —
+`dependencies: [pathname]` re-runs it per navigation, and `revertOnUpdate`
+lets each run go: without it, every navigation's tween stays in the context for
+the whole visit, because the layout never unmounts. Keep the travel small —
 the visitor asked for this page and is waiting.
 
 ## Overlay in the layout
@@ -66,7 +68,7 @@ useGSAP(() => {
     .set(curtain, { yPercent: 100 })
     .to(curtain, { yPercent: 0, duration: 0.45, ease: "power3.in" })
     .to(curtain, { yPercent: -100, duration: 0.55, ease: "power3.out" }, "+=0.05");
-}, { dependencies: [pathname] });
+}, { dependencies: [pathname], revertOnUpdate: true });
 ```
 
 This covers *after* the new route has rendered, which is a compromise — it reads

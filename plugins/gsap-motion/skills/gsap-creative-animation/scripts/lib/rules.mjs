@@ -77,6 +77,10 @@ const HINT = {
     "Delays are a choreography nobody can change: moving one beat means re-adding every number after it. Build a timeline and position each beat with a label or a relative offset — `\"<\"`, `\"-=0.2\"`.",
   danglingListener:
     "A listener that survives unmount keeps the component's closure — and its DOM nodes — alive. Name the handler and remove it in the cleanup, or pass `{ signal }` from an AbortController and abort it there.",
+  stackedRuns:
+    "Every run is added to the same context, and only unmount reverts it, so the runs before this one are still working. Pass `revertOnUpdate: true`, or build it once with no dependencies and update it in place. Dependencies that never change after mount stack nothing.",
+  contextSafeRetention:
+    "Fine for a handful of clicks. For a handler that runs hundreds of times in a visit — hover, focus, a custom event — build the timeline once in the useGSAP body and `play()`/`reverse()` it, or move a value with `gsap.quickTo`.",
   tweenPerEvent:
     "One tween allocated per event, each fighting the last. Create a `gsap.quickTo()` once and call it from the handler — or, for work that only matters once resizing stops, debounce it.",
   statePerEvent:
@@ -431,14 +435,31 @@ const readsRef = (node) =>
  */
 function hasReducedBranch(file) {
   if (findAll(file.ast, (node) => spells(node, "prefers-reduced-motion")).length) return true;
+  /**
+   * Also the pattern reference/accessibility.md teaches, with the conditions
+   * object in a shared module: `mm.add(MOTION_QUERIES, (context) => …)` reading
+   * `context.conditions.reduced`, or destructuring it. A real project waived
+   * 31 findings that were this alone.
+   */
+  const fromConditions = (node) => /(?:^|\.)conditions$/.test(dottedName(unwrap(node)) ?? "");
   return (
     findAll(file.ast, (node) => {
+      if (node.type === "MemberExpression") {
+        return /(?:^|\.)conditions\.\w*reduce\w*$/i.test(dottedName(node) ?? "");
+      }
+      if (node.type === "VariableDeclarator" && node.id.type === "ObjectPattern" && fromConditions(node.init)) {
+        return node.id.properties.some((property) => /reduce/i.test(keyName(property) ?? ""));
+      }
+      if (node.type === "Property" && keyName(node) === "conditions" && node.value.type === "ObjectPattern") {
+        return node.value.properties.some((property) => /reduce/i.test(keyName(property) ?? ""));
+      }
       if (node.type !== "CallExpression") return false;
       const name = calleeName(node)?.split(".").at(-1) ?? "";
       if (/reduced/i.test(name)) return true;
+      /** `matchMedia(REDUCED)`, or a member of a shared table: `matchMedia(MOTION_QUERIES.motion)`. */
       return (
         name === "matchMedia" &&
-        node.arguments.some((arg) => arg.type === "Identifier" && /reduced/i.test(arg.name))
+        node.arguments.some((arg) => /reduced|motion/i.test(dottedName(unwrap(arg)) ?? ""))
       );
     }).length > 0
   );
@@ -869,6 +890,21 @@ function hoverHandlers(ast) {
   return handlers;
 }
 
+const CREATORS = new Set(["Observer", "Draggable", "ScrollSmoother", "ScrollTrigger"]);
+
+/** The live instance a node builds — `matchMedia`, `Observer`, `SplitText`, … — or null. */
+function instanceLabel(node) {
+  if (node.type === "NewExpression") {
+    const callee = unwrap(node.callee);
+    return callee?.type === "Identifier" && callee.name === "SplitText" ? "SplitText" : null;
+  }
+  if (node.type !== "CallExpression") return null;
+  const name = calleeName(node);
+  if (name === "gsap.matchMedia") return "matchMedia";
+  const [owner, method, extra] = name?.split(".") ?? [];
+  return method === "create" && extra === undefined && CREATORS.has(owner) ? owner : null;
+}
+
 const SVG_TAGS = new Set([
   "svg", "g", "path", "circle", "ellipse", "rect", "line", "polyline", "polygon", "text", "tspan",
   "textPath", "use", "image", "symbol", "mask", "clipPath", "defs", "foreignObject", "marker",
@@ -1022,23 +1058,7 @@ export const RULES = [
      */
     test(file) {
       const inside = gsapContexts(file.ast);
-      const CREATORS = new Set(["Observer", "Draggable", "ScrollSmoother", "ScrollTrigger"]);
-
-      const label = (node) => {
-        if (node.type === "NewExpression") {
-          const callee = unwrap(node.callee);
-          return callee?.type === "Identifier" && callee.name === "SplitText"
-            ? "SplitText"
-            : null;
-        }
-        if (node.type !== "CallExpression") return null;
-        const name = calleeName(node);
-        if (name === "gsap.matchMedia") return "matchMedia";
-        const [owner, method, extra] = name?.split(".") ?? [];
-        return method === "create" && extra === undefined && CREATORS.has(owner)
-          ? owner
-          : null;
-      };
+      const label = instanceLabel;
       return findAll(file.ast, (node) => label(node) !== null)
         .filter((node) => !inside(node))
         .filter((node) => !tornDown(file.ast, node))
@@ -1140,6 +1160,55 @@ export const RULES = [
     },
   },
   {
+    id: "stacked-runs",
+    level: "info",
+    description:
+      "A `useGSAP` with `dependencies` and no `revertOnUpdate` whose body builds a live instance — `matchMedia`, a `ScrollTrigger`, an `Observer` — on every run",
+    /**
+     * With dependencies and no `revertOnUpdate`, @gsap/react adds each run to
+     * the same context and reverts it only at unmount (`deferCleanup`,
+     * @gsap/react 2.1). A finished tween kept there costs memory; a live
+     * instance keeps working: an old run's matchMedia still answers a media
+     * change, an old ScrollTrigger still scrubs. A real project's layout hook
+     * made a matchMedia per navigation, for the whole visit; the skill's own
+     * page-transition preset taught the shape.
+     *
+     * Dependencies read as written: an array literal with something in it,
+     * inline or as `dependencies`. Any `revertOnUpdate` but a literal `false`
+     * counts as set. One finding per hook, on the first instance.
+     *
+     * `info`: whether a dependency ever changes is not in the source. On three
+     * real projects most did — a pathname, a filter, a step — and some never
+     * would: a `ready` gate the body returns early on, a fixed `delay` prop.
+     */
+    test(file) {
+      if (!file.isReact) return [];
+      const hooks = findAll(
+        file.ast,
+        (node) => node.type === "CallExpression" && calleeName(node)?.split(".").at(-1) === "useGSAP",
+      );
+      return hooks.flatMap((call) => {
+        const [body, second] = call.arguments.map(unwrap);
+        const config = second?.type === "ObjectExpression" ? second : null;
+        const deps = second?.type === "ArrayExpression" ? second : unwrap(config && propertyOf(config, "dependencies")?.value);
+        if (deps?.type !== "ArrayExpression" || deps.elements.length === 0) return [];
+        const revert = unwrap(config && propertyOf(config, "revertOnUpdate")?.value);
+        if (revert && !(revert.type === "Literal" && revert.value === false)) return [];
+        const fn = resolveFunction(file.ast, body);
+        if (!isFunction(fn)) return [];
+        const [first] = findAll(fn, (node) => instanceLabel(node) !== null);
+        if (!first) return [];
+        return [
+          {
+            index: first.start,
+            message: `\`useGSAP\` has dependencies and no \`revertOnUpdate\`: each time one changes, the run before keeps its \`${instanceLabel(first)}\` live until unmount.`,
+            hint: HINT.stackedRuns,
+          },
+        ];
+      });
+    },
+  },
+  {
     id: "dangling-listener",
     level: "warn",
     description:
@@ -1228,6 +1297,61 @@ export const RULES = [
             hint: HINT.tweenPerEvent,
           })),
       );
+    },
+  },
+  {
+    id: "context-safe-retention",
+    level: "info",
+    description:
+      "A `contextSafe` event handler that builds a new tween on every call, each kept in the context until it reverts",
+    /**
+     * `contextSafe(fn)` is `context.add(null, fn)` (@gsap/react 2.1): each
+     * call's tween joins the context and stays, finished, until the context
+     * reverts. Four field reports measured it — 500 finished tweens from hover
+     * and focus, 600 timeline entries from a custom event — while tween-per-event
+     * saw only pointer, scroll and wheel. Those stay its own; this reads every
+     * other event the wrapped function is attached to, by `addEventListener` or
+     * a JSX `on…` prop, inline or through the name it is kept under.
+     *
+     * `info`: a click handler that runs a handful of times is the pattern GSAP
+     * documents, and is fine. The finding says what it costs, once per handler.
+     */
+    test(file) {
+      if (!file.isReact) return [];
+      const HOT_PROP = /^on(?:PointerMove|MouseMove|TouchMove|Scroll|Wheel)/;
+      const eventOf = (use) => {
+        const parent = parentOf(file.ast, use);
+        if (parent?.type === "CallExpression" && listenerMethod(parent) === "addEventListener" && unwrap(parent.arguments[1]) === use) {
+          /** A custom event is often a constant, `FILTERED_EVENT`; it is named as written. */
+          return staticString(parent.arguments[0]) ?? dottedName(unwrap(parent.arguments[0])) ?? "an event";
+        }
+        const attribute = parent?.type === "JSXExpressionContainer" ? parentOf(file.ast, parent) : null;
+        return attribute?.type === "JSXAttribute" && /^on[A-Z]/.test(attribute.name.name ?? "") ? attribute.name.name : null;
+      };
+
+      return findAll(
+        file.ast,
+        (node) => node.type === "CallExpression" && /(?:^|\.)contextSafe$/.test(calleeName(node) ?? "") && isFunction(unwrap(node.arguments[0])),
+      ).flatMap((wrapped) => {
+        const [tween] = findAll(unwrap(wrapped.arguments[0]), (node) => isGsapCall(node));
+        if (!tween) return [];
+        const holder = parentOf(file.ast, wrapped);
+        const name = holder?.type === "VariableDeclarator" && holder.id.type === "Identifier" ? holder.id.name : null;
+        const uses = name
+          ? findAll(file.ast, (node) => node.type === "Identifier" && node.name === name && node !== holder.id)
+          : [wrapped];
+        const events = uses
+          .map(eventOf)
+          .filter((event) => event && !HOT_EVENTS.has(event) && !HOT_PROP.test(event));
+        if (!events.length) return [];
+        return [
+          {
+            index: tween.start,
+            message: `\`contextSafe\` handler for ${[...new Set(events)].join(", ")} builds a new \`gsap.${methodName(tween)}\` on every call, and the context keeps each one until it reverts.`,
+            hint: HINT.contextSafeRetention,
+          },
+        ];
+      });
     },
   },
   {
@@ -1971,7 +2095,7 @@ export const RULES = [
           index: first.start,
           message: "No `prefers-reduced-motion` branch in an animating file.",
           hint: unseen
-            ? `${HINT.missingReducedMotion} Not every file that imports this one was read here; an audit of the folder reads them, and is quiet when each has the branch.`
+            ? `${HINT.missingReducedMotion} Not every file that imports this one was read here, so a branch in a caller could not clear it; an audit of the folder reads the callers.`
             : HINT.missingReducedMotion,
         },
       ];

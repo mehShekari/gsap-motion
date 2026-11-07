@@ -82,6 +82,8 @@ so a finding waived that way still fails `gsap-motion audit`.
 | `never-completes` | error | An `onComplete` that can never run: on a timeline holding a `repeat: -1` child, or on a tween or timeline that repeats forever |
 | `dev-tool-shipped` | error | `GSDevTools` or `MotionPathHelper` imported statically, or unconditional `markers: true` |
 | `ref-read-in-cleanup` | warn | `killTweensOf` given a ref's `.current` in a `useEffect` cleanup, where React has already cleared it at unmount |
+| `stacked-runs` | info | A `useGSAP` with `dependencies` and no `revertOnUpdate` whose body builds a live instance — `matchMedia`, a `ScrollTrigger`, an `Observer` — on every run |
+| `context-safe-retention` | info | A `contextSafe` event handler that builds a new tween on every call, each kept in the context until it reverts |
 | `dangling-listener` | warn | An event listener that is never removed, including inline handlers that cannot be |
 | `layout-property` | warn | Animating `width`, `height`, `top`, `left`, margins or padding, which forces layout every frame |
 | `trigger-per-item` | warn | A ScrollTrigger created per item in a loop |

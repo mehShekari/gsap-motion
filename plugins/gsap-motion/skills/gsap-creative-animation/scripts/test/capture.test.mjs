@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  afterSteps,
   exitFor,
   frameName,
   parseOptions,
@@ -59,6 +60,17 @@ describe("scrolling to a selector", () => {
     const moved = await page([0, 0]);
     assert.equal(undone({ type: "scroll", value: ".target" }, moved), "scroll: .target matched 2 elements, none with a box on screen");
   });
+});
+
+test("after the steps, says where the page moved the scroll and which URL it is on", async () => {
+  const at = (y, href) => async () => ({ y, href });
+  assert.deepEqual(await afterSteps(at(1576, "http://localhost:3000/"), 1576, "http://localhost:3000"), []);
+  assert.deepEqual(await afterSteps(at(0, "http://localhost:3000/"), 1576, "http://localhost:3000/"), [
+    "scroll: by the last frame the page was at 0px, not where the scroll landed",
+  ]);
+  assert.deepEqual(await afterSteps(at(0, "http://localhost:3000/games"), null, "http://localhost:3000/"), [
+    "now at http://localhost:3000/games",
+  ]);
 });
 
 test("--help prints the Usage section of the script's own header", () => {

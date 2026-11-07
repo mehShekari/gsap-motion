@@ -475,6 +475,22 @@ export function scrollExpression(value) {
   })`;
 }
 
+/**
+ * What the page did with the steps by the last frame: a scroll it moved, a
+ * click that navigated. A field report's frames all showed the top of a page
+ * under a note that said `scroll: to 1576px`, and a click that went to another
+ * route left the report naming the first URL.
+ */
+export async function afterSteps(evaluate, landed, url) {
+  const now = await evaluate("({ y: Math.round(window.scrollY), href: location.href })");
+  const notes = [];
+  if (landed !== null && Math.abs(now.y - landed) > 2) {
+    notes.push(`scroll: by the last frame the page was at ${now.y}px, not where the scroll landed`);
+  }
+  if (now.href !== url && now.href !== new URL(url).href) notes.push(`now at ${now.href}`);
+  return notes;
+}
+
 /** The note a scroll that happened leaves, naming the match when it was not the first. */
 export const scrollNote = (moved) =>
   `scroll: to ${moved.y}px${moved.index > 0 ? ` (match ${moved.index + 1} of ${moved.matches}; the earlier ones have no box)` : ""}`;
@@ -624,12 +640,16 @@ async function capture(options) {
     await wait(options.wait);
 
     const notDone = [];
+    let landed = null;
     for (const step of options.steps) {
       if (step.type === "scroll") {
         const moved = await evaluate(scrollExpression(step.value));
         const missed = undone(step, moved);
         if (missed) notDone.push(missed);
-        else notes.push(scrollNote(moved));
+        else {
+          notes.push(scrollNote(moved));
+          landed = moved.y;
+        }
       }
 
       if (step.type === "hover" || step.type === "click") {
@@ -702,6 +722,7 @@ async function capture(options) {
       writeFileSync(file, bytes);
       frames.push({ at, file, bytes: bytes.length });
     }
+    notes.push(...(await afterSteps(evaluate, landed, options.url)));
 
     const timeline = await evaluate(READ_TIMELINE);
     const drawn = await evaluate(

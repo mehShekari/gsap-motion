@@ -495,6 +495,36 @@ export function Film() {
     }
   });
 
+  /** 4.6.2 covered a helper declared in the body; a field report's was declared in the component. */
+  test("stays quiet on a component-level helper called and passed as onComplete from useGSAP", () => {
+    quiet(
+      "orphan-tween",
+      `${REACT}
+export function Steps() {
+  const root = useRef(null);
+  function settle() { gsap.to("[data-dot]", { scale: 1, duration: 0.2 }); }
+  useGSAP(() => {
+    settle();
+    gsap.to("[data-dot]", { scale: 1.2, onComplete: settle });
+  }, { scope: root });
+  return <div ref={root} />;
+}`,
+    );
+    fires(
+      "orphan-tween",
+      `${REACT}
+export function Steps() {
+  const root = useRef(null);
+  function settle() { gsap.to("[data-dot]", { scale: 1, duration: 0.2 }); }
+  useGSAP(() => {
+    settle();
+    window.addEventListener("resize", settle);
+  }, { scope: root });
+  return <div ref={root} />;
+}`,
+    );
+  });
+
   test("still fires on a context helper a listener calls", () => {
     fires(
       "unmanaged-instance",
@@ -596,6 +626,93 @@ export function Box() {
  * cleanup runs, so all three killed nothing, and fifteen tweens outlived their
  * component.
  */
+describe("stacked-runs", () => {
+  const hook = (options, body = `const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => gsap.to(".tab", { x: 1 }));`) => `${REACT}
+export function useTabLight(pathname) {
+  const root = useRef(null);
+  useGSAP(() => {
+    ${body}
+  }, ${options});
+  return root;
+}`;
+
+  test("fires on a matchMedia or ScrollTrigger rebuilt per dependency change", () => {
+    fires("stacked-runs", hook("{ scope: root, dependencies: [pathname] }"), { count: 1 });
+    fires("stacked-runs", hook("[pathname]"), { count: 1 });
+    fires("stacked-runs", hook("{ dependencies: [pathname], revertOnUpdate: false }"), { count: 1 });
+    fires(
+      "stacked-runs",
+      hook("{ dependencies: [pathname] }", 'ScrollTrigger.create({ trigger: ".a", start: "top top" });'),
+      { count: 1 },
+    );
+  });
+
+  test("stays quiet with revertOnUpdate, no dependencies, or only tweens", () => {
+    quiet("stacked-runs", hook("{ scope: root, dependencies: [pathname], revertOnUpdate: true }"));
+    quiet("stacked-runs", hook("{ scope: root }"));
+    quiet("stacked-runs", hook("{ dependencies: [] }"));
+    quiet("stacked-runs", hook("{ dependencies: [pathname] }", 'gsap.from(".page", { autoAlpha: 0 });'));
+  });
+});
+
+describe("context-safe-retention", () => {
+  const handler = (attach) => `${REACT}
+export function Shelf() {
+  const root = useRef(null);
+  const { contextSafe } = useGSAP({ scope: root });
+  const shake = contextSafe(() => {
+    gsap.timeline().to(".pad", { x: 4 }).to(".pad", { x: 0 });
+  });
+  ${attach}
+  return <div ref={root} onMouseEnter={undefined} />;
+}`;
+
+  test("fires on a contextSafe tween builder attached to a repeating event", () => {
+    const [finding] = fires(
+      "context-safe-retention",
+      handler('useEffect(() => { window.addEventListener("filters:change", shake); }, [shake]);'),
+      { count: 1 },
+    );
+    assert.match(finding.message, /filters:change/);
+    /** A real project's custom event was a constant. */
+    const [named] = fires(
+      "context-safe-retention",
+      handler("useEffect(() => { window.addEventListener(FILTERED_EVENT, shake); }, [shake]);"),
+      { count: 1 },
+    );
+    assert.match(named.message, /FILTERED_EVENT/);
+    fires(
+      "context-safe-retention",
+      `${REACT}
+export function Card() {
+  const root = useRef(null);
+  const { contextSafe } = useGSAP({ scope: root });
+  return <div ref={root} onMouseEnter={contextSafe(() => gsap.to(".glow", { opacity: 1 }))} />;
+}`,
+      { count: 1 },
+    );
+  });
+
+  test("stays quiet on a pointer handler, which tween-per-event owns, and on play/quickTo", () => {
+    quiet(
+      "context-safe-retention",
+      handler('useEffect(() => { window.addEventListener("pointermove", shake); }, [shake]);'),
+    );
+    quiet(
+      "context-safe-retention",
+      `${REACT}
+export function Card() {
+  const root = useRef(null);
+  const tl = useRef(null);
+  const { contextSafe } = useGSAP(() => { tl.current = gsap.timeline({ paused: true }).to(".glow", { opacity: 1 }); }, { scope: root });
+  const enter = contextSafe(() => tl.current.play());
+  return <div ref={root} onMouseEnter={enter} />;
+}`,
+    );
+  });
+});
+
 describe("ref-read-in-cleanup", () => {
   test("fires on killTweensOf through ref.current in a useEffect cleanup", () => {
     for (const cleanup of [
@@ -1530,6 +1647,40 @@ export function play(el) {
       "missing-reduced-motion",
       `${PLAIN}
 export const show = (el) => gsap.set(el, { autoAlpha: 1 });`,
+      { ext: "ts" },
+    );
+  });
+
+  /**
+   * accessibility.md's own pattern, with the conditions object in a shared
+   * module. A real project waived 31 findings that were only this.
+   */
+  test("stays quiet on conditions.reduced read from a shared query table", () => {
+    const IMPORT = `${PLAIN}import { MOTION_QUERIES } from "./motion";\n`;
+    for (const body of [
+      `gsap.matchMedia().add(MOTION_QUERIES, (context) => {
+  if (context.conditions?.reduced) return;
+  gsap.from(el, { y: 20 });
+});`,
+      `gsap.matchMedia().add(MOTION_QUERIES, (context) => {
+  const { reduceMotion } = context.conditions;
+  if (!reduceMotion) gsap.from(el, { y: 20 });
+});`,
+      `gsap.matchMedia().add(MOTION_QUERIES, ({ conditions: { reduced } }) => {
+  if (!reduced) gsap.from(el, { y: 20 });
+});`,
+      `if (window.matchMedia(MOTION_QUERIES.motion).matches) gsap.from(el, { y: 20 });`,
+    ]) {
+      quiet("missing-reduced-motion", `${IMPORT}export function play(el) {\n${body}\n}`, { ext: "ts" });
+    }
+    /** Another condition read the same way is not a reduced branch. */
+    fires(
+      "missing-reduced-motion",
+      `${IMPORT}export function play(el) {
+gsap.matchMedia().add(MOTION_QUERIES, (context) => {
+  if (context.conditions.wide) gsap.from(el, { y: 20 });
+});
+}`,
       { ext: "ts" },
     );
   });

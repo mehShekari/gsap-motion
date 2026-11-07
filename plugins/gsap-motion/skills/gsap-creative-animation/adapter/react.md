@@ -31,6 +31,7 @@ export function useReveal() {
 It is a layout effect, so it runs **before paint**: a `from` or a `set` lands
 with no flash of the end state. Its options are `scope`, `dependencies` (the
 body re-runs on change) and `revertOnUpdate` (the previous run reverts first).
+Without it each run's tweens and `matchMedia` stay, live, until unmount.
 
 A tween created *outside* the body — in a handler, a promise, a callback — is
 never reverted. Wrap that function in `contextSafe`, from the same hook, and the

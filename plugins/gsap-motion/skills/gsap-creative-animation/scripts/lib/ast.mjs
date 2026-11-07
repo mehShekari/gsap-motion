@@ -665,14 +665,14 @@ export function gsapContexts(root) {
       if (counts.get(name) !== 1 || contained.has(fn)) continue;
       const uses = identifiers.filter((id) => id.name === name && isReference(root, id));
       if (!uses.length) continue;
+      /**
+       * Called from inside, or handed from inside to GSAP — `onComplete: settle`
+       * — which runs it in the same context. 4.6.2 taught this to functions
+       * declared in a context body and missed one declared in the component.
+       */
       const calledFromInside = uses.every((id) => {
         const parent = parentOf(root, id);
-        return (
-          parent?.type === "CallExpression" &&
-          parent.callee === id &&
-          !contains(fn, parent) &&
-          inside(parent)
-        );
+        return calledHere(id, parent) && !contains(fn, parent) && inside(parent);
       });
       if (calledFromInside) {
         contained.add(fn);

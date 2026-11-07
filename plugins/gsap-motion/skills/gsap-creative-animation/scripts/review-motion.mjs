@@ -44,6 +44,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  afterSteps,
   connect,
   exitFor,
   findChrome,
@@ -705,6 +706,7 @@ async function watch(options) {
       if (missed) notDone.push(missed);
       else notes.push(scrollNote(moved));
       await wait(options.watch);
+      if (!missed) notes.push(...(await afterSteps(evaluate, moved.y, options.url)));
     }
 
     const recorded = await evaluate(

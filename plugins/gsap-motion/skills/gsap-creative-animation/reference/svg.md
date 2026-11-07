@@ -200,6 +200,13 @@ Any one of these fixes it: the origin in the from-vars, a `gsap.set` of the
 origin before the tween, or `smoothOrigin: false`. `audit-gsap` reports the
 `fromTo` shape as `late-transform-origin`.
 
+On SVG, `transformOrigin` — the default included — is measured from the
+element's own bounding box, its top-left corner by default, not from the
+`viewBox`'s 0,0 (CSSPlugin `_applySVGOrigin`). A camera that scales and pans a
+`<g>` with numbers worked out in `viewBox` coordinates misses its focus by
+(1 − scale) × that corner. Give it `svgOrigin: "0 0"`, which is in `viewBox`
+units, and the arithmetic holds.
+
 ## Masks and clip paths
 
 Often better than either plugin, and cheaper. A mask reveal is a transform on a

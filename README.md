@@ -48,7 +48,7 @@ This skill gives the agent two things it lacks:
   They load only when a request needs them.
 - **Presets and worked examples** for reveals, marquees, card stacks, loaders,
   site intros, page transitions and scroll storytelling.
-- **`audit-gsap`**: 28 rules for leaks, per-frame cost, eased loops, shared
+- **`audit-gsap`**: 30 rules for leaks, per-frame cost, eased loops, shared
   plugin ids, unregistered plugins and shipped dev tooling — from the command
   line, or in your editor as an ESLint plugin.
 - **`audit-svg`**: what an SVG can do before you animate it — what DrawSVG can
@@ -271,7 +271,7 @@ can gate a build. Pin the version, so a new rule cannot fail your build without
 warning:
 
 ```json
-"lint": "eslint && npx @mehshekari/gsap-motion@4.6.2 audit src --quiet"
+"lint": "eslint && npx @mehshekari/gsap-motion@4.7.0 audit src --quiet"
 ```
 
 Or install it with `npm install --save-dev --save-exact @mehshekari/gsap-motion`;
@@ -293,6 +293,8 @@ With the skill installed, the same scripts are in its folder:
 | `never-completes` | error | An `onComplete` that can never run: on a timeline holding a `repeat: -1` child, or on a tween or timeline that repeats forever |
 | `dev-tool-shipped` | error | `GSDevTools` or `MotionPathHelper` imported statically, or unconditional `markers: true` |
 | `ref-read-in-cleanup` | warn | `killTweensOf` given a ref's `.current` in a `useEffect` cleanup, where React has already cleared it at unmount |
+| `stacked-runs` | info | A `useGSAP` with `dependencies` and no `revertOnUpdate` whose body builds a live instance — `matchMedia`, a `ScrollTrigger`, an `Observer` — on every run |
+| `context-safe-retention` | info | A `contextSafe` event handler that builds a new tween on every call, each kept in the context until it reverts |
 | `dangling-listener` | warn | An event listener that is never removed, including inline handlers that cannot be |
 | `layout-property` | warn | Animating `width`, `height`, `top`, `left`, margins or padding, which forces layout every frame |
 | `trigger-per-item` | warn | A ScrollTrigger created per item in a loop |

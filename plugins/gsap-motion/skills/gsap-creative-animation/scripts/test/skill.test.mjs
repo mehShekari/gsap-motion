@@ -65,8 +65,12 @@ const BUDGET = {
    * Every other stack fell from 3,873 to between 2,980 and 3,300, which is what
    * the split was for: a Vue project no longer reads past React and Svelte to
    * find its own lifecycle.
+   *
+   * 4,200 from 4.7, by the owner's choice over cutting: `revertOnUpdate`'s
+   * cost and Next's kept routes, both from a field report, took r3f and next
+   * past 4,150.
    */
-  componentWords: 4150,
+  componentWords: 4200,
   component: {
     next: [...ALWAYS, "adapter/react.md", "adapter/next.md"],
     react: [...ALWAYS, "adapter/react.md"],
@@ -80,10 +84,11 @@ const BUDGET = {
   /**
    * The largest request on the largest stack. It rose from 5,000 in 3.2, when
    * the adapter split gave this tier two files where it had one: the same
-   * guidance, in a shape that lets every other stack load less.
+   * guidance, in a shape that lets every other stack load less. 5,250 from
+   * 4.7, for the same two additions as the component tier.
    */
   build: [...ALWAYS, "adapter/react.md", "adapter/next.md", "reference/core-gsap.md"],
-  buildWords: 5200,
+  buildWords: 5250,
 };
 
 /** Strings that only ever mean the project this skill was developed in. */
